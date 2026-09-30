@@ -1,0 +1,21 @@
+[project]
+name = "aws-design-sheet"
+version = "0.1.0"
+description = "AWS design data extraction and validation with bundled schemas and rules"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2,<3", "jsonschema>=4,<5", "openpyxl>=3.1,<4"]
+
+[project.optional-dependencies]
+llm = ["anthropic>=1"]
+
+[project.scripts]
+aws-design-check = "aws_design_sheet.cli:main"
+aws-design-run = "aws_design_sheet.runner:main"
+aws-design-correct = "aws_design_sheet.corrections:main"
+aws-design-benchmark = "aws_design_sheet.benchmark:main"
+aws-design-evaluate = "aws_design_sheet.evaluate:main"
+aws-design-schemas = "aws_design_sheet.schemas:main"
+aws-design-coverage = "aws_design_sheet.coverage_report:main"
+aws-design-excel = "aws_design_sheet.excel_report:main"
+aws-design-source-audit = "aws_design_sheet.source_audit:main"
+aws-design-review = "aws_design_sheet.rule_review:main"

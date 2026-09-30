@@ -1,0 +1,30 @@
+{
+  "model_version": "1.0",
+  "project": "sample-network",
+  "environment": "prod",
+  "account": "111111111111",
+  "region": "ap-northeast-1",
+  "documents": [
+    {"id": "doc-1", "name": "network.txt", "version": "1", "sha256": "b14aabd8affa9b2eb8e95c63459875c325f6a6c2f05d8c22b63991196ea4fb3e", "text": "VPC 10.0.0.0/16\nSubnet 10.0.1.0/24\nDNS false\nPublic IP false\nSubnet VPC main", "extracted_ranges": [[1, 5]]}
+  ],
+  "evidence": [
+    {"id": "e-vpc", "document_id": "doc-1", "start_line": 1, "end_line": 1, "excerpt": "VPC 10.0.0.0/16"},
+    {"id": "e-subnet", "document_id": "doc-1", "start_line": 2, "end_line": 2, "excerpt": "Subnet 10.0.1.0/24"},
+    {"id": "e-dns", "document_id": "doc-1", "start_line": 3, "end_line": 3, "excerpt": "DNS false"},
+    {"id": "e-public", "document_id": "doc-1", "start_line": 4, "end_line": 4, "excerpt": "Public IP false"},
+    {"id": "e-ref", "document_id": "doc-1", "start_line": 5, "end_line": 5, "excerpt": "Subnet VPC main"}
+  ],
+  "resources": [
+    {"id": "vpc-main", "type": "AWS::EC2::VPC", "name": "main", "scope": {"environment": "prod", "account": "111111111111", "region": "ap-northeast-1"}, "fields": [
+      {"path": "/properties/CidrBlock", "state": "KNOWN", "selected_candidate_id": "vpc-cidr", "candidates": [{"id": "vpc-cidr", "raw": "10.0.0.0/16", "value": "10.0.0.0/16", "evidence_ids": ["e-vpc"]}]},
+      {"path": "/properties/EnableDnsSupport", "state": "KNOWN", "selected_candidate_id": "dns", "candidates": [{"id": "dns", "raw": "false", "value": false, "evidence_ids": ["e-dns"]}]}
+    ]},
+    {"id": "subnet-a", "type": "AWS::EC2::Subnet", "name": "app-a", "scope": {"environment": "prod", "account": "111111111111", "region": "ap-northeast-1"}, "fields": [
+      {"path": "/properties/CidrBlock", "state": "KNOWN", "selected_candidate_id": "subnet-cidr", "candidates": [{"id": "subnet-cidr", "raw": "10.0.1.0/24", "value": "10.0.1.0/24", "evidence_ids": ["e-subnet"]}]},
+      {"path": "/properties/MapPublicIpOnLaunch", "state": "KNOWN", "selected_candidate_id": "public", "candidates": [{"id": "public", "raw": "false", "value": false, "evidence_ids": ["e-public"]}]}
+    ]}
+  ],
+  "relations": [
+    {"id": "rel-1", "source_resource_id": "subnet-a", "source_path": "/properties/VpcId", "target_resource_id": "vpc-main", "evidence_ids": ["e-ref"]}
+  ]
+}

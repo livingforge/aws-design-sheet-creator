@@ -19,4 +19,3 @@ aws-design-coverage = "aws_design_sheet.coverage_report:main"
 aws-design-excel = "aws_design_sheet.excel_report:main"
 aws-design-source-audit = "aws_design_sheet.source_audit:main"
 aws-design-review = "aws_design_sheet.rule_review:main"
-

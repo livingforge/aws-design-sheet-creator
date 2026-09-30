@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "types": {
+    "AWS::EC2::VPC": [
+      {"path": "/properties/CidrBlock", "label": "VPC IPv4 CIDR", "alternatives": ["/properties/Ipv4IpamPoolId"]},
+      {"path": "/properties/EnableDnsSupport", "label": "DNS resolution policy", "when": {"environment": "prod"}}
+    ],
+    "AWS::EC2::Subnet": [
+      {"path": "/properties/VpcId", "label": "VPC reference"},
+      {"path": "/properties/CidrBlock", "label": "Subnet IPv4 CIDR", "alternatives": ["/properties/Ipv4IpamPoolId"]},
+      {"path": "/properties/MapPublicIpOnLaunch", "label": "Public IP policy", "when": {"environment": "prod"}}
+    ],
+    "AWS::EC2::SecurityGroup": [
+      {"path": "/properties/GroupDescription", "label": "Security group description"},
+      {"path": "/properties/VpcId", "label": "VPC reference"}
+    ],
+    "AWS::RDS::DBSubnetGroup": [
+      {"path": "/properties/DBSubnetGroupDescription", "label": "DB subnet group description"},
+      {"path": "/properties/SubnetIds", "label": "Subnet references"}
+    ],
+    "AWS::RDS::DBInstance": [
+      {"path": "/properties/Engine", "label": "Database engine"},
+      {"path": "/properties/DBInstanceClass", "label": "Instance class"},
+      {"path": "/properties/DBSubnetGroupName", "label": "DB subnet group", "when": {"environment": "prod"}}
+    ]
+  }
+}
