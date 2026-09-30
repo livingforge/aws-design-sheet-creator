@@ -1,0 +1,7 @@
+VPC main: CidrBlock=10.0.0.0/16; EnableDnsSupport=true
+Subnet private-a: Vpc=main; CidrBlock=10.0.1.0/24; AvailabilityZone=ap-northeast-1a; MapPublicIpOnLaunch=false
+Subnet private-c: Vpc=main; CidrBlock=10.1.2.0/24; AvailabilityZone=ap-northeast-1c; MapPublicIpOnLaunch=false
+Subnet public-a: Vpc=main; CidrBlock=10.0.1.128/25; AvailabilityZone=ap-northeast-1a
+SecurityGroup db-sg: Vpc=main; GroupDescription="DB access"
+DBSubnetGroup db-subnets: Subnets=["private-a","private-c"]; DBSubnetGroupDescription="DB subnets"
+DBInstance primary: DBSubnetGroup=db-subnets; SecurityGroups=["db-sg"]; Engine=postgres; DBInstanceClass=db.t3.micro; StorageEncrypted=false

@@ -1,0 +1,2 @@
+VPC main: CidrBlock=10.0.0.0/16; EnableDnsSupport=false
+Subnet app-a: Vpc=main; CidrBlock=10.0.1.0/24; MapPublicIpOnLaunch=false

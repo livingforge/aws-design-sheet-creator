@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+src/*.egg-info/
+output/
+.claude/scheduled_tasks.lock
