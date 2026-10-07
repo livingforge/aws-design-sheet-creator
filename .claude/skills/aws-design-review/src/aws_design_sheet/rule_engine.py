@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import json
 import re
+from decimal import Decimal, InvalidOperation
 from dataclasses import dataclass, field as dataclass_field
 from typing import Any
 
-from .models import FieldValue, Resource, ValueState
+from .extractor import TYPED_REFERENCE
+from .models import Candidate, FieldValue, Resource, ValueState
 
 
 TYPE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9]*::[A-Za-z][A-Za-z0-9]*::[A-Za-z][A-Za-z0-9]*$")
@@ -131,6 +133,13 @@ def _condition(raw: Any, relative: bool) -> dict:
         _path(result["path"], relative=relative)
         _json_value(result["value"])
         return result
+    if op == "field_matches":
+        result = _object(raw, {"op", "path", "pattern"}, {"op", "path", "pattern"}, "when")
+        _path(result["path"], relative=relative)
+        if not isinstance(result["pattern"], str) or not result["pattern"]:
+            raise ValueError("pattern must be a nonempty string")
+        re.compile(result["pattern"])
+        return result
     if op in ("all_of", "any_of"):
         result = _object(raw, {"op", "conditions"}, {"op", "conditions"}, "when")
         if not isinstance(result["conditions"], list) or len(result["conditions"]) < 2:
@@ -181,6 +190,30 @@ def _assertion(raw: Any, relative: bool) -> dict:
         if "min" in result and "max" in result and result["min"] > result["max"]:
             raise ValueError(f"{op} min exceeds max")
         return result
+    if op in ("count_items_equal", "count_items_present"):
+        allowed = {"op", "path", "item_path", "min", "max"}
+        required = {"op", "path", "item_path"}
+        if op == "count_items_equal":
+            allowed.add("equals")
+            required.add("equals")
+        result = _object(raw, allowed, required, "assert")
+        _path(result["path"], relative=relative)
+        _path(result["item_path"], relative=True)
+        if op == "count_items_equal":
+            _json_value(result["equals"])
+        if "min" not in result and "max" not in result:
+            raise ValueError(f"{op} needs min or max")
+        for key in ("min", "max"):
+            if key in result and (type(result[key]) is not int or result[key] < 0):
+                raise ValueError(f"{op} {key} must be a nonnegative integer")
+        if "min" in result and "max" in result and result["min"] > result["max"]:
+            raise ValueError(f"{op} min exceeds max")
+        return result
+    if op == "items_same":
+        result = _object(raw, {"op", "path", "item_path"}, {"op", "path", "item_path"}, "assert")
+        _path(result["path"], relative=relative)
+        _path(result["item_path"], relative=True)
+        return result
     if op in ("value_in", "items_in"):
         result = _object(raw, {"op", "path", "values"}, {"op", "path", "values"}, "assert")
         _path(result["path"], relative=relative)
@@ -192,12 +225,24 @@ def _assertion(raw: Any, relative: bool) -> dict:
         if "key" in result:
             _path(result["key"], relative=True)
         return result
-    if op == "matches":
+    if op in ("matches", "items_match", "map_values_match"):
         result = _object(raw, {"op", "path", "pattern"}, {"op", "path", "pattern"}, "assert")
         _path(result["path"], relative=relative)
         if not isinstance(result["pattern"], str) or not result["pattern"]:
             raise ValueError("pattern must be a nonempty string")
         re.compile(result["pattern"])
+        return result
+    if op == "map_keys_match":
+        result = _object(raw, {"op", "path", "pattern"}, {"op", "path", "pattern"}, "assert")
+        _path(result["path"], relative=relative)
+        if not isinstance(result["pattern"], str) or not result["pattern"]:
+            raise ValueError("pattern must be a nonempty string")
+        re.compile(result["pattern"])
+        return result
+    if op == "items_in_map_keys":
+        result = _object(raw, {"op", "path", "map_path"}, {"op", "path", "map_path"}, "assert")
+        _path(result["path"], relative=relative)
+        _path(result["map_path"], relative=relative)
         return result
     if op == "compare":
         result = _object(raw, {"op", "left", "cmp", "right"}, {"op", "left", "cmp", "right"}, "assert")
@@ -207,6 +252,30 @@ def _assertion(raw: Any, relative: bool) -> dict:
             raise ValueError("comparison left operand must be a path")
         if result["cmp"] not in COMPARISONS:
             raise ValueError("invalid comparison operator")
+        return result
+    if op == "compare_scaled":
+        result = _object(raw, {"op", "left", "cmp", "right", "factor"},
+                         {"op", "left", "cmp", "right", "factor"}, "assert")
+        _path(result["left"], relative=relative)
+        _path(result["right"], relative=relative)
+        if result["cmp"] not in COMPARISONS:
+            raise ValueError("invalid comparison operator")
+        factor = result["factor"]
+        if type(factor) not in (int, float, str):
+            raise ValueError("compare_scaled factor must be a finite nonnegative number")
+        try:
+            parsed = Decimal(str(factor))
+        except InvalidOperation as exc:
+            raise ValueError("compare_scaled factor must be a finite nonnegative number") from exc
+        if not parsed.is_finite() or parsed < 0:
+            raise ValueError("compare_scaled factor must be a finite nonnegative number")
+        return result
+    if op == "multiple_of":
+        result = _object(raw, {"op", "path", "divisor"}, {"op", "path", "divisor"}, "assert")
+        _path(result["path"], relative=relative)
+        divisor = _decimal_number(result["divisor"])
+        if divisor is None or divisor <= 0:
+            raise ValueError("multiple_of divisor must be a finite positive number")
         return result
     raise ValueError(f"unknown assert operator: {op!r}")
 
@@ -314,6 +383,15 @@ def _evidence(field: FieldValue | None) -> list[str]:
                                *(e for candidate in field.candidates for e in candidate.evidence_ids)]))
 
 
+def _nested_state(value: Any) -> Any:
+    """Interpret reserved state markers in nested example/design values."""
+    if isinstance(value, dict) and set(value) == {"$state"}:
+        if value["$state"] in ("MISSING", "NOT_APPLICABLE"):
+            return ABSENT
+        return UNKNOWN
+    return value
+
+
 class _Context:
     """Where relative pointers resolve: the resource, or one known object inside it."""
 
@@ -334,7 +412,7 @@ class _Context:
         if not self.base:
             field = self.resource.field(path)
             if field is not None:
-                return _state(field), field
+                return _nested_state(_state(field)), field
             tokens = _tokens(path)[1:]
             field = self.resource.field("/properties/" + tokens[0].replace("~", "~0").replace("/", "~1"))
             value = _state(field)
@@ -342,6 +420,7 @@ class _Context:
         else:
             field, value, tokens = self.field, self.value, _tokens(path)
         for token in tokens:
+            value = _nested_state(value)
             if value is UNKNOWN or value is ABSENT:
                 return value, field
             if isinstance(value, dict):
@@ -353,7 +432,61 @@ class _Context:
                 value = ABSENT
             else:
                 return UNKNOWN, field
-        return value, field
+        return _nested_state(value), field
+
+
+def _insert_reference(node: Any, tokens: list[str], leaf: Any) -> Any:
+    if not tokens:
+        return leaf
+    if isinstance(node, dict) and set(node) == {"$state"}:
+        node = None
+    token = tokens[0]
+    if token.isdigit():
+        items = list(node) if isinstance(node, list) else []
+        index = int(token)
+        items.extend({"$state": "UNRESOLVED"} for _ in range(index + 1 - len(items)))
+        items[index] = _insert_reference(items[index], tokens[1:], leaf)
+        return items
+    mapping = dict(node) if isinstance(node, dict) else {}
+    mapping[token] = _insert_reference(mapping.get(token), tokens[1:], leaf)
+    return mapping
+
+
+def reference_view(resource: Resource, relations: list, types: dict[str, str]) -> Resource:
+    """Return the resource with reference-only properties shown as typed references.
+
+    A property given only as ``@Type/name`` is stored as a relation, not as a field.
+    Rules must still see it as specified; its physical value stays unknown, so value
+    checks on the reference string need review. ``types`` maps resource IDs to types.
+    """
+    values: dict[str, Any] = {}
+    evidence: dict[str, list[str]] = {}
+    seen: set[str] = set()
+    for relation in relations:
+        tokens = _tokens(relation.source_path)
+        if len(tokens) < 2 or tokens[0] != "properties":
+            continue
+        top = "/properties/" + tokens[1].replace("~", "~0").replace("/", "~1")
+        field = resource.field(top)
+        if field is not None and field.state != ValueState.MISSING:
+            continue
+        target_type = relation.expected_target_type or types.get(relation.target_resource_id or "")
+        name = relation.unresolved_name
+        leaf = (f"@{target_type}/{name}" if target_type and name and not relation.condition
+                and relation.source_path not in seen else {"$state": "UNRESOLVED"})
+        seen.add(relation.source_path)
+        values[top] = _insert_reference(values.get(top), tokens[2:], leaf)
+        evidence.setdefault(top, []).extend(relation.evidence_ids)
+    if not values:
+        return resource
+    fields = [field for field in resource.fields if field.path not in values]
+    for top, value in values.items():
+        candidate = Candidate(id="reference-" + top, raw=json.dumps(value, ensure_ascii=False),
+                              value=value, evidence_ids=list(dict.fromkeys(evidence[top])) or ["reference"],
+                              origin="reference")
+        fields.append(FieldValue(path=top, state=ValueState.KNOWN, candidates=[candidate],
+                                 selected_candidate_id=candidate.id))
+    return resource.model_copy(update={"fields": fields})
 
 
 def _state(field: FieldValue | None) -> Any:
@@ -373,6 +506,7 @@ def _scopes(resource: Resource, scope: str) -> tuple[list[_Context], list[str], 
     for token in tokens[1:]:
         following = []
         for base, value in frontier:
+            value = _nested_state(value)
             if value is ABSENT or value is None:
                 continue
             if value is UNKNOWN:
@@ -391,6 +525,7 @@ def _scopes(resource: Resource, scope: str) -> tuple[list[_Context], list[str], 
         frontier = following
     contexts, unresolved = [], []
     for base, value in frontier:
+        value = _nested_state(value)
         if value is UNKNOWN or not isinstance(value, dict):
             if value is not ABSENT and value is not None:
                 unresolved.append(base)
@@ -427,6 +562,9 @@ def _test(condition: dict, context: _Context, dependencies: list[str],
     value, field = context.lookup(condition["path"])
     if field is not None:
         fields.append(field)
+    if (op in ("field_equals", "field_in") and isinstance(value, str)
+            and TYPED_REFERENCE.fullmatch(value)):
+        value = UNKNOWN
     if value is UNKNOWN or (op == "field_equals" and value is ABSENT):
         dependencies.append(context.absolute(condition["path"]))
         return None
@@ -441,6 +579,13 @@ def _test(condition: dict, context: _Context, dependencies: list[str],
             dependencies.append(context.absolute(condition["path"]))
             return None
         return any(_equal(item, condition["value"]) for item in value)
+    if op == "field_matches":
+        if value is ABSENT:
+            return False
+        if not isinstance(value, str) or TYPED_REFERENCE.fullmatch(value):
+            dependencies.append(context.absolute(condition["path"]))
+            return None
+        return re.search(condition["pattern"], value) is not None
     return value is not ABSENT and any(_equal(value, item) for item in condition["values"])
 
 
@@ -450,6 +595,16 @@ def _number(value: Any) -> float | int | None:
     if isinstance(value, str) and re.fullmatch(r"-?\d+(?:\.\d+)?", value.strip()):
         return float(value) if "." in value else int(value)
     return None
+
+
+def _decimal_number(value: Any) -> Decimal | None:
+    if type(value) not in (int, float, str):
+        return None
+    try:
+        result = Decimal(str(value).strip())
+    except InvalidOperation:
+        return None
+    return result if result.is_finite() else None
 
 
 def _check(assertion: dict, context: _Context) -> tuple[str, str, Any, Any, list[str], list[FieldValue]]:
@@ -463,6 +618,33 @@ def _check(assertion: dict, context: _Context) -> tuple[str, str, Any, Any, list
             fields.append(field)
         return value
 
+    if op == "items_in_map_keys":
+        path, map_path = assertion["path"], assertion["map_path"]
+        items = read(path)
+        expected = read(map_path)
+        if items is ABSENT:
+            return "NOT_APPLICABLE", "array is not specified", map_path, None, [], fields
+        if items is UNKNOWN or expected is UNKNOWN:
+            pending = [context.absolute(p) for p, value in ((path, items), (map_path, expected))
+                       if value is UNKNOWN]
+            return "NEEDS_REVIEW", "array or map is unresolved", map_path, None, pending, fields
+        if not isinstance(items, list):
+            return "FAIL", "value is not an array", map_path, items, [], fields
+        if not items:
+            return "PASS", "array is empty", map_path, items, [], fields
+        if expected is ABSENT:
+            return "FAIL", "required map is not specified", map_path, items, [], fields
+        if not isinstance(expected, dict):
+            return "FAIL", "value is not a map", map_path, expected, [], fields
+        outside = [item for item in items if not isinstance(item, str) or
+                   (not TYPED_REFERENCE.fullmatch(item) and item not in expected)]
+        if outside:
+            return "FAIL", "array item is absent from map keys", map_path, outside, [], fields
+        pending = [f"{context.absolute(path)}/{index}" for index, item in enumerate(items)
+                   if TYPED_REFERENCE.fullmatch(item)]
+        if pending:
+            return "NEEDS_REVIEW", "array item is a resource reference", map_path, items, pending, fields
+        return "PASS", "array items exist in map keys", map_path, items, [], fields
     if op == "count_present":
         values = {path: read(path) for path in assertion["paths"]}
         present = [path for path, value in values.items() if value not in (ABSENT, UNKNOWN)]
@@ -480,6 +662,87 @@ def _check(assertion: dict, context: _Context) -> tuple[str, str, Any, Any, list
             return "FAIL", "number of specified properties is out of range", expected, actual, [], fields
         return ("NEEDS_REVIEW", "specified properties depend on unresolved values", expected, actual,
                 [context.absolute(path) for path in unknown], fields)
+    if op in ("count_items_equal", "count_items_present"):
+        path = assertion["path"]
+        actual = read(path)
+        absolute = context.absolute(path)
+        expected = {key: assertion[key] for key in ("item_path", "equals", "min", "max")
+                    if key in assertion}
+        if actual is UNKNOWN:
+            return "NEEDS_REVIEW", "array value is unresolved", expected, None, [absolute], fields
+        if actual is ABSENT:
+            return "NOT_APPLICABLE", "array is not specified", expected, None, [], fields
+        if not isinstance(actual, list):
+            return "FAIL", "value is not an array", expected, actual, [], fields
+        matches = 0
+        unknown = []
+        for index, item in enumerate(actual):
+            item_base = f"{absolute}/{index}"
+            value = _Context(context.resource, item_base, item).lookup(assertion["item_path"])[0]
+            if value is UNKNOWN or (isinstance(value, dict) and set(value) == {"$state"}):
+                unknown.append(item_base + assertion["item_path"])
+            elif value is not ABSENT and (op == "count_items_present" or _equal(value, assertion["equals"])):
+                matches += 1
+        def valid(count: int) -> bool:
+            return ("min" not in assertion or count >= assertion["min"]) and (
+                "max" not in assertion or count <= assertion["max"])
+        verdicts = {valid(count) for count in range(matches, matches + len(unknown) + 1)}
+        if verdicts == {True}:
+            return "PASS", "matching item count is in range", expected, matches, [], fields
+        if verdicts == {False}:
+            return "FAIL", "matching item count is out of range", expected, matches, [], fields
+        return "NEEDS_REVIEW", "matching item count depends on unresolved values", expected, matches, unknown, fields
+    if op == "items_same":
+        path = assertion["path"]
+        actual = read(path)
+        absolute = context.absolute(path)
+        item_path = assertion["item_path"]
+        if actual is UNKNOWN:
+            return "NEEDS_REVIEW", "array value is unresolved", item_path, None, [absolute], fields
+        if actual is ABSENT:
+            return "NOT_APPLICABLE", "array is not specified", item_path, None, [], fields
+        if not isinstance(actual, list):
+            return "FAIL", "value is not an array", item_path, actual, [], fields
+        known, pending = [], []
+        missing = 0
+        for index, item in enumerate(actual):
+            item_base = f"{absolute}/{index}"
+            value = _Context(context.resource, item_base, item).lookup(item_path)[0]
+            if value is UNKNOWN or (isinstance(value, dict) and set(value) == {"$state"}):
+                pending.append(item_base + item_path)
+            elif value is not ABSENT:
+                known.append(value)
+            else:
+                missing += 1
+                pending.append(item_base + item_path)
+        if not known and not actual:
+            return "NOT_APPLICABLE", "array has no items", item_path, [], [], fields
+        if missing == len(actual):
+            return "NOT_APPLICABLE", "item property is not specified", item_path, None, [], fields
+        if known and any(not _equal(value, known[0]) for value in known[1:]):
+            return "FAIL", "array items specify different values", item_path, known, [], fields
+        if pending:
+            return "NEEDS_REVIEW", "some array item values are unresolved or missing", item_path, known, pending, fields
+        return "PASS", "array items specify the same value", item_path, known, [], fields
+    if op == "multiple_of":
+        path = assertion["path"]
+        actual = read(path)
+        absolute = context.absolute(path)
+        expected = {"multiple_of": assertion["divisor"]}
+        if actual is ABSENT:
+            return "NOT_APPLICABLE", "value is not specified", expected, None, [], fields
+        if actual is UNKNOWN:
+            return "NEEDS_REVIEW", "value is unresolved", expected, None, [absolute], fields
+        number = _decimal_number(actual)
+        if number is None:
+            return "NEEDS_REVIEW", "value is not a finite number", expected, actual, [absolute], fields
+        # Integer ratios avoid floating point tolerance and Decimal context rounding.
+        numerator, denominator = number.as_integer_ratio()
+        step_numerator, step_denominator = _decimal_number(assertion["divisor"]).as_integer_ratio()
+        passed = (numerator * step_denominator) % (denominator * step_numerator) == 0
+        return (("PASS", "value is a multiple of the required increment") if passed else
+                ("FAIL", "value is not a multiple of the required increment")) + (
+                    expected, actual, [], fields)
     if op == "compare":
         left = read(assertion["left"]["path"])
         right = read(assertion["right"]["path"]) if "path" in assertion["right"] else assertion["right"]["value"]
@@ -498,12 +761,36 @@ def _check(assertion: dict, context: _Context) -> tuple[str, str, Any, Any, list
         passed = COMPARISONS[assertion["cmp"]](*numbers)
         return (("PASS", "comparison holds") if passed else ("FAIL", "comparison does not hold")) + (
             expected, [left, right], [], fields)
+    if op == "compare_scaled":
+        left = read(assertion["left"])
+        right = read(assertion["right"])
+        expected = {"cmp": assertion["cmp"], "right": assertion["right"],
+                    "factor": assertion["factor"]}
+        pending = [context.absolute(path) for path, value in
+                   ((assertion["left"], left), (assertion["right"], right)) if value is UNKNOWN]
+        if pending:
+            return "NEEDS_REVIEW", "compared value is unresolved", expected, None, pending, fields
+        if left is ABSENT or right is ABSENT:
+            return "NOT_APPLICABLE", "compared value is not specified", expected, None, [], fields
+        numbers = _decimal_number(left), _decimal_number(right)
+        if None in numbers:
+            dependencies = [context.absolute(path) for path, number in
+                            ((assertion["left"], numbers[0]), (assertion["right"], numbers[1]))
+                            if number is None]
+            return "NEEDS_REVIEW", "compared value is not numeric", expected, [left, right], dependencies, fields
+        passed = COMPARISONS[assertion["cmp"]](numbers[0], numbers[1] * Decimal(str(assertion["factor"])))
+        return (("PASS", "scaled comparison holds") if passed else
+                ("FAIL", "scaled comparison does not hold")) + (expected, [left, right], [], fields)
 
     path = assertion["path"]
     actual = read(path)
     absolute = context.absolute(path)
     if actual is UNKNOWN:
         return "NEEDS_REVIEW", "design value is unresolved", None, None, [absolute], fields
+    if (op not in ("required", "present", "absent") and isinstance(actual, str)
+            and TYPED_REFERENCE.fullmatch(actual)):
+        # A reference is specified, but the physical value it resolves to is unknown.
+        return "NEEDS_REVIEW", "value is a resource reference", None, actual, [absolute], fields
     if op == "required":
         if actual is ABSENT:
             return "NEEDS_REVIEW", "design value is unresolved", "known value", None, [absolute], fields
@@ -535,12 +822,55 @@ def _check(assertion: dict, context: _Context) -> tuple[str, str, Any, Any, list
                 ("FAIL", "array size is out of range")) + (expected, count, [], fields)
     if actual is ABSENT:
         return "NOT_APPLICABLE", "value is not specified", None, None, [], fields
-    if op in ("unique", "items_in"):
+    if op == "map_keys_match":
+        expected = assertion["pattern"]
+        if not isinstance(actual, dict):
+            return "FAIL", "value is not a map", expected, actual, [], fields
+        outside = [key for key in actual if not isinstance(key, str) or not re.fullmatch(expected, key)]
+        return (("FAIL", "map has keys that do not match pattern") if outside else
+                ("PASS", "all map keys match pattern")) + (expected, outside or list(actual), [], fields)
+    if op == "map_values_match":
+        expected = assertion["pattern"]
+        if not isinstance(actual, dict):
+            return "FAIL", "value is not a map", expected, actual, [], fields
+        outside = {key: value for key, value in actual.items()
+                   if not isinstance(value, str) or
+                   (not TYPED_REFERENCE.fullmatch(value) and not re.fullmatch(expected, value))}
+        pending = [absolute + "/" + key.replace("~", "~0").replace("/", "~1")
+                   for key, value in actual.items()
+                   if isinstance(value, str) and TYPED_REFERENCE.fullmatch(value)]
+        if outside:
+            return "FAIL", "map has values that do not match pattern", expected, outside, [], fields
+        if pending:
+            return "NEEDS_REVIEW", "map value is a resource reference", expected, actual, pending, fields
+        return "PASS", "all map values match pattern", expected, actual, [], fields
+    if op in ("unique", "items_in", "items_match"):
         if not isinstance(actual, list):
             return "FAIL", "value is not an array", None, actual, [], fields
+        if op == "items_match":
+            pattern = assertion["pattern"]
+            outside = [item for item in actual if isinstance(item, str)
+                       and not TYPED_REFERENCE.fullmatch(item) and not re.fullmatch(pattern, item)]
+            outside.extend(item for item in actual if not isinstance(item, str)
+                           and _nested_state(item) is not UNKNOWN)
+            pending = [f"{absolute}/{index}" for index, item in enumerate(actual)
+                       if _nested_state(item) is UNKNOWN or
+                       (isinstance(item, str) and TYPED_REFERENCE.fullmatch(item))]
+            if not outside and pending:
+                return "NEEDS_REVIEW", "array item is a resource reference", pattern, actual, pending, fields
+            return (("FAIL", "array has items that do not match pattern") if outside else
+                    ("PASS", "all array items match pattern")) + (pattern, outside or actual, [], fields)
         if op == "items_in":
             expected = assertion["values"]
-            outside = [item for item in actual if not any(_equal(item, v) for v in expected)]
+            outside = [item for item in actual if _nested_state(item) is not UNKNOWN
+                       and not any(_equal(item, v) for v in expected)]
+            pending = [f"{absolute}/{index}" for index, item in enumerate(actual)
+                       if _nested_state(item) is UNKNOWN or
+                       (isinstance(item, str) and TYPED_REFERENCE.fullmatch(item))]
+            outside = [item for item in outside if not (
+                isinstance(item, str) and TYPED_REFERENCE.fullmatch(item))]
+            if not outside and pending:
+                return "NEEDS_REVIEW", "array items are unresolved", expected, actual, pending, fields
             return (("FAIL", "array has items that are not allowed") if outside else
                     ("PASS", "all array items are allowed")) + (expected, outside or actual, [], fields)
         keys = []
@@ -585,7 +915,7 @@ def _target_path(assertion: dict) -> str:
         return assertion["path"]
     if "paths" in assertion:
         return assertion["paths"][0]
-    return assertion["left"]["path"]
+    return assertion["left"]["path"] if isinstance(assertion["left"], dict) else assertion["left"]
 
 
 def _evaluate(rule: Rule, context: _Context) -> dict[str, Any]:

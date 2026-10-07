@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from aws_design_sheet.coverage_report import build_report, main
 
 
@@ -16,6 +18,16 @@ def test_baseline_report_reconciles_all_types():
     assert sum(row["total"] for row in report["namespace_counts"].values()) == 1606
     assert report["namespace_counts"]["EC2"]["total"] == 117
     assert len(report["unresearched_types"]) == report["state_counts"]["UNRESEARCHED"]
+    assert sum(row["total"] for row in report["tier_counts"].values()) == 1606
+    assert sum(row["rule_count"] for row in report["tier_counts"].values()) == report["rule_count"]
+    assert sum(row["open_question_count"] for row in report["tier_counts"].values()) == report["open_question_count"]
+    assert report["tier_counts"]["T1"]["rule_count"] == sum(
+        report["namespace_counts"][namespace]["rule_count"]
+        for namespace in report["tier_counts"]["T1"]["namespaces"])
+    assert report["tier_counts"]["T1"]["state_counts"]["REVIEW_REQUIRED"] == sum(
+        report["namespace_counts"][namespace]["state_counts"]["REVIEW_REQUIRED"]
+        for namespace in report["tier_counts"]["T1"]["namespaces"])
+    assert set(report["tier_counts"]["T1"]["namespaces"]) == {"EC2", "IAM", "Lambda", "RDS", "S3"}
 
 
 def test_reviewed_type_changes_counts_and_cli_writes_file(tmp_path):
@@ -49,3 +61,18 @@ def test_invalid_ledger_fails_without_coverage_claim(tmp_path):
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["status"] == "FAILED"
     assert "state_counts" not in report
+
+
+def test_custom_tiers_can_replace_the_provisional_priority(tmp_path):
+    tiers = {"tier_version": "project-1", "tiers": {"T1": ["S3"]},
+             "default_tier": "T3"}
+    path = tmp_path / "tiers.json"
+    path.write_text(json.dumps(tiers), encoding="utf-8")
+    report = build_report(LEDGER, SCHEMAS, path)
+    assert report["tier_version"] == "project-1"
+    assert report["tier_counts"]["T1"]["namespaces"] == ["S3"]
+    assert report["tier_counts"]["T1"]["total"] == report["namespace_counts"]["S3"]["total"]
+    tiers["tiers"]["T2"] = ["S3"]
+    path.write_text(json.dumps(tiers), encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate tier namespace"):
+        build_report(LEDGER, SCHEMAS, path)

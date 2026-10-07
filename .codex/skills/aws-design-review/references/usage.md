@@ -28,7 +28,7 @@ Formal CloudFormation resource type names can also be used. Run from the skill d
 & .\.venv\Scripts\aws-design-excel.exe .\output\result.json --design .\output\design.json --output .\output\report.xlsx
 ```
 
-When working from a different directory, use absolute paths for the CLI executable, input, and output. Set `--region` explicitly for a different region and provide a matching schema snapshot. For saved intermediate JSON, use `aws-design-check INPUT --output RESULT`. `status: COMPLETE` means the process finished; review individual verdicts and `coverage` for unresolved scope. The checker does not certify AWS deployability.
+When working from a different directory, use absolute paths for the CLI executable, input, and output. Set `--region` explicitly for a different region and provide a matching schema snapshot. For saved intermediate JSON, use `aws-design-check INPUT --output RESULT`. `status: COMPLETE` means the process finished; review individual verdicts and `coverage` for unresolved scope. Both commands export the design as CloudFormation templates and check them with cfn-lint, which the install script installs as a dependency; `--no-cfn-lint` skips it. The checker does not certify AWS deployability.
 
 ## Review and verify
 

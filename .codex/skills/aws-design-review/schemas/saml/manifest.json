@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "checked_at": "2026-10-03",
+  "files": [
+    {
+      "file": "saml-schema-metadata-2.0.xsd",
+      "url": "https://docs.oasis-open.org/security/saml/v2.0/saml-schema-metadata-2.0.xsd",
+      "sha256": "204bc7991055dbb889307abbd2ff58022753897dd7064a4d1ca13eb737d2617a"
+    },
+    {
+      "file": "saml-schema-assertion-2.0.xsd",
+      "url": "https://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd",
+      "sha256": "006eb7553843cb7baa9b08da2a9d444346c0e982fb9d9293babe08ede680924b"
+    },
+    {
+      "file": "xmldsig-core-schema.xsd",
+      "url": "https://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd",
+      "sha256": "35cf8197da812c85e40d57891b35c94187569ed474a2dac813ce5090dafcd35c"
+    },
+    {
+      "file": "xenc-schema.xsd",
+      "url": "https://www.w3.org/TR/2002/REC-xmlenc-core-20021210/xenc-schema.xsd",
+      "sha256": "5dd57f074870e1d91f7eb814aa92967cefcce9011a86adf5e12a769fcf2a237e"
+    },
+    {
+      "file": "xml.xsd",
+      "url": "https://www.w3.org/2001/xml.xsd",
+      "sha256": "61960fb3131e38022caad5360e2f33a3382578ab3c80cd58bd74320ede61b20c"
+    }
+  ]
+}

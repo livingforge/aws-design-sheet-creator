@@ -113,7 +113,7 @@ def example_errors(rule) -> list[str]:
 def required_example_verdicts(rule) -> set[str]:
     verdicts = {"PASS", "FAIL", "NEEDS_REVIEW"}
     if rule.when["op"] != "always" or rule.scope is not None or rule.assertion["op"] in (
-            "value_in", "matches", "compare", "unique", "items_in"):
+            "value_in", "matches", "compare", "unique", "items_in", "multiple_of"):
         verdicts.add("NOT_APPLICABLE")
     return verdicts
 
@@ -192,13 +192,14 @@ def validate_fragment(fragment: Any, schemas: PinnedSchemas, ledger: dict,
     if not isinstance(entries, dict):
         return errors + ["types must be an object"]
     pending = {name for name in names if ledger["types"][name]["state"] == "UNRESEARCHED"}
+    revisable = {name for name in names if ledger["types"][name]["state"] == "REVIEW_REQUIRED"}
     if fragment.get("partial") not in (None, True):
         errors.append("partial must be true when present")
     for name in pending - set(entries) if fragment.get("partial") is not True else ():
         errors.append(f"{name}: unresearched type missing from fragment")
     for name in set(entries) - set(names):
         errors.append(f"{name}: type is outside namespace {namespace}")
-    for name in set(entries) & set(names) - pending:
+    for name in set(entries) & set(names) - pending - revisable:
         errors.append(f"{name}: type was already reviewed; edit the ledger entry directly")
 
     raw_rules = fragment.get("rules", [])
@@ -257,8 +258,9 @@ def validate_fragment(fragment: Any, schemas: PinnedSchemas, ledger: dict,
             continue
         if not entry["source_urls"] or not all(_aws_url(url) for url in entry["source_urls"]):
             errors.append(f"{name}: source_urls must be AWS HTTPS URLs")
-        if set(entry["rule_ids"]) != by_type.get(name, set()):
-            errors.append(f"{name}: rule_ids must list exactly the fragment rules for this type")
+        prior_ids = set(ledger["types"][name]["rule_ids"]) if name in revisable else set()
+        if set(entry["rule_ids"]) != prior_ids | by_type.get(name, set()):
+            errors.append(f"{name}: rule_ids must list exactly the existing and fragment rules for this type")
         rationale = entry.get("rationale")
         if rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
             errors.append(f"{name}: rationale must be a nonempty string")

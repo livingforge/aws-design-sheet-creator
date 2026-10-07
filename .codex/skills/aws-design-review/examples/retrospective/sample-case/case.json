@@ -1,0 +1,29 @@
+{
+  "case_id": "sample-case",
+  "fictional": true,
+  "description": "手順確認用の架空の案件。実案件の結果ではなく、集計には含めない。",
+  "project": "retrospective-sample",
+  "environment": "prod",
+  "account": "111111111111",
+  "region": "ap-northeast-1",
+  "inputs": ["inputs/network.txt", "inputs/parameters.txt"],
+  "conversion": {"source_format": "架空のパラメータシート", "method": "行形式で手作成", "minutes": 0},
+  "known_issues": [
+    {"id": "K1", "summary": "サブネット app-c の CIDR が VPC の範囲外", "found_by": "design_review",
+     "in_scope": true, "targets": [{"type": "AWS::EC2::Subnet", "name": "app-c", "path": "/properties/CidrBlock"}]},
+    {"id": "K2", "summary": "KMS キーを指定したがストレージ暗号化が無効でデプロイ失敗", "found_by": "deploy",
+     "in_scope": true, "targets": [{"type": "AWS::RDS::DBInstance", "name": "primary", "path": "/properties/StorageEncrypted"}]},
+    {"id": "K3", "summary": "FIFO トピック名に .fifo がなくデプロイ失敗", "found_by": "deploy",
+     "in_scope": true, "targets": [{"type": "AWS::SNS::Topic", "name": "alerts", "path": "/properties/TopicName"}]},
+    {"id": "K4", "summary": "ネットワーク設計書とパラメータシートで DNS サポートの値が食い違う", "found_by": "design_review",
+     "in_scope": true, "targets": [{"type": "AWS::EC2::VPC", "name": "main", "path": "/properties/EnableDnsSupport"}]},
+    {"id": "K5", "summary": "踏み台の SSH がインターネット全体に公開されていた", "found_by": "incident",
+     "in_scope": true, "scope_note": "設計書に CIDR が記載されている",
+     "targets": [{"type": "AWS::EC2::SecurityGroup", "name": "bastion-sg", "path": "/properties/SecurityGroupIngress"}]},
+    {"id": "K6", "summary": "本番 DB がシングル AZ で、メンテナンス時に停止", "found_by": "operation",
+     "in_scope": true, "scope_note": "MultiAZ=false は記載されているが、判定には本番は Multi-AZ という方針が必要",
+     "targets": [{"type": "AWS::RDS::DBInstance", "name": "primary", "path": "/properties/MultiAZ"}]},
+    {"id": "K7", "summary": "アプリケーションの接続プール設定の誤りで DB 接続が枯渇", "found_by": "incident",
+     "in_scope": false, "scope_note": "アプリケーション設定であり、設計書に記載がない"}
+  ]
+}

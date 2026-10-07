@@ -133,6 +133,11 @@ def build_workbook(result: dict, design: Design | None = None) -> Workbook:
         ws = wb.create_sheet("設計値")
         rows = []
         for resource in design.resources:
+            if resource.template:
+                meta = resource.template
+                rows.append([resource.type, resource.name, resource.id, '/template',
+                             meta.state.value, text({'id': meta.id, 'depends_on': meta.depends_on}),
+                             evidence_text(meta.evidence_ids)])
             for field in resource.fields:
                 selected = field.selected()
                 if selected is not None:

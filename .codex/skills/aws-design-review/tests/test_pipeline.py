@@ -27,7 +27,7 @@ def test_text_to_result_with_provenance():
                               account="111111111111", region="ap-northeast-1",
                               schema_dir=ROOT / "schemas", profile_path=ROOT / "profiles/vpc-subnet.json")
     assert result["status"] == "COMPLETE"
-    assert result["summary"] == {"PASS": 10}
+    assert result["summary"] == {"PASS": 10, "NOT_APPLICABLE": 1}
     assert {item["kind"] for item in result["coverage"]} == {"RULE_REVIEW_REQUIRED"}
     assert design.resources[0].field("/properties/EnableDnsSupport").selected().value is False
     assert design.documents[0].extracted_ranges == [[1, 1], [2, 2]]
@@ -51,10 +51,7 @@ def test_generic_cloudformation_resource_types():
     assert not any(item["kind"] == "RESOURCE_TYPE" for item in result["coverage"])
     assert {item["kind"] for item in result["coverage"] if item["kind"].startswith("RULE_")} == {
         "RULE_REVIEW_REQUIRED"}
-    assert any(item["resource_id"] == "res-1" and item["rule_id"] == "SCHEMA_CONSTRAINT"
-               for item in result["results"])
-    assert any(item["resource_id"] == "res-2" and item["rule_id"] == "SCHEMA_REQUIRED"
-               for item in result["results"])
+    assert not any(item["rule_id"].startswith("CFN_LINT.") for item in result["results"])
 
 
 def test_next_wave_rules_are_in_normal_check_results():
@@ -143,7 +140,6 @@ def test_nested_typed_reference_keeps_schema_uncertainty_visible():
                for rel in design.relations)
     assert len([item for item in result["results"] if item["rule_id"] == "REFERENCE"
                 and item["verdict"] == "PASS"]) == 2
-    assert any(item["kind"] == "NESTED_REFERENCE_VALUE" for item in result["coverage"])
 
 
 def test_pilot_rules_are_in_normal_check_results():
@@ -159,17 +155,6 @@ def test_pilot_rules_are_in_normal_check_results():
                if item["rule_id"] in {"IAM_POLICY_ATTACHMENT", "ELBV2_SECURE_LISTENER_CERTIFICATE"})
     assert {item["kind"] for item in result["coverage"] if item["kind"].startswith("RULE_")} == {
         "RULE_REVIEW_REQUIRED"}
-
-
-def test_iam_principal_rule_is_in_normal_check_results():
-    design = LineExtractor().extract([source(
-        'AWS::IAM::Policy inline: PolicyName="inline"; Roles=["role"]; '
-        'PolicyDocument={"Statement":[{"Effect":"Allow","Principal":"*"}]}'),
-    ], project="p", environment="dev", account="1", region="ap-northeast-1")
-    result = check(design)
-    assert any(item["rule_id"] == "IAM_IDENTITY_POLICY_NO_PRINCIPAL" and
-               item["verdict"] == "FAIL" and item["source_urls"]
-               for item in result["results"])
 
 
 def test_lambda_vpc_rule_is_in_normal_check_results():

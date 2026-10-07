@@ -15,7 +15,7 @@ import json
 import re
 from typing import Any
 
-from .extractor import LineExtractor, TextSource, TYPED_REFERENCE, typed_references
+from .extractor import LineExtractor, TextSource, TYPED_REFERENCE, typed_references, merge_template
 from .models import Design
 
 
@@ -51,6 +51,10 @@ Extract only what the text states. Do not infer values, defaults or resources th
   (strings quoted, numbers, true/false, arrays, objects). When a value names another resource
   described in the documents, write "@<Type>/<name>" as the JSON string, e.g. "@AWS::EC2::VPC/main".
 - requirements: design requirements or policies stated in the text, with a short stable id.
+- Explicit template membership may be recorded as a special property named @Template,
+  with value_json {"id":"template name","depends_on":["logical resource names"]}.
+  Include depends_on only when its complete list is stated; [] means explicitly none.
+  Do not infer template membership from sharing a document or an account.
 - For every item give document_id, the 1-based line number, and excerpt: a verbatim substring of
   that line that shows the item. Items whose excerpt is not on that line are discarded."""
 
@@ -162,7 +166,7 @@ class LlmExtractor:
                 data["resources"].append(resource)
             for prop in item.get("properties", []):
                 name = prop.get("name")
-                if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", name):
+                if not isinstance(name, str) or (name != '@Template' and not re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", name)):
                     self.rejected.append({"kind": "property", "item": prop, "reason": "invalid property name"})
                     continue
                 try:
@@ -172,6 +176,12 @@ class LlmExtractor:
                     continue
                 evidence_id = evidence(prop, "property")
                 if evidence_id is None:
+                    continue
+                if name == '@Template':
+                    try:
+                        merge_template(resource, value, evidence_id)
+                    except ValueError:
+                        self.rejected.append({'kind': 'property', 'item': prop, 'reason': 'invalid template context'})
                     continue
                 path = "/properties/" + name
                 references = list(typed_references(value, path))
@@ -222,4 +232,6 @@ class LlmExtractor:
                                             sorted({tuple(pair) for pair in document["extracted_ranges"]})]
         if self.reference_catalog:
             LineExtractor(self.reference_catalog)._link_names(data, resources)
+        if any(r.get('template') for r in data['resources']):
+            data['extractor_version'] = 'llm-v2'
         return Design.model_validate(data)

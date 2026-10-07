@@ -1,0 +1,2 @@
+VPC main: EnableDnsSupport=false
+AWS::SNS::Topic alerts: FifoTopic=true; TopicName="alerts"

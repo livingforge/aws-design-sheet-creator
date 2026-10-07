@@ -104,6 +104,37 @@ def test_merge_updates_ledger_ruleset_and_references(tmp_path, context):
         merge_fragments([fragment], tmp_path)
 
 
+def test_revisit_review_required_preserves_existing_rules(tmp_path, context):
+    shutil.copytree(ROOT / "schemas", tmp_path / "schemas")
+    (tmp_path / "rules").mkdir()
+    _, source_ledger, source_ruleset, source_references = context
+    ledger, ruleset, references = (copy.deepcopy(source_ledger), copy.deepcopy(source_ruleset),
+                                   copy.deepcopy(source_references))
+    prior = copy.deepcopy(RULE)
+    prior["id"] = "APPLICATIONINSIGHTS.APPLICATION.PRIOR_RULE"
+    ruleset["rules"].append(prior)
+    ledger["types"][TYPE] = {
+        "service": "ApplicationInsights", "state": "REVIEW_REQUIRED",
+        "source_urls": [PAGE], "rule_ids": [prior["id"]],
+        "open_questions": ["One condition still needs review."],
+    }
+    fragment = copy.deepcopy(FRAGMENT)
+    fragment["partial"] = True
+    fragment["types"][TYPE]["rule_ids"] = [prior["id"], RULE["id"]]
+    assert validate_fragment(fragment, PinnedSchemas(tmp_path / "schemas"),
+                             ledger, ruleset, references) == []
+    (tmp_path / "rules/ledger.json").write_text(dump_json(ledger), encoding="utf-8")
+    (tmp_path / "rules/ruleset.json").write_text(dump_json(ruleset), encoding="utf-8")
+    path = tmp_path / "fragment.json"
+    path.write_text(json.dumps(fragment), encoding="utf-8")
+    assert merge_fragments([path], tmp_path)["rules"] == 1
+    merged_ledger = json.loads((tmp_path / "rules/ledger.json").read_text(encoding="utf-8"))
+    merged_rules = json.loads((tmp_path / "rules/ruleset.json").read_text(encoding="utf-8"))
+    assert set(merged_ledger["types"][TYPE]["rule_ids"]) == {prior["id"], RULE["id"]}
+    assert {rule["id"] for rule in merged_rules["rules"] if rule["source_type"] == TYPE} == {
+        prior["id"], RULE["id"]}
+
+
 def test_material_lists_schema_descriptions():
     text = review_material("ApplicationInsights", ROOT)
     assert f"## {TYPE}" in text

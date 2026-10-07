@@ -113,12 +113,38 @@ class Scope(StrictModel):
     region: str
 
 
+class TemplateContext(StrictModel):
+    """Explicit template membership and complete DependsOn declaration.
+
+    None means the dependency list was not supplied; [] explicitly declares no
+    dependencies. Names are logical names within the same template and scope.
+    """
+    id: str | None = None
+    depends_on: list[str] | None = None
+    state: ValueState = ValueState.KNOWN
+    evidence_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("state", mode="before")
+    @classmethod
+    def parse_state(cls, raw):
+        return ValueState(raw) if isinstance(raw, str) else raw
+
+    @model_validator(mode="after")
+    def valid_context(self):
+        if self.state == ValueState.KNOWN and (not self.id or not self.evidence_ids):
+            raise ValueError("known template context requires an ID and evidence")
+        if self.depends_on is not None and any(not name for name in self.depends_on):
+            raise ValueError("empty template dependency name")
+        return self
+
+
 class Resource(StrictModel):
     id: str
     type: str
     name: str
     scope: Scope
     fields: list[FieldValue] = Field(default_factory=list)
+    template: TemplateContext | None = None
 
     @model_validator(mode="after")
     def unique_paths(self):
@@ -198,6 +224,8 @@ class Design(StrictModel):
             if e.end_line > len(lines) or e.excerpt not in "\n".join(lines[e.start_line - 1:e.end_line]):
                 raise ValueError(f"evidence excerpt does not match source: {e.id}")
         for r in self.resources:
+            if r.template and any(e not in evidences for e in r.template.evidence_ids):
+                raise ValueError("unknown evidence in template context")
             for f in r.fields:
                 if any(e not in evidences for e in f.intent_evidence_ids):
                     raise ValueError(f"unknown default intent evidence in {f.path}")

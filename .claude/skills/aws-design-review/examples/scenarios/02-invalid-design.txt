@@ -1,0 +1,5 @@
+VPC main: CidrBlock=10.20.0.0/16; EnableDnsSupport=true
+Subnet outside: Vpc=main; CidrBlock=10.21.1.0/24; AvailabilityZone=ap-northeast-1a; MapPublicIpOnLaunch=false
+AWS::S3::Bucket archive: ObjectLockConfiguration={"ObjectLockEnabled":"Enabled"}; ObjectLockEnabled=false
+AWS::SNS::Topic events: FifoTopic=true; TopicName="events"
+AWS::RDS::DBInstance database: Engine=postgres; MasterUsername=appadmin; DBInstanceClass=db.t3.micro; AllocatedStorage="20"; KmsKeyId="key-a"; StorageEncrypted=false

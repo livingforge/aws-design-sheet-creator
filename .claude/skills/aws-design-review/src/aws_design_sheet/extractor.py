@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from .models import Design
+from .models import Design, TemplateContext
 
 
 LINE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9]*::[A-Za-z][A-Za-z0-9]*::[A-Za-z][A-Za-z0-9]*|VPC|Subnet|SecurityGroup|DBSubnetGroup|DBInstance)\s+([^:\uFF1A\s]+)\s*[:\uFF1A]\s*(.*?)\s*$", re.IGNORECASE)
@@ -61,6 +61,19 @@ def parse_value(raw: str):
         return json.loads(raw)
     except json.JSONDecodeError:
         return raw
+
+
+def merge_template(resource: dict, value, evidence_id: str):
+    if not isinstance(value, dict):
+        raise ValueError("@Template must be a JSON object")
+    declaration = TemplateContext.model_validate({**value, 'evidence_ids': [evidence_id]}).model_dump(mode='json')
+    previous = resource.get('template')
+    if previous:
+        keys = ('id', 'depends_on', 'state')
+        if any(previous.get(k) != declaration.get(k) for k in keys):
+            declaration = TemplateContext(state='CONFLICT').model_dump(mode='json')
+        declaration['evidence_ids'] = previous['evidence_ids'] + [evidence_id]
+    resource['template'] = declaration
 
 
 def typed_references(value, path: str):
@@ -208,6 +221,9 @@ class LineExtractor:
                                              "start_line": line_no, "end_line": line_no, "excerpt": line})
                     reference = REFERENCE_FIELDS.get((type_name, property_name))
                     parsed = parse_value(raw)
+                    if property_name == "@Template":
+                        merge_template(resource, parsed, evidence_id)
+                        continue
                     typed = ([TYPED_REFERENCE.fullmatch(item) for item in parsed]
                              if isinstance(parsed, list) and all(isinstance(item, str) for item in parsed) else
                              [TYPED_REFERENCE.fullmatch(parsed)] if isinstance(parsed, str) else [])
@@ -305,4 +321,6 @@ class LineExtractor:
                 relation["target_resource_id"] = target["id"]
         if self.reference_catalog:
             self._link_names(data, resources)
+        if any(r.get('template') for r in data['resources']):
+            data['extractor_version'] = 'line-v5'
         return Design.model_validate(data)

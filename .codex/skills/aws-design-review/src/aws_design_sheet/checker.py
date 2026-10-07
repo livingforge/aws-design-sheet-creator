@@ -9,81 +9,55 @@ import re
 import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from jsonschema import Draft7Validator
-
 from .models import Design, FieldValue, Resource, ValueState
 from .ledger import validate_ledger
-from .pilot_rules import (evaluate_elbv2_secure_listener_certificate,
-                          evaluate_iam_policy_attachment)
-from .pilot_lambda import evaluate_lambda_vpc_membership
-from .pilot_s3 import evaluate_s3_replication_versioning
-from .pilot_iam_principal import evaluate_iam_identity_policy_no_principal
-from .pilot_iam_access_key import evaluate_iam_access_key_user_reference
-from .pilot_ec2_route import evaluate_ec2_route_destination_and_target
-from .pilot_s3_object_lock import evaluate_s3_object_lock_configuration_enabled
-from .pilot_rds_encryption import evaluate_rds_dbinstance_kms_encryption
-from .pilot_lambda_package import evaluate_lambda_package_configuration
-from .pilot_sqs import evaluate_sqs_queue_encryption_option
-from .pilot_sns import evaluate_sns_fifo_topic_name_suffix
-from .pilot_dynamodb import evaluate_dynamodb_table_billing_throughput
+from .template_dependencies import evaluate_template_dependencies, SOURCES as TEMPLATE_SOURCES
+from .checks.registry import rule_sources, run_resource_checks
 from .network_modes import subnet_ipv6_checks, vpc_ipv4_source
-from .pilot_aiops import evaluate_aiops_investigation_group_uniqueness
-from .pilot_arc import evaluate_region_switch_plan, evaluate_zonal_autoshift_practice_run
-from .pilot_access_analyzer import evaluate_analyzer_configuration_union
-from .pilot_agentregistry_amazonmq import (evaluate_registry_custom_jwt,
-                                           evaluate_registry_record_descriptor,
-                                           evaluate_broker_replication_primary)
+from .checks.aiops.investigation_group_uniqueness import evaluate_aiops_investigation_group_uniqueness
 from .network_ipv4 import SOURCE as VPC_CIDR_SOURCE, vpc_ipv4_addresses
-from .rule_engine import evaluate_rule_all, load_ruleset
+from .rule_engine import evaluate_rule_all, load_ruleset, reference_view
+from .checks.batch.platform_guard import guard_batch_findings
 from .rule_review import load_reference_catalog
 
 
-SUPPORTED = {"$ref", "allOf", "anyOf", "oneOf", "not", "if", "then", "else", "type",
-             "enum", "const", "required", "properties", "patternProperties", "additionalProperties",
-             "items", "additionalItems", "minItems", "maxItems", "uniqueItems", "contains",
-             "minLength", "maxLength", "pattern", "minimum", "maximum", "exclusiveMinimum",
-             "exclusiveMaximum", "multipleOf", "minProperties", "maxProperties", "dependencies",
-             "propertyNames", "definitions", "format", "description", "title", "default",
-             "examples", "$comment", "insertionOrder"}
-FORMATS = {"ipv4", "ipv6", "uri", "email", "date-time", "hostname"}
 RULE_VERSION = "1.0"
-PILOT_SOURCES = {
-    "IAM_POLICY_ATTACHMENT": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-iam-policy.html"],
-    "IAM_IDENTITY_POLICY_NO_PRINCIPAL": [
-        "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html",
-        "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_notprincipal.html"],
-    "ELBV2_SECURE_LISTENER_CERTIFICATE": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-elasticloadbalancingv2-listener.html"],
-    "LAMBDA_VPC_MEMBERSHIP": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-lambda-function.html",
-        "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html"],
-    "S3_REPLICATION_VERSIONING": [
-        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-requirements.html"],
-    "IAM_ACCESS_KEY_USER_REFERENCE": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-iam-accesskey.html",
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-iam-user.html"],
-    "EC2_ROUTE_DESTINATION_AND_TARGET": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html"],
-    "S3_OBJECT_LOCK_CONFIGURATION_ENABLED": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-s3-bucket.html",
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-s3-bucket-objectlockconfiguration.html"],
-    "RDS_DBINSTANCE_KMS_REQUIRES_ENCRYPTION": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-dbinstance.html"],
-    "LAMBDA_PACKAGE_CONFIGURATION": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-lambda-function.html"],
-    "SQS_QUEUE_ENCRYPTION_OPTION_EXCLUSIVE": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sqs-queue.html",
-        "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html"],
-    "SNS_FIFO_TOPIC_NAME_SUFFIX": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sns-topic.html",
-        "https://docs.aws.amazon.com/sns/latest/api/API_CreateTopic.html"],
-    "DYNAMODB_TABLE_BILLING_THROUGHPUT": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-dynamodb-table.html"],
+
+
+@lru_cache(maxsize=4)
+def _parsed_ruleset(raw: bytes):
+    data = json.loads(raw)
+    return data["ruleset_version"], load_ruleset(data)
+
+
+@lru_cache(maxsize=4)
+def _validated_ledger(ledger_path: Path, schema_dir: Path, ruleset_path: Path | None,
+                      ledger_hash: str, ruleset_hash: str | None,
+                      manifest_hash: str, archive_hash: str):
+    # Content hashes keep edits to files at the same path from reusing an old validation.
+    return validate_ledger(ledger_path, schema_dir, ruleset_path)
+
+
+def _has_nested_state(value) -> bool:
+    """True when a value holds a {"$state": ...} marker for an unresolved part."""
+    if isinstance(value, dict):
+        return set(value) == {"$state"} or any(_has_nested_state(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_nested_state(item) for item in value)
+    return False
+
+
+RULE_SOURCES = {
+    "RDS_EVENT_SUBSCRIPTION_SNS_STANDARD": [
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-rds-eventsubscription.html",
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sns-topic.html"],
+    "S3_ACCESS_GRANTS_INSTANCE_REGION_UNIQUE": [
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-s3-accessgrantsinstance.html"],
     "VPC_IPV4_SOURCE": [
         "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-vpc.html"],
     "IPV6_CIDR_FORMAT": [
@@ -96,27 +70,10 @@ PILOT_SOURCES = {
         "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-ip-addressing.html"],
     "SUBNET_IPV6_ASSIGNMENT": [
         "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-subnet.html"],
-    "AIOPS_INVESTIGATION_GROUP_REGION_UNIQUE": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-aiops-investigationgroup.html"],
-    "ARC_PLAN_DISTINCT_REGIONS": [
-        "https://docs.aws.amazon.com/arc-region-switch/latest/api/API_CreatePlan.html"],
-    "ARC_PLAN_PRIMARY_REGION_INCLUDED": [
-        "https://docs.aws.amazon.com/arc-region-switch/latest/api/API_CreatePlan.html"],
-    "ARC_ZONAL_AUTOSHIFT_PRACTICE_RUN": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-arczonalshift-zonalautoshiftconfiguration.html"],
-    "ACCESS_ANALYZER_CONFIGURATION_UNION": [
-        "https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_AnalyzerConfiguration.html",
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-accessanalyzer-analyzer.html"],
-    "AGENT_REGISTRY_CUSTOM_JWT_AUTHORIZER": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-agentregistry-registry-discoveryconfiguration.html",
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-agentregistry-registry-authorizerconfiguration.html"],
-    "AGENT_REGISTRY_RECORD_DESCRIPTOR": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-agentregistry-registryrecord.html",
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-agentregistry-registryrecord-descriptors.html"],
-    "AMAZONMQ_CRDR_PRIMARY_BROKER": [
-        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-amazonmq-broker.html"],
 }
-PILOT_SOURCES.update({rule: [VPC_CIDR_SOURCE] for rule in (
+RULE_SOURCES.update(rule_sources())
+RULE_SOURCES.update(TEMPLATE_SOURCES)
+RULE_SOURCES.update({rule: [VPC_CIDR_SOURCE] for rule in (
     "VPC_IPV4_CIDR_SIZE", "VPC_IPV4_CIDR_RESERVED", "VPC_SECONDARY_CIDR_OVERLAP",
     "VPC_SECONDARY_CIDR_RANGE")})
 REFERENCE_TYPES = {
@@ -174,20 +131,57 @@ def value(resource: Resource, path: str) -> Any | None:
     return field.selected().value if field and field.state == ValueState.KNOWN else None
 
 
+def nested_property_schema(root: dict, path: str) -> dict | None:
+    """Find a directly described nested property without guessing across unions."""
+    tokens = path.split("/")[2:]
+    node = root
+    for token in tokens:
+        for _ in range(20):
+            ref = node.get("$ref")
+            if not ref:
+                break
+            if not ref.startswith("#/definitions/"):
+                return None
+            name = ref[len("#/definitions/"):].replace("~1", "/").replace("~0", "~")
+            node = root.get("definitions", {}).get(name)
+            if not isinstance(node, dict):
+                return None
+        else:
+            return None
+        if any(key in node for key in ("allOf", "anyOf", "oneOf", "if", "then", "else")):
+            return None
+        if node.get("type") == "array":
+            if not token.isdigit() or not isinstance(node.get("items"), dict):
+                return None
+            node = node["items"]
+        elif node.get("type") == "object" or "properties" in node:
+            name = token.replace("~1", "/").replace("~0", "~")
+            node = node.get("properties", {}).get(name)
+            if not isinstance(node, dict):
+                return None
+        else:
+            return None
+    return node
+
+
 class Checker:
     def __init__(self, schema_dir: Path, profile_path: Path,
                  ledger_path: Path | None = None,
                  ruleset_path: Path | None = None,
-                 references_path: Path | None = None):
-        self.manifest = json.loads((schema_dir / "manifest.json").read_text(encoding="utf-8"))
+                 references_path: Path | None = None, *, cfn_lint: bool = False):
+        self.cfn_lint = cfn_lint
+        raw_manifest = (schema_dir / "manifest.json").read_bytes()
+        self.manifest = json.loads(raw_manifest)
         self.schemas = {}
         self.schema_dir = schema_dir
         if archive := self.manifest.get("archive"):
             raw = (schema_dir / archive).read_bytes()
-            if hashlib.sha256(raw).hexdigest() != self.manifest["zip_sha256"]:
+            archive_hash = hashlib.sha256(raw).hexdigest()
+            if archive_hash != self.manifest["zip_sha256"]:
                 raise ValueError("schema archive hash mismatch")
             self.archive = zipfile.ZipFile(schema_dir / archive)
         else:
+            archive_hash = ""
             self.archive = None
         raw_profile = profile_path.read_bytes()
         self.profile_hash = hashlib.sha256(raw_profile).hexdigest()
@@ -202,16 +196,19 @@ class Checker:
             raise ValueError(f"ruleset not found: {ruleset_path}")
         if ruleset_path.exists():
             raw_ruleset = ruleset_path.read_bytes()
-            ruleset_data = json.loads(raw_ruleset)
-            self.rules = load_ruleset(ruleset_data)
-            self.ruleset_version = ruleset_data["ruleset_version"]
+            self.ruleset_version, self.rules = _parsed_ruleset(raw_ruleset)
             self.ruleset_hash = hashlib.sha256(raw_ruleset).hexdigest()
         else:
             self.rules = ()
             self.ruleset_version = None
             self.ruleset_hash = None
-        self.ledger = validate_ledger(ledger_path, schema_dir, ruleset_path if ruleset_path.exists() else None) if ledger_path.exists() else None
-        self.ledger_hash = hashlib.sha256(ledger_path.read_bytes()).hexdigest() if self.ledger else None
+        raw_ledger = ledger_path.read_bytes() if ledger_path.exists() else None
+        self.ledger_hash = hashlib.sha256(raw_ledger).hexdigest() if raw_ledger is not None else None
+        self.ledger = (_validated_ledger(ledger_path, schema_dir,
+                                         ruleset_path if ruleset_path.exists() else None,
+                                         self.ledger_hash, self.ruleset_hash,
+                                         hashlib.sha256(raw_manifest).hexdigest(), archive_hash)
+                       if raw_ledger is not None else None)
         if self.rules and not self.ledger:
             raise ValueError("ruleset requires a review ledger")
         self.rules_by_type = defaultdict(list)
@@ -263,6 +260,7 @@ class Checker:
         self.relations_by_source = defaultdict(list)
         for relation in design.relations:
             self.relations_by_source[relation.source_resource_id].append(relation)
+        resource_types = {resource.id: resource.type for resource in design.resources}
         for resource in design.resources:
             if resource.scope.region != self.manifest["region"]:
                 self.uncovered("REGION_SCHEMA", resource, None, "schema not loaded for resource region")
@@ -274,8 +272,9 @@ class Checker:
             self._profile(resource)
             self._schema_design_rules(resource)
             self._field_conflicts(resource)
+            view = reference_view(resource, self.relations_by_source[resource.id], resource_types)
             for rule in self.rules_by_type[resource.type]:
-                self.results.extend(evaluate_rule_all(rule, resource))
+                self.results.extend(guard_batch_findings(rule, design, resource, evaluate_rule_all(rule, view)))
             if self.ledger:
                 entry = self.ledger["types"][resource.type]
                 state = entry["state"]
@@ -285,56 +284,32 @@ class Checker:
                 elif state == "REVIEW_REQUIRED":
                     for question in entry["open_questions"]:
                         self.uncovered("RULE_REVIEW_REQUIRED", resource, None, question)
-            if resource.type == "AWS::IAM::Policy":
-                self._add_pilot(evaluate_iam_policy_attachment(design, resource))
-                self._add_pilot(evaluate_iam_identity_policy_no_principal(design, resource))
-            elif resource.type == "AWS::ElasticLoadBalancingV2::Listener":
-                self._add_pilot(evaluate_elbv2_secure_listener_certificate(design, resource))
-            elif resource.type == "AWS::Lambda::Function":
-                self._add_pilot(evaluate_lambda_vpc_membership(design, resource))
-                self._add_pilot(evaluate_lambda_package_configuration(design, resource))
-            elif resource.type == "AWS::S3::Bucket":
-                self._add_pilot(evaluate_s3_replication_versioning(design, resource))
-                self._add_pilot(evaluate_s3_object_lock_configuration_enabled(design, resource))
-            elif resource.type == "AWS::IAM::AccessKey":
-                self._add_pilot(evaluate_iam_access_key_user_reference(design, resource))
-            elif resource.type == "AWS::EC2::Route":
-                self._add_pilot(evaluate_ec2_route_destination_and_target(design, resource))
-            elif resource.type == "AWS::RDS::DBInstance":
-                self._add_pilot(evaluate_rds_dbinstance_kms_encryption(design, resource))
-            elif resource.type == "AWS::SQS::Queue":
-                self._add_pilot(evaluate_sqs_queue_encryption_option(design, resource))
-            elif resource.type == "AWS::SNS::Topic":
-                self._add_pilot(evaluate_sns_fifo_topic_name_suffix(design, resource))
-            elif resource.type == "AWS::DynamoDB::Table":
-                self._add_pilot(evaluate_dynamodb_table_billing_throughput(design, resource))
-            elif resource.type == "AWS::EC2::VPC":
-                self._add_pilot(vpc_ipv4_source(resource))
-            elif resource.type == "AWS::ARCRegionSwitch::Plan":
-                for finding in evaluate_region_switch_plan(resource):
-                    self._add_pilot(finding)
-            elif resource.type == "AWS::ARCZonalShift::ZonalAutoshiftConfiguration":
-                self._add_pilot(evaluate_zonal_autoshift_practice_run(resource))
-            elif resource.type == "AWS::AccessAnalyzer::Analyzer":
-                self._add_pilot(evaluate_analyzer_configuration_union(resource))
-            elif resource.type == "AWS::AgentRegistry::Registry":
-                self._add_pilot(evaluate_registry_custom_jwt(resource))
-            elif resource.type == "AWS::AgentRegistry::RegistryRecord":
-                self._add_pilot(evaluate_registry_record_descriptor(resource))
-            elif resource.type == "AWS::AmazonMQ::Broker":
-                self._add_pilot(evaluate_broker_replication_primary(resource))
+            for finding in run_resource_checks(design, resource):
+                self._add_check_finding(finding)
+            if resource.type == "AWS::EC2::VPC":
+                self._add_check_finding(vpc_ipv4_source(resource))
+            for finding in evaluate_template_dependencies(design, resource):
+                self._add_check_finding(finding)
             for field in resource.fields:
                 if field.path in ("/properties/Ipv6CidrBlocks", "/properties/CidrBlockAssociations"):
                     self.uncovered("NETWORK_MODE", resource, field.path,
                                    "network consistency rule for this address mode is not implemented")
         for finding in subnet_ipv6_checks(design):
-            self._add_pilot(finding)
+            self._add_check_finding(finding)
         for finding in evaluate_aiops_investigation_group_uniqueness(design):
-            self._add_pilot(finding)
+            self._add_check_finding(finding)
         self._identity(design)
         self._relations(design)
         self._networks(design)
         self._rds(design)
+        self._s3_access_grants(design)
+        cfn_lint_version = None
+        if self.cfn_lint:
+            from .cfn_lint_check import CFN_LINT_VERSION, lint_design
+            lint_results, lint_coverage = lint_design(design)
+            self.results += lint_results
+            self.coverage += lint_coverage
+            cfn_lint_version = CFN_LINT_VERSION
         for req in design.requirements:
             if not req.rule_id or not any(r["rule_id"] == req.rule_id and
                     (req.target_resource_id is None or r["resource_id"] == req.target_resource_id)
@@ -363,53 +338,49 @@ class Checker:
                              "ruleset": self.ruleset_version,
                              "ruleset_sha256": self.ruleset_hash,
                              "references": self.references_version,
-                             "references_sha256": self.references_hash}}
+                             "references_sha256": self.references_hash,
+                             "cfn_lint": cfn_lint_version}}
 
-    def _add_pilot(self, finding: dict):
+    def _add_check_finding(self, finding: dict):
         self.results.append({"rule_version": "1.0", "severity": "ERROR",
                              "expected": None, "actual": None,
                              "authority": "AWS_SPEC",
                              "source_checked_at": "2026-09-29",
-                             "source_urls": PILOT_SOURCES[finding["rule_id"]],
+                             "source_urls": RULE_SOURCES[finding["rule_id"]],
                              **finding})
 
     def _schema(self, resource: Resource):
+        """Schema facts the CloudFormation export cannot hand to cfn-lint.
+
+        cfn-lint validates property values, required properties and unknown
+        properties of the exported template. This keeps read-only properties,
+        the shape and count of logical references, and values the design leaves
+        undetermined, which the export turns into opaque parameters.
+        """
         original = self._load_schema(resource.type)
         read_only = set(original.get("readOnlyProperties", []))
         known = {}
-        uncertain = set()
         for field in resource.fields:
             if field.path in read_only or any(field.path.startswith(p + "/") for p in read_only):
-                self.add("SCHEMA_READ_ONLY", resource, field.path, "FAIL", "read-only property supplied",
-                         evidence=field_evidence(field))
+                if field.state == ValueState.KNOWN:
+                    self.add("SCHEMA_READ_ONLY", resource, field.path, "FAIL", "read-only property supplied",
+                             evidence=field_evidence(field))
+                elif field.state not in (ValueState.MISSING, ValueState.NOT_APPLICABLE):
+                    self.add("SCHEMA_READ_ONLY", resource, field.path, "NEEDS_REVIEW",
+                             "read-only property has an unresolved value",
+                             evidence=field_evidence(field), dependencies=[field.path])
                 continue
-            tokens = field.path.split("/")[2:]
-            if len(tokens) != 1:
-                self.uncovered("NESTED_FIELD", resource, field.path, "individual nested fields are not assembled")
-                continue
-            name = tokens[0].replace("~1", "/").replace("~0", "~")
-            if name not in original["properties"]:
-                self.uncovered("UNKNOWN_PROPERTY", resource, field.path, "property absent from fixed schema")
-                continue
-            if field.state == ValueState.KNOWN:
-                nested = [relation for relation in self.relations_by_source[resource.id]
-                          if relation.source_path == field.path or
-                          relation.source_path.startswith(field.path + "/")]
-                if nested:
-                    uncertain.add(name)
-                    self.uncovered("NESTED_REFERENCE_VALUE", resource, field.path,
-                                   "property contains a logical reference; other nested values are not schema-validated")
-                else:
-                    known[name] = field.selected().value
+            if field.state == ValueState.KNOWN and _has_nested_state(field.selected().value):
+                self.add("SCHEMA_UNCERTAIN", resource, field.path, "NEEDS_REVIEW",
+                         "value contains unresolved nested parts", evidence=field_evidence(field),
+                         dependencies=[field.path])
+            elif field.state == ValueState.KNOWN:
+                if field.path.count("/") == 2:
+                    known[field.path.split("/")[2].replace("~1", "/").replace("~0", "~")] = field.selected().value
             elif field.state != ValueState.NOT_APPLICABLE:
-                uncertain.add(name)
                 self.add("SCHEMA_UNCERTAIN", resource, field.path, "NEEDS_REVIEW",
                          f"value state is {field.state}", evidence=field_evidence(field),
                          dependencies=[field.path])
-        schema = {key: entry for key, entry in original.items() if key in SUPPORTED}
-        schema["type"] = "object"
-        schema["properties"] = dict(original["properties"])
-        schema["additionalProperties"] = original.get("additionalProperties", False)
         for relation in self.relations_by_source[resource.id]:
             if relation.source_path in read_only or any(
                 relation.source_path.startswith(path + "/") for path in read_only
@@ -437,9 +408,7 @@ class Checker:
                 self.uncovered("REFERENCE_VALUE", resource, relation.source_path,
                                "physical reference value cannot be checked against property constraints")
         for path in original.get("readOnlyProperties", []):
-            if path.count("/") == 2:
-                schema["properties"].pop(path.split("/")[-1], None)
-            elif path.startswith("/properties/"):
+            if path.count("/") > 2 and path.startswith("/properties/"):  # top level handled above
                 parts = path.split("/")[2:]
                 container = known.get(parts[0])
                 for part in parts[1:]:
@@ -447,22 +416,13 @@ class Checker:
                 if container is not None:
                     self.add("SCHEMA_READ_ONLY", resource, path, "FAIL", "read-only property supplied",
                              evidence=field_evidence(resource.field(pointer([parts[0]]))))
-        # A relation is a logical reference, so its presence satisfies the required VpcId slot.
-        # The value itself is never fed to an AWS ID pattern validator.
-        for name in original.get("required", []):
-            if name not in known and not any(r.source_path == pointer([name]) or
-                    r.source_path.startswith(pointer([name]) + "/")
-                    for r in self.relations_by_source[resource.id]):
-                path = pointer([name])
-                self.add("SCHEMA_REQUIRED", resource, path,
-                         "NEEDS_REVIEW" if name in uncertain else "FAIL",
-                         "required value is unresolved" if name in uncertain else "required value is missing",
-                         expected="required", dependencies=[path] if name in uncertain else [])
         for name, specification in original["properties"].items():
             if specification.get("type") != "array":
                 continue
+            # Only references that are the array items count; nested ones belong to an item.
             refs = [r for r in self.relations_by_source[resource.id]
-                    if r.source_path.startswith(pointer([name]) + "/")]
+                    if r.source_path.startswith(pointer([name]) + "/")
+                    and r.source_path[len(pointer([name])) + 1:].isdigit()]
             if not refs:
                 continue
             identifiers = [r.target_resource_id or r.unresolved_name for r in refs]
@@ -476,14 +436,6 @@ class Checker:
             if "maxItems" in specification and len(refs) > specification["maxItems"]:
                 self.add("SCHEMA_REFERENCE_SIZE", resource, pointer([name]), "FAIL",
                          "too many logical references", expected=specification["maxItems"], actual=len(refs))
-        schema["required"] = []  # Required is reported above with uncertainty awareness.
-        for error in Draft7Validator(schema, format_checker=Draft7Validator.FORMAT_CHECKER).iter_errors(known):
-            path = pointer(list(error.absolute_path))
-            field = resource.field(path) or resource.field(pointer(list(error.absolute_path)[:1]))
-            self.add("SCHEMA_CONSTRAINT", resource, path, "FAIL", error.message,
-                     expected=error.validator_value, actual=error.instance,
-                     evidence=field_evidence(field))
-        self._audit_schema(original, resource)
 
     def _load_schema(self, type_name: str) -> dict:
         if type_name not in self.schemas:
@@ -497,26 +449,6 @@ class Checker:
                 raise ValueError(f"schema type mismatch: {type_name}")
             self.schemas[type_name] = schema
         return self.schemas[type_name]
-
-    def _audit_schema(self, node: Any, resource: Resource, path: str = ""):
-        if isinstance(node, dict):
-            for key, child in node.items():
-                if key not in SUPPORTED and key not in {"$schema", "typeName", "sourceUrl", "documentationUrl",
-                        "schemaFile", "readOnlyProperties", "writeOnlyProperties", "createOnlyProperties",
-                        "conditionalCreateOnlyProperties", "primaryIdentifier", "additionalIdentifiers",
-                        "handlers", "tagging", "taggable", "replacementStrategy", "deprecatedProperties",
-                        "nonPublicProperties", "nonPublicDefinitions", "propertyTransform", "description"}:
-                    self.uncovered("SCHEMA_KEYWORD", resource, path or None, f"unsupported keyword: {key}")
-                if key == "format" and child not in FORMATS:
-                    self.uncovered("SCHEMA_FORMAT", resource, path or None, f"unchecked format: {child}")
-                if key in ("properties", "definitions", "patternProperties") and isinstance(child, dict):
-                    for name, spec in child.items():
-                        self._audit_schema(spec, resource, path + "/" + name)
-                elif key in ("items", "additionalProperties", "not", "if", "then", "else", "contains"):
-                    self._audit_schema(child, resource, path)
-                elif key in ("allOf", "anyOf", "oneOf") and isinstance(child, list):
-                    for spec in child:
-                        self._audit_schema(spec, resource, path)
 
     def _profile(self, resource: Resource):
         for rule in self.profile["types"].get(resource.type, []):
@@ -680,7 +612,10 @@ class Checker:
                                  "external identifier cannot be resolved to a design resource",
                                  actual=field.selected().value, evidence=field_evidence(field),
                                  dependencies=[path])
-                    elif r.type in ("AWS::EC2::Subnet", "AWS::EC2::SecurityGroup", "AWS::RDS::DBSubnetGroup"):
+                    elif (r.type in ("AWS::EC2::Subnet", "AWS::EC2::SecurityGroup", "AWS::RDS::DBSubnetGroup")
+                          and (source_type, pattern) in REFERENCE_TYPES and "*" not in path):
+                        # Only the built-in top-level reference slots expect a relation;
+                        # optional nested slots from the catalog are simply unused.
                         self.add("REFERENCE", r, path, "NEEDS_REVIEW", "relation missing",
                                  dependencies=[path])
         for (resource_id, path), group in relations.items():
@@ -694,7 +629,7 @@ class Checker:
         by_id = {r.id: r for r in design.resources}
         vpc_addresses, findings = vpc_ipv4_addresses(design)
         for finding in findings:
-            self._add_pilot(finding)
+            self._add_check_finding(finding)
         subnet_groups = defaultdict(list)
         reference_counts = Counter(r.source_resource_id for r in design.relations
                                    if r.source_path == "/properties/VpcId")
@@ -811,7 +746,7 @@ class Checker:
                              "subnets cover at least two AZs" if len(set(zones)) >= 2 else "subnets share one AZ",
                              actual=zones)
             vpcs = [vpc_for(subnet) for subnet in subnets if subnet]
-            if len(vpcs) != len(subnets) or not vpcs:
+            if len(vpcs) != len(subnets) or not vpcs or any(vpc is None for vpc in vpcs):
                 self.add("RDS_SUBNET_VPC", group, "/properties/SubnetIds", "NEEDS_REVIEW",
                          "subnet VPC is unresolved", dependencies=["/properties/VpcId"])
             elif len({vpc.id for vpc in vpcs}) > 1:
@@ -847,6 +782,51 @@ class Checker:
                          "PASS" if valid else "FAIL",
                          "security groups share DB VPC" if valid else "security group belongs to another VPC",
                          actual=[vpc.id for vpc in security_vpcs], expected=group_vpc.id)
+
+        for subscription in (r for r in design.resources if r.type == "AWS::RDS::EventSubscription"):
+            path = "/properties/SnsTopicArn"
+            refs = [rel for rel in by_source[subscription.id] if rel.source_path == path]
+            topic = target(subscription, refs[0], "AWS::SNS::Topic") if len(refs) == 1 else None
+            if topic is None:
+                self.add("RDS_EVENT_SUBSCRIPTION_SNS_STANDARD", subscription, path, "NEEDS_REVIEW",
+                         "SNS topic must be resolved to verify that it is a standard topic",
+                         dependencies=[path])
+                continue
+            fifo = topic.field("/properties/FifoTopic")
+            if fifo is None or fifo.state == ValueState.MISSING:
+                self.add("RDS_EVENT_SUBSCRIPTION_SNS_STANDARD", subscription, path, "PASS",
+                         "SNS topic defaults to standard when FifoTopic is omitted", actual=topic.id)
+            elif fifo.state != ValueState.KNOWN:
+                self.add("RDS_EVENT_SUBSCRIPTION_SNS_STANDARD", subscription, path, "NEEDS_REVIEW",
+                         "SNS topic FIFO setting is unresolved", actual=topic.id,
+                         dependencies=["/properties/FifoTopic"])
+            else:
+                is_fifo = fifo.selected().value
+                if not isinstance(is_fifo, bool):
+                    self.add("RDS_EVENT_SUBSCRIPTION_SNS_STANDARD", subscription, path,
+                             "NEEDS_REVIEW", "SNS topic FIFO setting is not a resolved boolean",
+                             actual=is_fifo, evidence=field_evidence(fifo),
+                             dependencies=["/properties/FifoTopic"])
+                else:
+                    self.add("RDS_EVENT_SUBSCRIPTION_SNS_STANDARD", subscription, path,
+                             "FAIL" if is_fifo else "PASS",
+                             "RDS does not support FIFO SNS topics" if is_fifo else
+                             "SNS topic is standard", actual=topic.id,
+                             evidence=field_evidence(fifo))
+
+    def _s3_access_grants(self, design: Design):
+        by_scope = defaultdict(list)
+        for resource in design.resources:
+            if resource.type == "AWS::S3::AccessGrantsInstance":
+                by_scope[(resource.scope.account, resource.scope.region)].append(resource)
+        for instances in by_scope.values():
+            duplicate = len(instances) > 1
+            for instance in instances:
+                self.add("S3_ACCESS_GRANTS_INSTANCE_REGION_UNIQUE", instance, None,
+                         "FAIL" if duplicate else "NEEDS_REVIEW",
+                         "multiple Access Grants instances in one account and Region" if duplicate else
+                         "other instances in the account and Region cannot be ruled out from the design",
+                         actual=[item.id for item in instances])
 
     def _ipv4(self, resource: Resource, field: FieldValue | None):
         if not field or field.state != ValueState.KNOWN:

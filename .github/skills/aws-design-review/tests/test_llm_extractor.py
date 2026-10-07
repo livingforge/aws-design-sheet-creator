@@ -78,6 +78,21 @@ def test_request_uses_structured_output_and_numbered_lines():
     assert "1: 本番環境の VPC main" in call["messages"][0]["content"]
 
 
+def test_explicit_template_metadata_is_separate_from_properties():
+    text = 'VPC main belongs to stack and explicitly has no DependsOn.'
+    located = {'document_id': 'd', 'line': 1, 'excerpt': text}
+    output = {'resources': [{'type': 'AWS::EC2::VPC', 'name': 'main', **located,
+        'properties': [{'name': '@Template', 'value_json': '{"id":"stack","depends_on":[]}', **located}]}],
+        'requirements': []}
+    extractor = LlmExtractor()
+    data = extractor.build(output, [TextSource('d', 'input', '1', text)], project='p', environment='prod',
+                           account='111111111111', region='ap-northeast-1')
+    assert data.resources[0].template.depends_on == []
+    assert data.resources[0].fields == []
+    assert data.extractor_version == 'llm-v2'
+    assert not extractor.rejected
+
+
 def test_only_items_quoted_from_their_line_are_kept():
     extractor, design = extract(fake_client())
     vpc, subnet = design.resources

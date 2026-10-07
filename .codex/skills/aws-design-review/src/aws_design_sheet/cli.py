@@ -20,10 +20,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ledger", type=Path, default=root / "rules/ledger.json")
     parser.add_argument("--ruleset", type=Path, default=root / "rules/ruleset.json")
     parser.add_argument("--references", type=Path, default=None)
+    parser.add_argument("--no-cfn-lint", action="store_true",
+                        help="skip CloudFormation validation of the exported design with cfn-lint")
     args = parser.parse_args(argv)
     try:
         design = Design.model_validate_json(args.input.read_text(encoding="utf-8"))
-        result = Checker(args.schemas, args.profile, args.ledger, args.ruleset, args.references).check(design)
+        result = Checker(args.schemas, args.profile, args.ledger, args.ruleset, args.references,
+                         cfn_lint=not args.no_cfn_lint).check(design)
     except Exception as exc:
         result = {"status": "FAILED", "diagnostic": str(exc), "results": [], "coverage": []}
     output = json.dumps(result, ensure_ascii=False, indent=2) + "\n"

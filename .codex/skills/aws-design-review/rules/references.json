@@ -1,5 +1,5 @@
 {
-  "catalog_version": "1.50.0",
+  "catalog_version": "1.58.0",
   "references": [
     {
       "source_type": "AWS::Amplify::App",
@@ -8688,6 +8688,72 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-placementgroup.html#cfn-ec2-placementgroup-parentgroupid",
           "quote": "The ID of the parent placement group."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/CarrierGatewayId",
+      "target_type": "AWS::EC2::CarrierGateway",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-carriergatewayid",
+          "quote": "The ID of the carrier gateway."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/EgressOnlyInternetGatewayId",
+      "target_type": "AWS::EC2::EgressOnlyInternetGateway",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-egressonlyinternetgatewayid",
+          "quote": "The ID of an egress-only internet gateway."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/InstanceId",
+      "target_type": "AWS::EC2::Instance",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-instanceid",
+          "quote": "The ID of a NAT instance in your VPC."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/NetworkInterfaceId",
+      "target_type": "AWS::EC2::NetworkInterface",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-networkinterfaceid",
+          "quote": "The ID of a network interface."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/VpcEndpointId",
+      "target_type": "AWS::EC2::VPCEndpoint",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-vpcendpointid",
+          "quote": "The ID of a VPC endpoint."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::EC2::Route",
+      "path": "/properties/VpcPeeringConnectionId",
+      "target_type": "AWS::EC2::VPCPeeringConnection",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-route.html#cfn-ec2-route-vpcpeeringconnectionid",
+          "quote": "The ID of a VPC peering connection."
         }
       ]
     },
@@ -24836,6 +24902,204 @@
       ]
     },
     {
+      "source_type": "AWS::SSM::Association",
+      "path": "/properties/AssociationDispatchAssumeRole",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-association.html#cfn-ssm-association-associationdispatchassumerole",
+          "quote": "A role used by association to take actions on your behalf."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::Association",
+      "path": "/properties/CalendarNames/*",
+      "target_type": "AWS::SSM::Document",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-association.html#cfn-ssm-association-calendarnames",
+          "quote": "The names or Amazon Resource Names (ARNs) of the Change Calendar type documents your associations are gated under."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::Association",
+      "path": "/properties/Name",
+      "target_type": "AWS::SSM::Document",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-association.html#cfn-ssm-association-name",
+          "quote": "The name of the SSM document that contains the configuration information for the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::Association",
+      "path": "/properties/OutputLocation/S3Location/OutputS3BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-association-s3outputlocation.html#cfn-ssm-association-s3outputlocation-outputs3bucketname",
+          "quote": "The name of the S3 bucket."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::CloudConnector",
+      "path": "/properties/RoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-cloudconnector.html#cfn-ssm-cloudconnector-rolearn",
+          "quote": "The ARN of the IAM role used by the cloud connector."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::Document",
+      "path": "/properties/Requires/*/Name",
+      "target_type": "AWS::SSM::Document",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-document-documentrequires.html#cfn-ssm-document-documentrequires-name",
+          "quote": "The name of the required SSM document."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTarget",
+      "path": "/properties/WindowId",
+      "target_type": "AWS::SSM::MaintenanceWindow",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-maintenancewindowtarget.html#cfn-ssm-maintenancewindowtarget-windowid",
+          "quote": "The ID of the maintenance window to register the target with."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/LoggingInfo/S3Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-maintenancewindowtask-logginginfo.html#cfn-ssm-maintenancewindowtask-logginginfo-s3bucket",
+          "quote": "The name of an S3 bucket where execution logs are stored."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/ServiceRoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-maintenancewindowtask.html#cfn-ssm-maintenancewindowtask-servicerolearn",
+          "quote": "The Amazon Resource Name (ARN) of the IAM service role for AWS Systems Manager to assume when running a maintenance window task."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/TaskInvocationParameters/MaintenanceWindowRunCommandParameters/CloudWatchOutputConfig/CloudWatchLogGroupName",
+      "target_type": "AWS::Logs::LogGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-maintenancewindowtask-cloudwatchoutputconfig.html#cfn-ssm-maintenancewindowtask-cloudwatchoutputconfig-cloudwatchloggroupname",
+          "quote": "The name of the CloudWatch Logs log group where you want to send command output."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/TaskInvocationParameters/MaintenanceWindowRunCommandParameters/NotificationConfig/NotificationArn",
+      "target_type": "AWS::SNS::Topic",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-maintenancewindowtask-notificationconfig.html#cfn-ssm-maintenancewindowtask-notificationconfig-notificationarn",
+          "quote": "An Amazon Resource Name (ARN) for an Amazon Simple Notification Service (Amazon SNS) topic."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/TaskInvocationParameters/MaintenanceWindowRunCommandParameters/OutputS3BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-maintenancewindowtask-maintenancewindowruncommandparameters.html#cfn-ssm-maintenancewindowtask-maintenancewindowruncommandparameters-outputs3bucketname",
+          "quote": "The name of the Amazon Simple Storage Service (Amazon S3) bucket."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/TaskInvocationParameters/MaintenanceWindowRunCommandParameters/ServiceRoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-maintenancewindowtask-maintenancewindowruncommandparameters.html#cfn-ssm-maintenancewindowtask-maintenancewindowruncommandparameters-servicerolearn",
+          "quote": "The Amazon Resource Name (ARN) of the IAM service role for AWS Systems Manager to assume when running a maintenance window task."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::MaintenanceWindowTask",
+      "path": "/properties/WindowId",
+      "target_type": "AWS::SSM::MaintenanceWindow",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-maintenancewindowtask.html#cfn-ssm-maintenancewindowtask-windowid",
+          "quote": "The ID of the maintenance window where the task is registered."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::ResourceDataSync",
+      "path": "/properties/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-resourcedatasync.html#cfn-ssm-resourcedatasync-bucketname",
+          "quote": "The name of the S3 bucket where the aggregated data is stored."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::ResourceDataSync",
+      "path": "/properties/KMSKeyArn",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-resourcedatasync.html#cfn-ssm-resourcedatasync-kmskeyarn",
+          "quote": "The Amazon Resource Name (ARN) of an encryption key for a destination in Amazon S3."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::ResourceDataSync",
+      "path": "/properties/S3Destination/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-resourcedatasync-s3destination.html#cfn-ssm-resourcedatasync-s3destination-bucketname",
+          "quote": "The name of the S3 bucket where the aggregated data is stored."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SSM::ResourceDataSync",
+      "path": "/properties/S3Destination/KMSKeyArn",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-ssm-resourcedatasync-s3destination.html#cfn-ssm-resourcedatasync-s3destination-kmskeyarn",
+          "quote": "The ARN of an encryption key for a destination in Amazon S3."
+        }
+      ]
+    },
+    {
       "source_type": "AWS::SSMContacts::Contact",
       "path": "/properties/Plan/*/RotationIds/*",
       "target_type": "AWS::SSMContacts::Rotation",
@@ -25179,6 +25443,28 @@
     },
     {
       "source_type": "AWS::SageMaker::Cluster",
+      "path": "/properties/InstanceGroups/*/OverrideVpcConfig/SecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "pointer": "/definitions/VpcConfig/properties/SecurityGroupIds",
+          "quote": "The VPC security group IDs"
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Cluster",
+      "path": "/properties/InstanceGroups/*/OverrideVpcConfig/Subnets/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "pointer": "/definitions/VpcConfig/properties/Subnets",
+          "quote": "The ID of the subnets in the VPC"
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Cluster",
       "path": "/properties/Orchestrator/Eks/ClusterArn",
       "target_type": "AWS::EKS::Cluster",
       "basis": [
@@ -25190,12 +25476,45 @@
     },
     {
       "source_type": "AWS::SageMaker::Cluster",
+      "path": "/properties/Orchestrator/Slurm/AccountingDatabase/SecretArn",
+      "target_type": "AWS::SecretsManager::Secret",
+      "basis": [
+        {
+          "pointer": "/definitions/ClusterAccountingDatabase/properties/SecretArn",
+          "quote": "ARN of the Secrets Manager secret holding the database credentials."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Cluster",
       "path": "/properties/RestrictedInstanceGroups/*/ExecutionRole",
       "target_type": "AWS::IAM::Role",
       "basis": [
         {
           "pointer": "/definitions/ExecutionRole",
           "quote": "The execution role for the instance group to assume."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Cluster",
+      "path": "/properties/RestrictedInstanceGroups/*/OverrideVpcConfig/SecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "pointer": "/definitions/VpcConfig/properties/SecurityGroupIds",
+          "quote": "The VPC security group IDs"
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Cluster",
+      "path": "/properties/RestrictedInstanceGroups/*/OverrideVpcConfig/Subnets/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "pointer": "/definitions/VpcConfig/properties/Subnets",
+          "quote": "The ID of the subnets in the VPC"
         }
       ]
     },
@@ -25296,12 +25615,155 @@
     },
     {
       "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/CustomFileSystemConfigs/*/EFSFileSystemConfig/FileSystemId",
+      "target_type": "AWS::EFS::FileSystem",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-efsfilesystemconfig.html#cfn-sagemaker-domain-efsfilesystemconfig-filesystemid",
+          "quote": "The ID of your Amazon EFS file system."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/CustomFileSystemConfigs/*/FSxLustreFileSystemConfig/FileSystemId",
+      "target_type": "AWS::FSx::FileSystem",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-fsxlustrefilesystemconfig.html#cfn-sagemaker-domain-fsxlustrefilesystemconfig-filesystemid",
+          "quote": "The globally unique, 17-digit, ID of the file system, assigned by Amazon FSx for Lustre."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
       "path": "/properties/DefaultSpaceSettings/ExecutionRole",
       "target_type": "AWS::IAM::Role",
       "basis": [
         {
           "pointer": "/definitions/DefaultSpaceSettings/properties/ExecutionRole",
           "quote": "The execution role for the space."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterLabAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterLabAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-jupyterlabappsettings.html#cfn-sagemaker-domain-jupyterlabappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the lifecycle configurations attached to the user profile or domain."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/JupyterServerAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-jupyterserverappsettings.html#cfn-sagemaker-domain-jupyterserverappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the Lifecycle Configurations attached to the JupyterServerApp."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/KernelGatewayAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultSpaceSettings/KernelGatewayAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-kernelgatewayappsettings.html#cfn-sagemaker-domain-kernelgatewayappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the Lifecycle Configurations attached to the the user profile or domain."
         }
       ]
     },
@@ -25318,6 +25780,72 @@
     },
     {
       "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CodeEditorAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CodeEditorAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-codeeditorappsettings.html#cfn-sagemaker-domain-codeeditorappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the Code Editor application lifecycle configuration."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CustomFileSystemConfigs/*/EFSFileSystemConfig/FileSystemId",
+      "target_type": "AWS::EFS::FileSystem",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-efsfilesystemconfig.html#cfn-sagemaker-domain-efsfilesystemconfig-filesystemid",
+          "quote": "The ID of your Amazon EFS file system."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/CustomFileSystemConfigs/*/FSxLustreFileSystemConfig/FileSystemId",
+      "target_type": "AWS::FSx::FileSystem",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-fsxlustrefilesystemconfig.html#cfn-sagemaker-domain-fsxlustrefilesystemconfig-filesystemid",
+          "quote": "The globally unique, 17-digit, ID of the file system, assigned by Amazon FSx for Lustre."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
       "path": "/properties/DefaultUserSettings/ExecutionRole",
       "target_type": "AWS::IAM::Role",
       "basis": [
@@ -25329,12 +25857,188 @@
     },
     {
       "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterLabAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterLabAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-jupyterlabappsettings.html#cfn-sagemaker-domain-jupyterlabappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the lifecycle configurations attached to the user profile or domain."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/JupyterServerAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-jupyterserverappsettings.html#cfn-sagemaker-domain-jupyterserverappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the Lifecycle Configurations attached to the JupyterServerApp."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/KernelGatewayAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/KernelGatewayAppSettings/LifecycleConfigArns/*",
+      "target_type": "AWS::SageMaker::StudioLifecycleConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-kernelgatewayappsettings.html#cfn-sagemaker-domain-kernelgatewayappsettings-lifecycleconfigarns",
+          "quote": "The Amazon Resource Name (ARN) of the Lifecycle Configurations attached to the the user profile or domain."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/RSessionAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-customimage.html#cfn-sagemaker-domain-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/RSessionAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DefaultUserSettings/RSessionAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
       "path": "/properties/DefaultUserSettings/SecurityGroups/*",
       "target_type": "AWS::EC2::SecurityGroup",
       "basis": [
         {
           "pointer": "/definitions/UserSettings/properties/SecurityGroups",
           "quote": "The security groups for the Amazon Virtual Private Cloud (VPC) that Studio uses for communication."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DomainSettings/RStudioServerProDomainSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Domain",
+      "path": "/properties/DomainSettings/RStudioServerProDomainSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-domain-resourcespec.html#cfn-sagemaker-domain-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
         }
       ]
     },
@@ -25395,6 +26099,28 @@
     },
     {
       "source_type": "AWS::SageMaker::EndpointConfig",
+      "path": "/properties/AsyncInferenceConfig/OutputConfig/NotificationConfig/ErrorTopic",
+      "target_type": "AWS::SNS::Topic",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-endpointconfig-asyncinferencenotificationconfig.html#cfn-sagemaker-endpointconfig-asyncinferencenotificationconfig-errortopic",
+          "quote": "Amazon SNS topic to post a notification to when an inference fails."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::EndpointConfig",
+      "path": "/properties/AsyncInferenceConfig/OutputConfig/NotificationConfig/SuccessTopic",
+      "target_type": "AWS::SNS::Topic",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-endpointconfig-asyncinferencenotificationconfig.html#cfn-sagemaker-endpointconfig-asyncinferencenotificationconfig-successtopic",
+          "quote": "Amazon SNS topic to post a notification to when an inference completes successfully."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::EndpointConfig",
       "path": "/properties/ExecutionRoleArn",
       "target_type": "AWS::IAM::Role",
       "basis": [
@@ -25406,12 +26132,34 @@
     },
     {
       "source_type": "AWS::SageMaker::EndpointConfig",
+      "path": "/properties/ProductionVariants/*/InstancePools/*/ModelNameOverride",
+      "target_type": "AWS::SageMaker::Model",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-endpointconfig-instancepool.html#cfn-sagemaker-endpointconfig-instancepool-modelnameoverride",
+          "quote": "The name of a SageMaker model to use for this instance pool instead of the model specified for the production variant."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::EndpointConfig",
       "path": "/properties/ProductionVariants/*/ModelName",
       "target_type": "AWS::SageMaker::Model",
       "basis": [
         {
           "pointer": "/definitions/ProductionVariant/properties/ModelName",
           "quote": "The name of the model that you want to host."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::EndpointConfig",
+      "path": "/properties/ShadowProductionVariants/*/InstancePools/*/ModelNameOverride",
+      "target_type": "AWS::SageMaker::Model",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-endpointconfig-instancepool.html#cfn-sagemaker-endpointconfig-instancepool-modelnameoverride",
+          "quote": "The name of a SageMaker model to use for this instance pool instead of the model specified for the production variant."
         }
       ]
     },
@@ -25449,6 +26197,17 @@
       ]
     },
     {
+      "source_type": "AWS::SageMaker::FeatureGroup",
+      "path": "/properties/RoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sagemaker-featuregroup.html#cfn-sagemaker-featuregroup-rolearn",
+          "quote": "The Amazon Resource Name (ARN) of the IAM execution role used to create the feature group."
+        }
+      ]
+    },
+    {
       "source_type": "AWS::SageMaker::Image",
       "path": "/properties/ImageRoleArn",
       "target_type": "AWS::IAM::Role",
@@ -25467,6 +26226,28 @@
         {
           "pointer": "/definitions/ImageName",
           "quote": "The name of the image this version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::InferenceComponent",
+      "path": "/properties/DeploymentConfig/AutoRollbackConfiguration/Alarms/*/AlarmName",
+      "target_type": "AWS::CloudWatch::Alarm",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-inferencecomponent-alarm.html#cfn-sagemaker-inferencecomponent-alarm-alarmname",
+          "quote": "The name of a CloudWatch alarm in your account."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::InferenceComponent",
+      "path": "/properties/EndpointArn",
+      "target_type": "AWS::SageMaker::Endpoint",
+      "basis": [
+        {
+          "pointer": "/definitions/EndpointArn",
+          "quote": "The Amazon Resource Name (ARN) of the endpoint the inference component is associated with"
         }
       ]
     },
@@ -25561,12 +26342,56 @@
     },
     {
       "source_type": "AWS::SageMaker::Model",
+      "path": "/properties/Containers/*/ImageConfig/RepositoryAuthConfig/RepositoryCredentialsProviderArn",
+      "target_type": "AWS::Lambda::Function",
+      "basis": [
+        {
+          "pointer": "/definitions/RepositoryAuthConfig/properties/RepositoryCredentialsProviderArn",
+          "quote": "The Amazon Resource Name (ARN) of an AWS Lambda function"
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Model",
+      "path": "/properties/Containers/*/ModelPackageName",
+      "target_type": "AWS::SageMaker::ModelPackage",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-model-containerdefinition.html#cfn-sagemaker-model-containerdefinition-modelpackagename",
+          "quote": "The name or Amazon Resource Name (ARN) of the model package to use to create the model."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Model",
       "path": "/properties/ExecutionRoleArn",
       "target_type": "AWS::IAM::Role",
       "basis": [
         {
           "pointer": "/properties/ExecutionRoleArn",
           "quote": "The Amazon Resource Name (ARN) of the IAM role that you specified for the model."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Model",
+      "path": "/properties/PrimaryContainer/ImageConfig/RepositoryAuthConfig/RepositoryCredentialsProviderArn",
+      "target_type": "AWS::Lambda::Function",
+      "basis": [
+        {
+          "pointer": "/definitions/RepositoryAuthConfig/properties/RepositoryCredentialsProviderArn",
+          "quote": "The Amazon Resource Name (ARN) of an AWS Lambda function"
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Model",
+      "path": "/properties/PrimaryContainer/ModelPackageName",
+      "target_type": "AWS::SageMaker::ModelPackage",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-model-containerdefinition.html#cfn-sagemaker-model-containerdefinition-modelpackagename",
+          "quote": "The name or Amazon Resource Name (ARN) of the model package to use to create the model."
         }
       ]
     },
@@ -25892,6 +26717,17 @@
     },
     {
       "source_type": "AWS::SageMaker::Pipeline",
+      "path": "/properties/PipelineDefinition/PipelineDefinitionS3Location/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-pipeline-s3location.html#cfn-sagemaker-pipeline-s3location-bucket",
+          "quote": "The name of the S3 bucket."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Pipeline",
       "path": "/properties/RoleArn",
       "target_type": "AWS::IAM::Role",
       "basis": [
@@ -26024,6 +26860,28 @@
     },
     {
       "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
       "path": "/properties/SpaceSettings/CustomFileSystems/*/EFSFileSystem/FileSystemId",
       "target_type": "AWS::EFS::FileSystem",
       "basis": [
@@ -26041,6 +26899,50 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-fsxlustrefilesystem.html#cfn-sagemaker-space-fsxlustrefilesystem-filesystemid",
           "quote": "Amazon FSx for Lustre file system ID."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
         }
       ]
     },
@@ -26068,6 +26970,28 @@
     },
     {
       "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
+      "path": "/properties/SpaceSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-space-resourcespec.html#cfn-sagemaker-space-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::Space",
       "path": "/properties/SpaceSettings/KernelGatewayAppSettings/LifecycleConfigArns/*",
       "target_type": "AWS::SageMaker::StudioLifecycleConfig",
       "basis": [
@@ -26085,6 +27009,39 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sagemaker-userprofile.html#cfn-sagemaker-userprofile-domainid",
           "quote": "The domain ID."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/CodeEditorAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-customimage.html#cfn-sagemaker-userprofile-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/CodeEditorAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
         }
       ]
     },
@@ -26134,6 +27091,39 @@
     },
     {
       "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/JupyterLabAppSettings/CustomImages/*/AppImageConfigName",
+      "target_type": "AWS::SageMaker::AppImageConfig",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-customimage.html#cfn-sagemaker-userprofile-customimage-appimageconfigname",
+          "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/JupyterLabAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
       "path": "/properties/UserSettings/JupyterLabAppSettings/EmrSettings/AssumableRoleArns/*",
       "target_type": "AWS::IAM::Role",
       "basis": [
@@ -26167,6 +27157,28 @@
     },
     {
       "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/JupyterServerAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
       "path": "/properties/UserSettings/JupyterServerAppSettings/LifecycleConfigArns/*",
       "target_type": "AWS::SageMaker::StudioLifecycleConfig",
       "basis": [
@@ -26184,6 +27196,28 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-customimage.html#cfn-sagemaker-userprofile-customimage-appimageconfigname",
           "quote": "The name of the AppImageConfig."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageArn",
+      "target_type": "AWS::SageMaker::Image",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimagearn",
+          "quote": "The ARN of the SageMaker AI image that the image version belongs to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::SageMaker::UserProfile",
+      "path": "/properties/UserSettings/KernelGatewayAppSettings/DefaultResourceSpec/SageMakerImageVersionArn",
+      "target_type": "AWS::SageMaker::ImageVersion",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-sagemaker-userprofile-resourcespec.html#cfn-sagemaker-userprofile-resourcespec-sagemakerimageversionarn",
+          "quote": "The ARN of the image version created on the instance."
         }
       ]
     },
@@ -26338,6 +27372,28 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-scheduler-schedule-deadletterconfig.html#cfn-scheduler-schedule-deadletterconfig-arn",
           "quote": "The Amazon Resource Name (ARN) of the SQS queue specified as the destination for the dead-letter queue."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Scheduler::Schedule",
+      "path": "/properties/Target/EcsParameters/NetworkConfiguration/AwsvpcConfiguration/SecurityGroups/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-scheduler-schedule-awsvpcconfiguration.html#cfn-scheduler-schedule-awsvpcconfiguration-securitygroups",
+          "quote": "Specifies the security groups associated with the task."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Scheduler::Schedule",
+      "path": "/properties/Target/EcsParameters/NetworkConfiguration/AwsvpcConfiguration/Subnets/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-scheduler-schedule-awsvpcconfiguration.html#cfn-scheduler-schedule-awsvpcconfiguration-subnets",
+          "quote": "Specifies the subnets associated with the task."
         }
       ]
     },
@@ -27321,6 +28377,149 @@
       ]
     },
     {
+      "source_type": "AWS::Timestream::InfluxDBCluster",
+      "path": "/properties/LogDeliveryConfiguration/S3Configuration/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-influxdbcluster-s3configuration.html#cfn-timestream-influxdbcluster-s3configuration-bucketname",
+          "quote": "The bucket name of the customer S3 bucket."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::InfluxDBCluster",
+      "path": "/properties/VpcSecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-influxdbcluster.html#cfn-timestream-influxdbcluster-vpcsecuritygroupids",
+          "quote": "A list of VPC security group IDs to associate with the DB cluster."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::InfluxDBCluster",
+      "path": "/properties/VpcSubnetIds/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-influxdbcluster.html#cfn-timestream-influxdbcluster-vpcsubnetids",
+          "quote": "A list of VPC subnet IDs to associate with the DB cluster."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::InfluxDBInstance",
+      "path": "/properties/LogDeliveryConfiguration/S3Configuration/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-influxdbinstance-s3configuration.html#cfn-timestream-influxdbinstance-s3configuration-bucketname",
+          "quote": "The bucket name of the customer S3 bucket."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::InfluxDBInstance",
+      "path": "/properties/VpcSecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-influxdbinstance.html#cfn-timestream-influxdbinstance-vpcsecuritygroupids",
+          "quote": "A list of VPC security group IDs to associate with the DB instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::InfluxDBInstance",
+      "path": "/properties/VpcSubnetIds/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-influxdbinstance.html#cfn-timestream-influxdbinstance-vpcsubnetids",
+          "quote": "A list of VPC subnet IDs to associate with the DB instance."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::ScheduledQuery",
+      "path": "/properties/ErrorReportConfiguration/S3Configuration/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-scheduledquery-s3configuration.html#cfn-timestream-scheduledquery-s3configuration-bucketname",
+          "quote": "Name of the S3 bucket under which error reports will be created."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::ScheduledQuery",
+      "path": "/properties/NotificationConfiguration/SnsConfiguration/TopicArn",
+      "target_type": "AWS::SNS::Topic",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-scheduledquery-snsconfiguration.html#cfn-timestream-scheduledquery-snsconfiguration-topicarn",
+          "quote": "SNS topic ARN that the scheduled query status notifications will be sent to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::ScheduledQuery",
+      "path": "/properties/ScheduledQueryExecutionRoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-scheduledquery.html#cfn-timestream-scheduledquery-scheduledqueryexecutionrolearn",
+          "quote": "The ARN for the IAM role that Timestream will assume when running the scheduled query."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::ScheduledQuery",
+      "path": "/properties/TargetConfiguration/TimestreamConfiguration/DatabaseName",
+      "target_type": "AWS::Timestream::Database",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-scheduledquery-timestreamconfiguration.html#cfn-timestream-scheduledquery-timestreamconfiguration-databasename",
+          "quote": "Name of Timestream database to which the query result will be written."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::ScheduledQuery",
+      "path": "/properties/TargetConfiguration/TimestreamConfiguration/TableName",
+      "target_type": "AWS::Timestream::Table",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-scheduledquery-timestreamconfiguration.html#cfn-timestream-scheduledquery-timestreamconfiguration-tablename",
+          "quote": "Name of Timestream table that the query result will be written to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::Table",
+      "path": "/properties/DatabaseName",
+      "target_type": "AWS::Timestream::Database",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-timestream-table.html#cfn-timestream-table-databasename",
+          "quote": "The name of the Timestream database that contains this table."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Timestream::Table",
+      "path": "/properties/MagneticStoreWriteProperties/MagneticStoreRejectedDataLocation/S3Configuration/BucketName",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-timestream-table-s3configuration.html#cfn-timestream-table-s3configuration-bucketname",
+          "quote": "The bucket name of the customer S3 bucket."
+        }
+      ]
+    },
+    {
       "source_type": "AWS::Transcribe::VocabularyFilter",
       "path": "/properties/DataAccessRoleArn",
       "target_type": "AWS::IAM::Role",
@@ -27328,6 +28527,424 @@
         {
           "pointer": "/properties/DataAccessRoleArn",
           "quote": "The Amazon Resource Name (ARN) of an IAM role that has permissions to access the Amazon S3 bucket that contains your input files."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Agreement",
+      "path": "/properties/AccessRole",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-agreement.html#cfn-transfer-agreement-accessrole",
+          "quote": "For the access role, provide the Amazon Resource Name (ARN) of the AWS Identity and Access Management role to use."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Agreement",
+      "path": "/properties/LocalProfileId",
+      "target_type": "AWS::Transfer::Profile",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-agreement.html#cfn-transfer-agreement-localprofileid",
+          "quote": "A unique identifier for the AS2 local profile."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Agreement",
+      "path": "/properties/PartnerProfileId",
+      "target_type": "AWS::Transfer::Profile",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-agreement.html#cfn-transfer-agreement-partnerprofileid",
+          "quote": "A unique identifier for the partner profile used in the agreement."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Agreement",
+      "path": "/properties/ServerId",
+      "target_type": "AWS::Transfer::Server",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-agreement.html#cfn-transfer-agreement-serverid",
+          "quote": "This identifier indicates the specific server that the agreement uses."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/AccessRole",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-connector.html#cfn-transfer-connector-accessrole",
+          "quote": "For the access role, provide the Amazon Resource Name (ARN) of the AWS Identity and Access Management role to use."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/As2Config/AsyncMdnConfig/ServerIds/*",
+      "target_type": "AWS::Transfer::Server",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-connectorasyncmdnconfig.html#cfn-transfer-connector-connectorasyncmdnconfig-serverids",
+          "quote": "A list of server identifiers that can handle asynchronous MDN responses."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/As2Config/BasicAuthSecretId",
+      "target_type": "AWS::SecretsManager::Secret",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-as2config.html#cfn-transfer-connector-as2config-basicauthsecretid",
+          "quote": "To use Basic authentication, you must provide the name or Amazon Resource Name (ARN) of a secret in AWS Secrets Manager."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/As2Config/LocalProfileId",
+      "target_type": "AWS::Transfer::Profile",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-as2config.html#cfn-transfer-connector-as2config-localprofileid",
+          "quote": "A unique identifier for the AS2 local profile."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/As2Config/PartnerProfileId",
+      "target_type": "AWS::Transfer::Profile",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-as2config.html#cfn-transfer-connector-as2config-partnerprofileid",
+          "quote": "A unique identifier for the partner profile for the connector."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/EgressConfig/VpcLattice/ResourceConfigurationArn",
+      "target_type": "AWS::VpcLattice::ResourceConfiguration",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-connectorvpclatticeegressconfig.html#cfn-transfer-connector-connectorvpclatticeegressconfig-resourceconfigurationarn",
+          "quote": "ARN of the VPC_LATTICE Resource Configuration that defines the target SFTP server location."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/LoggingRole",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-connector.html#cfn-transfer-connector-loggingrole",
+          "quote": "The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that allows a connector to turn on CloudWatch logging for Amazon S3 events."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Connector",
+      "path": "/properties/SftpConfig/UserSecretId",
+      "target_type": "AWS::SecretsManager::Secret",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-connector-sftpconfig.html#cfn-transfer-connector-sftpconfig-usersecretid",
+          "quote": "The identifier for the secret (in AWS Secrets Manager) that contains the SFTP user's private key, password, or both."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::HostKey",
+      "path": "/properties/ServerId",
+      "target_type": "AWS::Transfer::Server",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-hostkey.html#cfn-transfer-hostkey-serverid",
+          "quote": "The identifier of the server that contains the host key that you are importing."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Profile",
+      "path": "/properties/CertificateIds/*",
+      "target_type": "AWS::Transfer::Certificate",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-profile.html#cfn-transfer-profile-certificateids",
+          "quote": "An array of identifiers for the imported certificates."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/Certificate",
+      "target_type": "AWS::CertificateManager::Certificate",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-server.html#cfn-transfer-server-certificate",
+          "quote": "The Amazon Resource Name (ARN) of the AWS Certificate Manager (ACM) certificate."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/EndpointDetails/AddressAllocationIds/*",
+      "target_type": "AWS::EC2::EIP",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-endpointdetails.html#cfn-transfer-server-endpointdetails-addressallocationids",
+          "quote": "An address allocation ID corresponds to the allocation ID of an Elastic IP address."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/EndpointDetails/SecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-endpointdetails.html#cfn-transfer-server-endpointdetails-securitygroupids",
+          "quote": "A list of security groups IDs that are available to attach to your server's endpoint."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/EndpointDetails/SubnetIds/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-endpointdetails.html#cfn-transfer-server-endpointdetails-subnetids",
+          "quote": "A list of subnet IDs that are required to host your server endpoint in your VPC."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/EndpointDetails/VpcEndpointId",
+      "target_type": "AWS::EC2::VPCEndpoint",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-endpointdetails.html#cfn-transfer-server-endpointdetails-vpcendpointid",
+          "quote": "The ID of the VPC endpoint."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/EndpointDetails/VpcId",
+      "target_type": "AWS::EC2::VPC",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-endpointdetails.html#cfn-transfer-server-endpointdetails-vpcid",
+          "quote": "The VPC ID of the virtual private cloud in which the server's endpoint will be hosted."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/IdentityProviderDetails/Function",
+      "target_type": "AWS::Lambda::Function",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-identityproviderdetails.html#cfn-transfer-server-identityproviderdetails-function",
+          "quote": "The ARN for a Lambda function to use for the Identity provider."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/LoggingRole",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-server.html#cfn-transfer-server-loggingrole",
+          "quote": "The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that allows a server to turn on Amazon CloudWatch logging for Amazon S3 or Amazon EFS events."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/StructuredLogDestinations/*",
+      "target_type": "AWS::Logs::LogGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-server.html#cfn-transfer-server-structuredlogdestinations",
+          "quote": "To specify a log group, you must provide the ARN for an existing log group."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/WorkflowDetails/OnPartialUpload/*/WorkflowId",
+      "target_type": "AWS::Transfer::Workflow",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-workflowdetail.html#cfn-transfer-server-workflowdetail-workflowid",
+          "quote": "A unique identifier for the workflow."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Server",
+      "path": "/properties/WorkflowDetails/OnUpload/*/WorkflowId",
+      "target_type": "AWS::Transfer::Workflow",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-server-workflowdetail.html#cfn-transfer-server-workflowdetail-workflowid",
+          "quote": "A unique identifier for the workflow."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::User",
+      "path": "/properties/Role",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-user.html#cfn-transfer-user-role",
+          "quote": "The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that controls your users' access to your Amazon S3 bucket or Amazon EFS file system."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::User",
+      "path": "/properties/ServerId",
+      "target_type": "AWS::Transfer::Server",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-transfer-user.html#cfn-transfer-user-serverid",
+          "quote": "This is the specific server that you added your user to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::WebApp",
+      "path": "/properties/EndpointDetails/Vpc/SecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-webapp-vpc.html#cfn-transfer-webapp-vpc-securitygroupids",
+          "quote": "The list of security group IDs that control access to the web app endpoint."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::WebApp",
+      "path": "/properties/EndpointDetails/Vpc/SubnetIds/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-webapp-vpc.html#cfn-transfer-webapp-vpc-subnetids",
+          "quote": "The list of subnet IDs within the VPC where the web app endpoint will be deployed."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::WebApp",
+      "path": "/properties/EndpointDetails/Vpc/VpcId",
+      "target_type": "AWS::EC2::VPC",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-webapp-vpc.html#cfn-transfer-webapp-vpc-vpcid",
+          "quote": "The identifier of the VPC where the web app endpoint will be hosted."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::WebApp",
+      "path": "/properties/IdentityProviderDetails/InstanceArn",
+      "target_type": "AWS::SSO::Instance",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-webapp-identityproviderdetails.html#cfn-transfer-webapp-identityproviderdetails-instancearn",
+          "quote": "The Amazon Resource Name (ARN) for the IAM Identity Center used for the web app."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::WebApp",
+      "path": "/properties/IdentityProviderDetails/Role",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-webapp-identityproviderdetails.html#cfn-transfer-webapp-identityproviderdetails-role",
+          "quote": "The IAM role in IAM Identity Center used for the web app."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/OnExceptionSteps/*/CopyStepDetails/DestinationFileLocation/S3FileLocation/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-s3inputfilelocation.html#cfn-transfer-workflow-s3inputfilelocation-bucket",
+          "quote": "Specifies the S3 bucket for the customer input file."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/OnExceptionSteps/*/CustomStepDetails/Target",
+      "target_type": "AWS::Lambda::Function",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-customstepdetails.html#cfn-transfer-workflow-customstepdetails-target",
+          "quote": "The ARN for the Lambda function that is being called."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/OnExceptionSteps/*/DecryptStepDetails/DestinationFileLocation/S3FileLocation/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-s3inputfilelocation.html#cfn-transfer-workflow-s3inputfilelocation-bucket",
+          "quote": "Specifies the S3 bucket for the customer input file."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/Steps/*/CopyStepDetails/DestinationFileLocation/S3FileLocation/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-s3inputfilelocation.html#cfn-transfer-workflow-s3inputfilelocation-bucket",
+          "quote": "Specifies the S3 bucket for the customer input file."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/Steps/*/CustomStepDetails/Target",
+      "target_type": "AWS::Lambda::Function",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-customstepdetails.html#cfn-transfer-workflow-customstepdetails-target",
+          "quote": "The ARN for the Lambda function that is being called."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Transfer::Workflow",
+      "path": "/properties/Steps/*/DecryptStepDetails/DestinationFileLocation/S3FileLocation/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-transfer-workflow-s3inputfilelocation.html#cfn-transfer-workflow-s3inputfilelocation-bucket",
+          "quote": "Specifies the S3 bucket for the customer input file."
         }
       ]
     },
@@ -27614,6 +29231,692 @@
         {
           "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-waf-webacl-activatedrule.html#cfn-waf-webacl-activatedrule-ruleid",
           "quote": "The RuleId for a Rule."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFRegional::WebACL",
+      "path": "/properties/Rules/*/RuleId",
+      "target_type": "AWS::WAFRegional::Rule",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafregional-webacl-rule.html#cfn-wafregional-webacl-rule-ruleid",
+          "quote": "The ID of an AWS WAF Regional rule to associate with a web ACL."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFRegional::WebACLAssociation",
+      "path": "/properties/WebACLId",
+      "target_type": "AWS::WAFRegional::WebACL",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafregional-webaclassociation.html#cfn-wafregional-webaclassociation-webaclid",
+          "quote": "A unique identifier (ID) for the web ACL."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::LoggingConfiguration",
+      "path": "/properties/ResourceArn",
+      "target_type": "AWS::WAFv2::WebACL",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafv2-loggingconfiguration.html#cfn-wafv2-loggingconfiguration-resourcearn",
+          "quote": "The Amazon Resource Name (ARN) of the web ACL that you want to associate with LogDestinationConfigs."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/AndStatement/Statements/*/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-ipsetreferencestatement.html#cfn-wafv2-rulegroup-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/AndStatement/Statements/*/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-regexpatternsetreferencestatement.html#cfn-wafv2-rulegroup-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-ipsetreferencestatement.html#cfn-wafv2-rulegroup-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/NotStatement/Statement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-ipsetreferencestatement.html#cfn-wafv2-rulegroup-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/NotStatement/Statement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-regexpatternsetreferencestatement.html#cfn-wafv2-rulegroup-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/OrStatement/Statements/*/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-ipsetreferencestatement.html#cfn-wafv2-rulegroup-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/OrStatement/Statements/*/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-regexpatternsetreferencestatement.html#cfn-wafv2-rulegroup-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/RateBasedStatement/ScopeDownStatement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-ipsetreferencestatement.html#cfn-wafv2-rulegroup-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/RateBasedStatement/ScopeDownStatement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-regexpatternsetreferencestatement.html#cfn-wafv2-rulegroup-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::RuleGroup",
+      "path": "/properties/Rules/*/Statement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-rulegroup-regexpatternsetreferencestatement.html#cfn-wafv2-rulegroup-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/AndStatement/Statements/*/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/AndStatement/Statements/*/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/ManagedRuleGroupStatement/ScopeDownStatement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/ManagedRuleGroupStatement/ScopeDownStatement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/NotStatement/Statement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/NotStatement/Statement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/OrStatement/Statements/*/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/OrStatement/Statements/*/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/RateBasedStatement/ScopeDownStatement/IPSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::IPSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-ipsetreferencestatement.html#cfn-wafv2-webacl-ipsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::IPSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/RateBasedStatement/ScopeDownStatement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/RegexPatternSetReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RegexPatternSet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-regexpatternsetreferencestatement.html#cfn-wafv2-webacl-regexpatternsetreferencestatement-arn",
+          "quote": "The Amazon Resource Name (ARN) of the AWS::WAFv2::RegexPatternSet that this statement references."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACL",
+      "path": "/properties/Rules/*/Statement/RuleGroupReferenceStatement/Arn",
+      "target_type": "AWS::WAFv2::RuleGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wafv2-webacl-rulegroupreferencestatement.html#intro",
+          "quote": "To use this, create a rule group with your rules, then provide the ARN of the rule group in this statement."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WAFv2::WebACLAssociation",
+      "path": "/properties/WebACLArn",
+      "target_type": "AWS::WAFv2::WebACL",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafv2-webaclassociation.html#cfn-wafv2-webaclassociation-webaclarn",
+          "quote": "The Amazon Resource Name (ARN) of the web ACL that you want to associate with the resource."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIAgent",
+      "path": "/properties/AssistantId",
+      "target_type": "AWS::Wisdom::Assistant",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aiagent.html#cfn-wisdom-aiagent-assistantid",
+          "quote": "The identifier of the Amazon Q in Connect assistant. Can be either the ID or the ARN."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIAgent",
+      "path": "/properties/Configuration/OrchestrationAIAgentConfiguration/ConnectInstanceArn",
+      "target_type": "AWS::Connect::Instance",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wisdom-aiagent-orchestrationaiagentconfiguration.html#cfn-wisdom-aiagent-orchestrationaiagentconfiguration-connectinstancearn",
+          "quote": "The Amazon Resource Name (ARN) of the Amazon Connect instance used by the Orchestration AI Agent."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIAgentVersion",
+      "path": "/properties/AIAgentId",
+      "target_type": "AWS::Wisdom::AIAgent",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aiagentversion.html#cfn-wisdom-aiagentversion-aiagentid",
+          "quote": "The identifier of the AI Agent."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIGuardrail",
+      "path": "/properties/AssistantId",
+      "target_type": "AWS::Wisdom::Assistant",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aiguardrail.html#cfn-wisdom-aiguardrail-assistantid",
+          "quote": "The identifier of the Amazon Q in Connect assistant. Can be either the ID or the ARN."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIPrompt",
+      "path": "/properties/AssistantId",
+      "target_type": "AWS::Wisdom::Assistant",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aiprompt.html#cfn-wisdom-aiprompt-assistantid",
+          "quote": "The identifier of the Amazon Q in Connect assistant. Can be either the ID or the ARN."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIPromptVersion",
+      "path": "/properties/AIPromptId",
+      "target_type": "AWS::Wisdom::AIPrompt",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aipromptversion.html#cfn-wisdom-aipromptversion-aipromptid",
+          "quote": "The identifier of the Amazon Q in Connect AI prompt."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AIPromptVersion",
+      "path": "/properties/AssistantId",
+      "target_type": "AWS::Wisdom::Assistant",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-aipromptversion.html#cfn-wisdom-aipromptversion-assistantid",
+          "quote": "The identifier of the Amazon Q in Connect assistant. Can be either the ID or the ARN."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AssistantAssociation",
+      "path": "/properties/AssistantId",
+      "target_type": "AWS::Wisdom::Assistant",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-assistantassociation.html#cfn-wisdom-assistantassociation-assistantid",
+          "quote": "The identifier of the Wisdom assistant."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AssistantAssociation",
+      "path": "/properties/Association/ExternalBedrockKnowledgeBaseConfig/AccessRoleArn",
+      "target_type": "AWS::IAM::Role",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wisdom-assistantassociation-externalbedrockknowledgebaseconfig.html#cfn-wisdom-assistantassociation-externalbedrockknowledgebaseconfig-accessrolearn",
+          "quote": "The Amazon Resource Name (ARN) of the IAM role used to access the external Bedrock knowledge base."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AssistantAssociation",
+      "path": "/properties/Association/ExternalBedrockKnowledgeBaseConfig/BedrockKnowledgeBaseArn",
+      "target_type": "AWS::Bedrock::KnowledgeBase",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wisdom-assistantassociation-externalbedrockknowledgebaseconfig.html#cfn-wisdom-assistantassociation-externalbedrockknowledgebaseconfig-bedrockknowledgebasearn",
+          "quote": "The Amazon Resource Name (ARN) of the external Bedrock knowledge base."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::AssistantAssociation",
+      "path": "/properties/Association/KnowledgeBaseId",
+      "target_type": "AWS::Wisdom::KnowledgeBase",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wisdom-assistantassociation-associationdata.html#cfn-wisdom-assistantassociation-associationdata-knowledgebaseid",
+          "quote": "The identifier of the knowledge base."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::KnowledgeBase",
+      "path": "/properties/SourceConfiguration/AppIntegrations/AppIntegrationArn",
+      "target_type": "AWS::AppIntegrations::DataIntegration",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-wisdom-knowledgebase-appintegrationsconfiguration.html#cfn-wisdom-knowledgebase-appintegrationsconfiguration-appintegrationarn",
+          "quote": "The Amazon Resource Name (ARN) of the AppIntegrations DataIntegration to use for ingesting content."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::MessageTemplate",
+      "path": "/properties/KnowledgeBaseArn",
+      "target_type": "AWS::Wisdom::KnowledgeBase",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-messagetemplate.html#cfn-wisdom-messagetemplate-knowledgebasearn",
+          "quote": "The Amazon Resource Name (ARN) of the knowledge base."
+        },
+        {
+          "pointer": "/properties/KnowledgeBaseArn",
+          "quote": "The Amazon Resource Name (ARN) of the knowledge base to which the message template belongs."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::MessageTemplateVersion",
+      "path": "/properties/MessageTemplateArn",
+      "target_type": "AWS::Wisdom::MessageTemplate",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-messagetemplateversion.html#cfn-wisdom-messagetemplateversion-messagetemplatearn",
+          "quote": "The Amazon Resource Name (ARN) of the message template."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::Wisdom::QuickResponse",
+      "path": "/properties/KnowledgeBaseArn",
+      "target_type": "AWS::Wisdom::KnowledgeBase",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wisdom-quickresponse.html#cfn-wisdom-quickresponse-knowledgebasearn",
+          "quote": "The Amazon Resource Name (ARN) of the knowledge base."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::BrowserSettings",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-browsersettings.html#cfn-workspacesweb-browsersettings-customermanagedkey",
+          "quote": "The custom managed key of the browser settings."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::DataProtectionSettings",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-dataprotectionsettings.html#cfn-workspacesweb-dataprotectionsettings-customermanagedkey",
+          "quote": "The customer managed key used to encrypt sensitive information in the data protection settings."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::IpAccessSettings",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-ipaccesssettings.html#cfn-workspacesweb-ipaccesssettings-customermanagedkey",
+          "quote": "The custom managed key of the IP access settings."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::NetworkSettings",
+      "path": "/properties/SecurityGroupIds/*",
+      "target_type": "AWS::EC2::SecurityGroup",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-networksettings.html#cfn-workspacesweb-networksettings-securitygroupids",
+          "quote": "One or more security groups used to control access from streaming instances to your VPC."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::NetworkSettings",
+      "path": "/properties/SubnetIds/*",
+      "target_type": "AWS::EC2::Subnet",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-networksettings.html#cfn-workspacesweb-networksettings-subnetids",
+          "quote": "The subnets in which network interfaces are created to connect streaming instances to your VPC."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::NetworkSettings",
+      "path": "/properties/VpcId",
+      "target_type": "AWS::EC2::VPC",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-networksettings.html#cfn-workspacesweb-networksettings-vpcid",
+          "quote": "The VPC that streaming instances will connect to."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/BrowserSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::BrowserSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-browsersettingsarn",
+          "quote": "The ARN of the browser settings that is associated with this web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-customermanagedkey",
+          "quote": "The customer managed key of the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/DataProtectionSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::DataProtectionSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-dataprotectionsettingsarn",
+          "quote": "The ARN of the data protection settings."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/IpAccessSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::IpAccessSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-ipaccesssettingsarn",
+          "quote": "The ARN of the IP access settings that is associated with the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/NetworkSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::NetworkSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-networksettingsarn",
+          "quote": "The ARN of the network settings that is associated with the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/SessionLoggerArn",
+      "target_type": "AWS::WorkSpacesWeb::SessionLogger",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-sessionloggerarn",
+          "quote": "The ARN of the session logger that is associated with the portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/TrustStoreArn",
+      "target_type": "AWS::WorkSpacesWeb::TrustStore",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-truststorearn",
+          "quote": "The ARN of the trust store that is associated with the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/UserAccessLoggingSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::UserAccessLoggingSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-useraccessloggingsettingsarn",
+          "quote": "The ARN of the user access logging settings that is associated with the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::Portal",
+      "path": "/properties/UserSettingsArn",
+      "target_type": "AWS::WorkSpacesWeb::UserSettings",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-portal.html#cfn-workspacesweb-portal-usersettingsarn",
+          "quote": "The ARN of the user settings that is associated with the web portal."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::SessionLogger",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-sessionlogger.html#cfn-workspacesweb-sessionlogger-customermanagedkey",
+          "quote": "The custom managed key of the session logger."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::SessionLogger",
+      "path": "/properties/LogConfiguration/S3/Bucket",
+      "target_type": "AWS::S3::Bucket",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-workspacesweb-sessionlogger-s3logconfiguration.html#cfn-workspacesweb-sessionlogger-s3logconfiguration-bucket",
+          "quote": "The S3 bucket name where logs are delivered."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::UserAccessLoggingSettings",
+      "path": "/properties/KinesisStreamArn",
+      "target_type": "AWS::Kinesis::Stream",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-useraccessloggingsettings.html#cfn-workspacesweb-useraccessloggingsettings-kinesisstreamarn",
+          "quote": "The ARN of the Kinesis stream."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkSpacesWeb::UserSettings",
+      "path": "/properties/CustomerManagedKey",
+      "target_type": "AWS::KMS::Key",
+      "basis": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-workspacesweb-usersettings.html#cfn-workspacesweb-usersettings-customermanagedkey",
+          "quote": "The customer managed key used to encrypt sensitive information in the user settings."
+        }
+      ]
+    },
+    {
+      "source_type": "AWS::WorkspacesInstances::VolumeAssociation",
+      "path": "/properties/WorkspaceInstanceId",
+      "target_type": "AWS::WorkspacesInstances::WorkspaceInstance",
+      "basis": [
+        {
+          "pointer": "/properties/WorkspaceInstanceId",
+          "quote": "ID of the workspace instance to associate with the volume"
         }
       ]
     }

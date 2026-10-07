@@ -47,6 +47,20 @@ def test_present_distinguishes_missing_from_unresolved():
     assert verdict(nested, unresolved("/properties/A")) == "NEEDS_REVIEW"
 
 
+@pytest.mark.parametrize("op,options", [("items_in", {"values": ["ok"]}),
+                                       ("items_match", {"pattern": "ok"})])
+def test_nested_array_unresolved_values(op, options):
+    item = rule({"op": op, "path": "/Values", **options}, scope="/properties/A/*")
+    values = resource(known("/properties/A", [{"Values": {"$state": "UNRESOLVED"}}]))
+    assert evaluate_rule_all(item, values)[0]["verdict"] == "NEEDS_REVIEW"
+    values = resource(known("/properties/A", [{"Values": ["ok", {"$state": "UNRESOLVED"}]}]))
+    assert evaluate_rule_all(item, values)[0]["verdict"] == "NEEDS_REVIEW"
+    values = resource(known("/properties/A", [{"Values": ["bad", {"$state": "UNRESOLVED"}]}]))
+    assert evaluate_rule_all(item, values)[0]["verdict"] == "FAIL"
+    values = resource(known("/properties/A", [{"$state": "UNRESOLVED"}]))
+    assert evaluate_rule_all(item, values)[0]["verdict"] == "NEEDS_REVIEW"
+
+
 def test_absent_and_conditions():
     when = {"op": "field_in", "path": "/properties/Mode", "values": ["X", "Y"]}
     item = rule({"op": "absent", "path": "/properties/B"}, when)
@@ -57,6 +71,28 @@ def test_absent_and_conditions():
     result = evaluate_rule(item, resource(unresolved("/properties/Mode")))
     assert result["verdict"] == "NEEDS_REVIEW"
     assert result["dependencies"] == ["/properties/Mode"]
+
+
+def test_field_matches_uses_three_valued_condition():
+    item = rule({"op": "present", "path": "/properties/B"},
+                {"op": "field_matches", "path": "/properties/A", "pattern": "^arn:.*:lambda:path/"})
+    assert verdict(item, known("/properties/A", "arn:aws:apigateway:r:lambda:path/f"),
+                   known("/properties/B", "POST")) == "PASS"
+    assert verdict(item, known("/properties/A", "https://example.com")) == "NOT_APPLICABLE"
+    assert verdict(item, known("/properties/A", "@AWS::SSM::Parameter/p")) == "NEEDS_REVIEW"
+
+
+def test_map_keys_and_array_membership():
+    keys = rule({"op": "map_keys_match", "path": "/properties/A", "pattern": "^method\\.request\\.header\\.[^\\s]+$"})
+    assert verdict(keys, known("/properties/A", {"method.request.header.XKey": False})) == "PASS"
+    assert verdict(keys, known("/properties/A", {"method.request.body.XKey": False})) == "FAIL"
+    assert verdict(keys) == "NOT_APPLICABLE"
+    members = rule({"op": "items_in_map_keys", "path": "/properties/B", "map_path": "/properties/A"})
+    assert verdict(members, known("/properties/A", {"X": False}), known("/properties/B", ["X"])) == "PASS"
+    assert verdict(members, known("/properties/A", {"X": False}), known("/properties/B", ["Y"])) == "FAIL"
+    assert verdict(members, known("/properties/B", ["X"])) == "FAIL"
+    assert verdict(members, known("/properties/A", {"X": False}),
+                   known("/properties/B", ["@AWS::SSM::Parameter/p"])) == "NEEDS_REVIEW"
 
 
 def test_three_valued_combinators():
@@ -111,6 +147,154 @@ def test_value_in_matches_and_compare():
     assert verdict(ordered, known("/properties/Min", 5)) == "NOT_APPLICABLE"
     assert verdict(ordered, known("/properties/Min", 5), unresolved("/properties/Max")) == "NEEDS_REVIEW"
     assert verdict(ordered, known("/properties/Min", "a"), known("/properties/Max", 2)) == "NEEDS_REVIEW"
+
+
+def test_compare_scaled_uses_exact_decimal_and_handles_missing_unresolved_and_zero():
+    item = rule({"op": "compare_scaled", "left": "/properties/Throughput", "cmp": "le",
+                 "right": "/properties/Iops", "factor": "0.25"})
+    throughput = "/properties/Throughput"
+    iops = "/properties/Iops"
+    assert verdict(item, known(throughput, 750), known(iops, 3000)) == "PASS"
+    assert verdict(item, known(throughput, 751), known(iops, 3000)) == "FAIL"
+    assert verdict(item, known(throughput, "0.3"), known(iops, "1.2")) == "PASS"
+    assert verdict(item, known(throughput, 1), known(iops, 0)) == "FAIL"
+    assert verdict(item, known(throughput, 0), known(iops, 0)) == "PASS"
+    assert verdict(item, known(throughput, 750)) == "NOT_APPLICABLE"
+    assert verdict(item, known(throughput, 750), unresolved(iops)) == "NEEDS_REVIEW"
+    assert verdict(item, known(throughput, "unknown"), known(iops, 3000)) == "NEEDS_REVIEW"
+    result = evaluate_rule(item, resource(known(throughput, 750), unresolved(iops)))
+    assert result["dependencies"] == [iops]
+
+
+@pytest.mark.parametrize("factor", [True, -1, "NaN", "Infinity", "abc", {}])
+def test_compare_scaled_rejects_invalid_factors(factor):
+    with pytest.raises(ValueError):
+        rule({"op": "compare_scaled", "left": "/properties/A", "cmp": "le",
+              "right": "/properties/B", "factor": factor})
+
+
+@pytest.mark.parametrize("value,expected", [
+    (0, "PASS"), (8, "PASS"), (8.5, "PASS"), (128, "PASS"),
+    (8.25, "FAIL"), (0.49999999999999994, "FAIL"),
+    ("8.500000000000000000000000000001", "FAIL"),
+    ("8.500000000000000000000000000000", "PASS"),
+    ("8.5e0", "PASS"), (-8.5, "PASS"), (-8.25, "FAIL"),
+    (True, "NEEDS_REVIEW"), (None, "NEEDS_REVIEW"),
+    ("NaN", "NEEDS_REVIEW"), ("Infinity", "NEEDS_REVIEW"),
+    ("unknown", "NEEDS_REVIEW"), ({}, "NEEDS_REVIEW"),
+    ("@AWS::SSM::Parameter/capacity", "NEEDS_REVIEW"),
+])
+def test_multiple_of_exact_half_steps(value, expected):
+    path = "/properties/Capacity"
+    item = rule({"op": "multiple_of", "path": path, "divisor": 0.5})
+    result = evaluate_rule(item, resource(known(path, value)))
+    assert result["verdict"] == expected
+    assert result["dependencies"] == ([path] if expected == "NEEDS_REVIEW" else [])
+    assert result["evidence_ids"] == ["ev"]
+
+
+def test_multiple_of_missing_nested_unknown_and_scope():
+    item = rule({"op": "multiple_of", "path": "/properties/Config/Capacity", "divisor": "0.5"})
+    assert verdict(item) == "NOT_APPLICABLE"
+    assert verdict(item, known("/properties/Config", {})) == "NOT_APPLICABLE"
+    assert verdict(item, unresolved("/properties/Config")) == "NEEDS_REVIEW"
+    assert verdict(item, known("/properties/Config", {"Capacity": {"$state": "UNRESOLVED"}})) == "NEEDS_REVIEW"
+    assert verdict(item, known("/properties/Config", {"Capacity": {"$state": "MISSING"}})) == "NOT_APPLICABLE"
+    scoped = rule({"op": "multiple_of", "path": "/Capacity", "divisor": "0.1"},
+                  scope="/properties/Items/*")
+    rows = evaluate_rule_all(scoped, resource(known("/properties/Items", [
+        {"Capacity": "0.3"}, {"Capacity": "0.31"}, {"Capacity": {"$state": "UNRESOLVED"}}])))
+    assert [row["verdict"] for row in rows] == ["PASS", "FAIL", "NEEDS_REVIEW"]
+    assert rows[2]["dependencies"] == ["/properties/Items/2/Capacity"]
+
+
+@pytest.mark.parametrize("divisor", [True, 0, -0.5, "NaN", "Infinity", "abc", {}, None])
+def test_multiple_of_rejects_invalid_divisors(divisor):
+    with pytest.raises(ValueError, match="finite positive number"):
+        rule({"op": "multiple_of", "path": "/properties/Capacity", "divisor": divisor})
+
+
+def test_count_items_equal_decides_with_uncertain_array_items():
+    item = rule({"op": "count_items_equal", "path": "/properties/Addresses",
+                 "item_path": "/Primary", "equals": True, "max": 1})
+    path = "/properties/Addresses"
+    assert verdict(item) == "NOT_APPLICABLE"
+    assert verdict(item, known(path, [{"Primary": True}, {"Primary": False}])) == "PASS"
+    assert verdict(item, known(path, [{"Primary": True}, {"Primary": True}])) == "FAIL"
+    assert verdict(item, known(path, [{}, {"Primary": False}])) == "PASS"
+    assert verdict(item, known(path, [{"Primary": True}, {"Primary": {"$state": "UNRESOLVED"}}])) == "NEEDS_REVIEW"
+    assert verdict(item, known(path, [{"Primary": True}, {"Primary": True},
+                                   {"Primary": {"$state": "UNRESOLVED"}}])) == "FAIL"
+    assert verdict(item, unresolved(path)) == "NEEDS_REVIEW"
+    result = evaluate_rule(item, resource(known(path, [{"Primary": True},
+                                                      {"Primary": {"$state": "UNRESOLVED"}}])))
+    assert result["dependencies"] == [path + "/1/Primary"]
+
+
+def test_count_items_present_counts_named_properties_with_uncertainty():
+    item = rule({"op": "count_items_present", "path": "/properties/A",
+                 "item_path": "/MatchHeaders", "max": 2})
+    assert verdict(item, known("/properties/A", [{"MatchHeaders": {}}, {}, {"MatchHeaders": {}}])) == "PASS"
+    assert verdict(item, known("/properties/A", [{"MatchHeaders": {}}] * 3)) == "FAIL"
+    assert verdict(item, known("/properties/A", [{"MatchHeaders": {}}] * 2 +
+                               [{"MatchHeaders": {"$state": "UNRESOLVED"}}])) == "NEEDS_REVIEW"
+    assert verdict(item) == "NOT_APPLICABLE"
+
+
+def test_count_items_equal_in_scope_counts_per_network_interface():
+    item = rule({"op": "count_items_equal", "path": "/PrivateIpAddresses",
+                 "item_path": "/Primary", "equals": True, "max": 1},
+                scope="/properties/NetworkInterfaces/*")
+    interfaces = known("/properties/NetworkInterfaces", [
+        {"PrivateIpAddresses": [{"Primary": True}, {"Primary": True}]},
+        {"PrivateIpAddresses": [{"Primary": True}]},
+        {}])
+    assert [(r["path"], r["verdict"]) for r in evaluate_rule_all(item, resource(interfaces))] == [
+        ("/properties/NetworkInterfaces/0/PrivateIpAddresses", "FAIL"),
+        ("/properties/NetworkInterfaces/1/PrivateIpAddresses", "PASS"),
+        ("/properties/NetworkInterfaces/2/PrivateIpAddresses", "NOT_APPLICABLE")]
+
+
+def test_items_same_handles_known_missing_and_unresolved_item_values():
+    item = rule({"op": "items_same", "path": "/properties/Items",
+                 "item_path": "/AvailabilityZone"})
+    path = "/properties/Items"
+    assert verdict(item, known(path, [{"AvailabilityZone": "a"},
+                                      {"AvailabilityZone": "a"}])) == "PASS"
+    assert verdict(item, known(path, [{"AvailabilityZone": "a"},
+                                      {"AvailabilityZone": "b"}])) == "FAIL"
+    assert verdict(item, known(path, [{"AvailabilityZone": "a"}, {}])) == "NEEDS_REVIEW"
+    assert verdict(item, known(path, [{"AvailabilityZone": "a"},
+                                      {"AvailabilityZone": {"$state": "UNRESOLVED"}}])) == "NEEDS_REVIEW"
+    assert verdict(item, known(path, [{}, {}])) == "NOT_APPLICABLE"
+    assert verdict(item, known(path, [])) == "NOT_APPLICABLE"
+    assert verdict(item) == "NOT_APPLICABLE"
+    assert verdict(item, unresolved(path)) == "NEEDS_REVIEW"
+
+
+@pytest.mark.parametrize("raw", [
+    {"op": "count_items_equal", "path": "/properties/A", "item_path": "/Primary", "equals": True},
+    {"op": "count_items_equal", "path": "/properties/A", "item_path": "/Primary", "equals": True,
+     "max": -1},
+    {"op": "count_items_equal", "path": "/properties/A", "item_path": "/Primary", "equals": True,
+     "min": 2, "max": 1},
+    {"op": "count_items_equal", "path": "/properties/A/*", "item_path": "/Primary", "equals": True,
+     "max": 1},
+])
+def test_count_items_equal_rejects_invalid_config(raw):
+    with pytest.raises(ValueError):
+        rule(raw)
+
+
+def test_items_match_checks_each_string_without_treating_missing_as_failure():
+    item = rule({"op": "items_match", "path": "/properties/Names",
+                 "pattern": "[A-Za-z0-9_+=,.@-]+"})
+    assert verdict(item) == "NOT_APPLICABLE"
+    assert verdict(item, known("/properties/Names", ["Role_1", "Team+ops"])) == "PASS"
+    assert verdict(item, known("/properties/Names", ["Role_1", "bad name"])) == "FAIL"
+    assert verdict(item, known("/properties/Names", ["Role_1", 7])) == "FAIL"
+    assert verdict(item, known("/properties/Names", ["@AWS::IAM::Role/AppRole"])) == "NEEDS_REVIEW"
+    assert verdict(item, unresolved("/properties/Names")) == "NEEDS_REVIEW"
 
 
 def test_scoped_rule_reports_each_array_item():

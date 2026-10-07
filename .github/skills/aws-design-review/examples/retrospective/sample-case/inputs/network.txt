@@ -1,0 +1,6 @@
+VPC main: CidrBlock=10.20.0.0/16; EnableDnsSupport=true
+Subnet app-a: Vpc=main; CidrBlock=10.20.1.0/24; AvailabilityZone=ap-northeast-1a; MapPublicIpOnLaunch=false
+Subnet app-c: Vpc=main; CidrBlock=10.21.2.0/24; AvailabilityZone=ap-northeast-1c; MapPublicIpOnLaunch=false
+SecurityGroup bastion-sg: Vpc=main; GroupDescription="bastion"; SecurityGroupIngress=[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"CidrIp":"0.0.0.0/0"}]
+DBSubnetGroup db-subnets: Subnets=["app-a","app-c"]; DBSubnetGroupDescription="DB subnets"
+DBInstance primary: DBSubnetGroup=db-subnets; SecurityGroups=["bastion-sg"]; Engine=postgres; DBInstanceClass=db.t3.micro; AllocatedStorage=20; MasterUsername=appadmin; KmsKeyId="key-a"; StorageEncrypted=false; MultiAZ=false

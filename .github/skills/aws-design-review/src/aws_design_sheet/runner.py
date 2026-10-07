@@ -15,10 +15,11 @@ from .memory import peak_rss_bytes
 def run_text(sources: list[TextSource], *, project: str, environment: str,
              account: str, region: str, schema_dir: Path, profile_path: Path,
              ledger_path: Path | None = None, ruleset_path: Path | None = None,
-             references_path: Path | None = None, extractor=None):
+             references_path: Path | None = None, extractor=None, cfn_lint: bool = False):
     tracemalloc.start()
     start = time.perf_counter()
-    checker = Checker(schema_dir, profile_path, ledger_path, ruleset_path, references_path)
+    checker = Checker(schema_dir, profile_path, ledger_path, ruleset_path, references_path,
+                      cfn_lint=cfn_lint)
     loaded = time.perf_counter()
     extractor = extractor or LineExtractor(checker.reference_types)
     if hasattr(extractor, "reference_catalog") and not extractor.reference_catalog:
@@ -59,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--extractor", choices=["line", "llm"], default="line",
                         help="line: deterministic line grammar; llm: free text via Claude (needs the llm extra)")
     parser.add_argument("--model", default=None, help="Claude model for --extractor llm")
+    parser.add_argument("--no-cfn-lint", action="store_true",
+                        help="skip CloudFormation validation of the exported design with cfn-lint")
     args = parser.parse_args(argv)
     try:
         extractor = None
@@ -72,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
                                   account=args.account, region=args.region,
                                   schema_dir=args.schemas, profile_path=args.profile,
                                   ledger_path=args.ledger, ruleset_path=args.ruleset,
-                                  references_path=args.references, extractor=extractor)
+                                  references_path=args.references, extractor=extractor,
+                                  cfn_lint=not args.no_cfn_lint)
         if extractor is not None and extractor.rejected:
             result["extraction_rejected"] = extractor.rejected
         args.intermediate.parent.mkdir(parents=True, exist_ok=True)

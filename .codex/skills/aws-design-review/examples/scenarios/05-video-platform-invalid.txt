@@ -1,0 +1,4 @@
+Requirement VALIDATION: 動画配信サービスのキューとメタデータ表の設定ミスを検出する
+AWS::SQS::Queue transcode-jobs: QueueName="video-transcode-jobs"; KmsMasterKeyId="alias/video-key"; SqsManagedSseEnabled=true
+AWS::DynamoDB::Table videos: TableName="video-metadata"; BillingMode=PAY_PER_REQUEST; AttributeDefinitions=[{"AttributeName":"videoId","AttributeType":"S"}]; KeySchema=[{"AttributeName":"videoId","KeyType":"HASH"}]; ProvisionedThroughput={"ReadCapacityUnits":5,"WriteCapacityUnits":5}
+AWS::SNS::Topic upload-events: FifoTopic=true; TopicName="video-upload-events"
