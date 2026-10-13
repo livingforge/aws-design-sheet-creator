@@ -1,0 +1,1424 @@
+{
+  "schema_version": "1.1",
+  "system": {
+    "id": "fictional-system",
+    "name": "架空の50サービス設計資料",
+    "description": "全て架空。スキーマの文書化・比較テストであり、デプロイ可能な構成ではありません。"
+  },
+  "environments": [
+    {
+      "id": "dev",
+      "name": "架空 開発",
+      "region": "ap-northeast-1"
+    },
+    {
+      "id": "prod",
+      "name": "架空 本番",
+      "region": "ap-northeast-1",
+      "overrides": [
+        {
+          "resource_id": "demo-s3",
+          "settings": {
+            "VersioningConfiguration": {
+              "mode": "LITERAL",
+              "value": {
+                "Status": "Suspended"
+              },
+              "sources": [
+                "fictional-source"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "fictional-source",
+      "title": "架空の要件整理",
+      "locator": "fictional://documentation/50-services"
+    }
+  ],
+  "resources": [
+    {
+      "id": "demo-acmpca",
+      "name": "架空 ACMPCA",
+      "type": "AWS::ACMPCA::CertificateAuthority",
+      "cfn_logical_id": "DemoACMPCA",
+      "settings": {
+        "Type": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "KeyAlgorithm": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-apigateway",
+      "name": "架空 APIGateway",
+      "type": "AWS::ApiGateway::RestApi",
+      "cfn_logical_id": "DemoAPIGateway",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "MinimumCompressionSize": {
+          "mode": "LITERAL",
+          "value": 0,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-accessanalyzer",
+      "name": "架空 AccessAnalyzer",
+      "type": "AWS::AccessAnalyzer::Analyzer",
+      "cfn_logical_id": "DemoAccessAnalyzer",
+      "settings": {
+        "AnalyzerName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Type": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-athena",
+      "name": "架空 Athena",
+      "type": "AWS::Athena::WorkGroup",
+      "cfn_logical_id": "DemoAthena",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-autoscaling",
+      "name": "架空 AutoScaling",
+      "type": "AWS::AutoScaling::AutoScalingGroup",
+      "cfn_logical_id": "DemoAutoScaling",
+      "settings": {
+        "LaunchConfigurationName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ServiceLinkedRoleARN": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-backup",
+      "name": "架空 Backup",
+      "type": "AWS::Backup::BackupPlan",
+      "cfn_logical_id": "DemoBackup",
+      "settings": {
+        "BackupPlan": {
+          "status": "UNDECIDED"
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-certificatemanager",
+      "name": "架空 CertificateManager",
+      "type": "AWS::CertificateManager::Certificate",
+      "cfn_logical_id": "DemoCertificateManager",
+      "settings": {
+        "CertificateAuthorityArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "CertificateTransparencyLoggingPreference": {
+          "mode": "LITERAL",
+          "value": "ENABLED",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-cloudformation",
+      "name": "架空 CloudFormation",
+      "type": "AWS::CloudFormation::Stack",
+      "cfn_logical_id": "DemoCloudFormation",
+      "settings": {
+        "RoleARN": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-cloudfront",
+      "name": "架空 CloudFront",
+      "type": "AWS::CloudFront::Distribution",
+      "cfn_logical_id": "DemoCloudFront",
+      "settings": {
+        "DistributionConfig": {
+          "status": "UNDECIDED"
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-cloudtrail",
+      "name": "架空 CloudTrail",
+      "type": "AWS::CloudTrail::Trail",
+      "cfn_logical_id": "DemoCloudTrail",
+      "settings": {
+        "CloudWatchLogsLogGroupArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "CloudWatchLogsRoleArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-cloudwatch",
+      "name": "架空 CloudWatch",
+      "type": "AWS::CloudWatch::Alarm",
+      "cfn_logical_id": "DemoCloudWatch",
+      "settings": {
+        "ThresholdMetricId": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ComparisonOperator": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-config",
+      "name": "架空 Config",
+      "type": "AWS::Config::ConfigurationRecorder",
+      "cfn_logical_id": "DemoConfig",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "RoleARN": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-controltower",
+      "name": "架空 ControlTower",
+      "type": "AWS::ControlTower::EnabledControl",
+      "cfn_logical_id": "DemoControlTower",
+      "settings": {
+        "ControlIdentifier": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "TargetIdentifier": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-dynamodb",
+      "name": "架空 DynamoDB",
+      "type": "AWS::DynamoDB::Table",
+      "cfn_logical_id": "DemoDynamoDB",
+      "settings": {
+        "TableName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "BillingMode": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AttributeDefinitions": {
+          "mode": "LITERAL",
+          "value": [
+            {
+              "AttributeName": "fictional-id",
+              "AttributeType": "S"
+            }
+          ],
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ec2",
+      "name": "架空 EC2",
+      "type": "AWS::EC2::VPC",
+      "cfn_logical_id": "DemoEC2",
+      "settings": {
+        "CidrBlock": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "InstanceTenancy": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ecr",
+      "name": "架空 ECR",
+      "type": "AWS::ECR::Repository",
+      "cfn_logical_id": "DemoECR",
+      "settings": {
+        "EmptyOnDelete": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "RepositoryName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ecs",
+      "name": "架空 ECS",
+      "type": "AWS::ECS::Service",
+      "cfn_logical_id": "DemoECS",
+      "settings": {
+        "PlatformVersion": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "PropagateTags": {
+          "mode": "LITERAL",
+          "value": "SERVICE",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-eks",
+      "name": "架空 EKS",
+      "type": "AWS::EKS::Cluster",
+      "cfn_logical_id": "DemoEKS",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "RoleArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-elb",
+      "name": "架空 ELB",
+      "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "cfn_logical_id": "DemoELB",
+      "settings": {
+        "IpAddressType": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "EnablePrefixForIpv6SourceNat": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-elasticache",
+      "name": "架空 ElastiCache",
+      "type": "AWS::ElastiCache::CacheCluster",
+      "cfn_logical_id": "DemoElastiCache",
+      "settings": {
+        "AutoMinorVersionUpgrade": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AZMode": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-eventbridge",
+      "name": "架空 EventBridge",
+      "type": "AWS::Events::Rule",
+      "cfn_logical_id": "DemoEventBridge",
+      "settings": {
+        "EventBusName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ScheduleExpression": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-glue",
+      "name": "架空 Glue",
+      "type": "AWS::Glue::Job",
+      "cfn_logical_id": "DemoGlue",
+      "settings": {
+        "MaxRetries": {
+          "mode": "LITERAL",
+          "value": 0.0,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-guardduty",
+      "name": "架空 GuardDuty",
+      "type": "AWS::GuardDuty::Detector",
+      "cfn_logical_id": "DemoGuardDuty",
+      "settings": {
+        "FindingPublishingFrequency": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Enable": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-iam",
+      "name": "架空 IAM",
+      "type": "AWS::IAM::Role",
+      "cfn_logical_id": "DemoIAM",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "MaxSessionDuration": {
+          "mode": "LITERAL",
+          "value": 0,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AssumeRolePolicyDocument": {
+          "mode": "LITERAL",
+          "value": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "sts:AssumeRole"
+                ],
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ]
+          },
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-inspectorv2",
+      "name": "架空 InspectorV2",
+      "type": "AWS::InspectorV2::Filter",
+      "cfn_logical_id": "DemoInspectorV2",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-kms",
+      "name": "架空 KMS",
+      "type": "AWS::KMS::Key",
+      "cfn_logical_id": "DemoKMS",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Enabled": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-kinesis",
+      "name": "架空 Kinesis",
+      "type": "AWS::Kinesis::Stream",
+      "cfn_logical_id": "DemoKinesis",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "RetentionPeriodHours": {
+          "mode": "LITERAL",
+          "value": 0,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-kinesisfirehose",
+      "name": "架空 KinesisFirehose",
+      "type": "AWS::KinesisFirehose::DeliveryStream",
+      "cfn_logical_id": "DemoKinesisFirehose",
+      "settings": {
+        "DeliveryStreamType": {
+          "mode": "LITERAL",
+          "value": "DatabaseAsSource",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "DeliveryStreamName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-lambda",
+      "name": "架空 Lambda",
+      "type": "AWS::Lambda::Function",
+      "cfn_logical_id": "DemoLambda",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ReservedConcurrentExecutions": {
+          "mode": "LITERAL",
+          "value": 0,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Environment": {
+          "mode": "COMPOSITE",
+          "value": {
+            "Variables": {
+              "STAGE": "fictional-dev",
+              "DB_PASSWORD": {
+                "$design": {
+                  "mode": "SECRET_REF",
+                  "classification": "SECRET",
+                  "ref": "secret://fictional/reference-only"
+                }
+              }
+            }
+          }
+        },
+        "Role": {
+          "mode": "RESOURCE_REF",
+          "ref": "demo-iam"
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-logs",
+      "name": "架空 Logs",
+      "type": "AWS::Logs::LogGroup",
+      "cfn_logical_id": "DemoLogs",
+      "settings": {
+        "LogGroupName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "KmsKeyId": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-msk",
+      "name": "架空 MSK",
+      "type": "AWS::MSK::Cluster",
+      "cfn_logical_id": "DemoMSK",
+      "settings": {
+        "EnhancedMonitoring": {
+          "mode": "LITERAL",
+          "value": "DEFAULT",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "KafkaVersion": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-macie",
+      "name": "架空 Macie",
+      "type": "AWS::Macie::Session",
+      "cfn_logical_id": "DemoMacie",
+      "settings": {
+        "Status": {
+          "mode": "LITERAL",
+          "value": "ENABLED",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "FindingPublishingFrequency": {
+          "mode": "LITERAL",
+          "value": "FIFTEEN_MINUTES",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-opensearch",
+      "name": "架空 OpenSearch",
+      "type": "AWS::OpenSearchService::Domain",
+      "cfn_logical_id": "DemoOpenSearch",
+      "settings": {
+        "DomainName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "IPAddressType": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-organizations",
+      "name": "架空 Organizations",
+      "type": "AWS::Organizations::Organization",
+      "cfn_logical_id": "DemoOrganizations",
+      "settings": {
+        "FeatureSet": {
+          "mode": "LITERAL",
+          "value": "ALL",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ram",
+      "name": "架空 RAM",
+      "type": "AWS::RAM::ResourceShare",
+      "cfn_logical_id": "DemoRAM",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AllowExternalPrincipals": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-rds",
+      "name": "架空 RDS",
+      "type": "AWS::RDS::DBInstance",
+      "cfn_logical_id": "DemoRDS",
+      "settings": {
+        "AllocatedStorage": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AllowMajorVersionUpgrade": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "MasterUserPassword": {
+          "mode": "SECRET_REF",
+          "classification": "SECRET",
+          "ref": "secret://fictional/reference-only"
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-redshift",
+      "name": "架空 Redshift",
+      "type": "AWS::Redshift::Cluster",
+      "cfn_logical_id": "DemoRedshift",
+      "settings": {
+        "RevisionTarget": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "AutomatedSnapshotRetentionPeriod": {
+          "mode": "LITERAL",
+          "value": 0,
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-resourcegroups",
+      "name": "架空 ResourceGroups",
+      "type": "AWS::ResourceGroups::Group",
+      "cfn_logical_id": "DemoResourceGroups",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-route53",
+      "name": "架空 Route53",
+      "type": "AWS::Route53::HostedZone",
+      "cfn_logical_id": "DemoRoute53",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-s3",
+      "name": "架空 S3",
+      "type": "AWS::S3::Bucket",
+      "cfn_logical_id": "DemoS3",
+      "settings": {
+        "BucketNamespace": {
+          "mode": "LITERAL",
+          "value": "global",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "BucketNamePrefix": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "VersioningConfiguration": {
+          "mode": "LITERAL",
+          "value": {
+            "Status": "Enabled"
+          },
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "OwnershipControls": {
+          "mode": "LITERAL",
+          "value": {
+            "Rules": [
+              {
+                "ObjectOwnership": "BucketOwnerEnforced"
+              }
+            ]
+          },
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ses",
+      "name": "架空 SES",
+      "type": "AWS::SES::ReceiptRuleSet",
+      "cfn_logical_id": "DemoSES",
+      "settings": {
+        "RuleSetName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-sns",
+      "name": "架空 SNS",
+      "type": "AWS::SNS::Topic",
+      "cfn_logical_id": "DemoSNS",
+      "settings": {
+        "DisplayName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "KmsMasterKeyId": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-sqs",
+      "name": "架空 SQS",
+      "type": "AWS::SQS::Queue",
+      "cfn_logical_id": "DemoSQS",
+      "settings": {
+        "ContentBasedDeduplication": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "DeduplicationScope": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-ssm",
+      "name": "架空 SSM",
+      "type": "AWS::SSM::Parameter",
+      "cfn_logical_id": "DemoSSM",
+      "settings": {
+        "Type": {
+          "mode": "LITERAL",
+          "value": "String",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Value": {
+          "mode": "SECRET_REF",
+          "classification": "SECRET",
+          "ref": "secret://fictional/reference-only"
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-secretsmanager",
+      "name": "架空 SecretsManager",
+      "type": "AWS::SecretsManager::Secret",
+      "cfn_logical_id": "DemoSecretsManager",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "KmsKeyId": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "GenerateSecretString": {
+          "mode": "LITERAL",
+          "value": {
+            "PasswordLength": 32,
+            "ExcludePunctuation": true
+          },
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-securityhub",
+      "name": "架空 SecurityHub",
+      "type": "AWS::SecurityHub::Hub",
+      "cfn_logical_id": "DemoSecurityHub",
+      "settings": {
+        "EnableDefaultStandards": {
+          "mode": "LITERAL",
+          "value": false,
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ControlFindingGenerator": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-servicecatalog",
+      "name": "架空 ServiceCatalog",
+      "type": "AWS::ServiceCatalog::Portfolio",
+      "cfn_logical_id": "DemoServiceCatalog",
+      "settings": {
+        "ProviderName": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-shield",
+      "name": "架空 Shield",
+      "type": "AWS::Shield::Protection",
+      "cfn_logical_id": "DemoShield",
+      "settings": {
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "ResourceArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-stepfunctions",
+      "name": "架空 StepFunctions",
+      "type": "AWS::StepFunctions::StateMachine",
+      "cfn_logical_id": "DemoStepFunctions",
+      "settings": {
+        "DefinitionString": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "RoleArn": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    },
+    {
+      "id": "demo-wafv2",
+      "name": "架空 WAFv2",
+      "type": "AWS::WAFv2::WebACL",
+      "cfn_logical_id": "DemoWAFv2",
+      "settings": {
+        "Description": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        },
+        "Name": {
+          "mode": "LITERAL",
+          "value": "fictional-example",
+          "sources": [
+            "fictional-source"
+          ]
+        }
+      },
+      "rationale": "文書化の架空サンプル。実設定は要件確認後に決める。",
+      "sources": [
+        "fictional-source"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-lambda-role",
+      "source": "demo-lambda",
+      "target": "demo-iam",
+      "kind": "REFERENCE",
+      "property": "Role",
+      "description": "架空の実行ロール参照。権限内容は未評価。"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req-review",
+      "title": "構成検討",
+      "text": "50サービスの入力・比較・分冊動作を確認する。稼働構成としての採用判断は未実施。",
+      "sources": [
+        "fictional-source"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "id": "ops-recovery",
+      "title": "復旧方針の検討",
+      "text": "実測RTO/RPOは未設定。担当者と復旧演習を別途決める。",
+      "status": "UNDECIDED"
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue-validation",
+      "title": "実設計評価",
+      "text": "必須条件、制約、価格、リージョン提供状況と実行可能性の確認が必要。",
+      "status": "UNDECIDED"
+    }
+  ]
+}

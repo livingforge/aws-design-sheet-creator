@@ -69,7 +69,7 @@ def merge_template(resource: dict, value, evidence_id: str):
     declaration = TemplateContext.model_validate({**value, 'evidence_ids': [evidence_id]}).model_dump(mode='json')
     previous = resource.get('template')
     if previous:
-        keys = ('id', 'depends_on', 'state')
+        keys = ('id', 'depends_on', 'state', 'parameter_hints', 'reference_hints', 'property_presence')
         if any(previous.get(k) != declaration.get(k) for k in keys):
             declaration = TemplateContext(state='CONFLICT').model_dump(mode='json')
         declaration['evidence_ids'] = previous['evidence_ids'] + [evidence_id]

@@ -2,18 +2,19 @@
 
 Resources are grouped into one template per declared template ID and scope;
 resources without template membership form one template per scope. Known
-values are written as literals and relations as Ref. A value the design does
+values are written as literals. Exact Ref/GetAtt metadata is preserved when its
+target still matches; legacy attribute-free relations fall back to Ref. A value the design does
 not determine (unresolved, conflicting, nested unknown parts, or a relation to
 a resource outside the template) becomes a parameter without a default, so a
-linter treats it as unknown. The intermediate design records that a property
-refers to a resource, not which attribute, so every relation is a plain Ref.
+linter treats it as unknown. Exact relation paths are recorded separately so
+the linter mapping can retain findings supported by the original expression.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 
-from .models import Design, Resource, ValueState
+from .models import Design, ParameterHint, Resource, ValueState
 
 
 UNRESOLVED = {"$state": "UNRESOLVED"}
@@ -32,12 +33,16 @@ class ExportedTemplate:
                                                     "Resources": {}})
     resource_ids: dict[str, str] = field(default_factory=dict)  # logical ID -> resource ID
     placeholders: dict[str, tuple[str, str]] = field(default_factory=dict)  # parameter -> (resource ID, path)
-    relation_paths: dict[str, set[str]] = field(default_factory=dict)  # resource ID -> paths written as Ref
+    relation_paths: dict[str, set[str]] = field(default_factory=dict)
+    exact_relation_paths: dict[str, set[str]] = field(default_factory=dict)
     outside_relations: list[dict] = field(default_factory=list)
 
-    def unknown(self, resource_id: str, path: str) -> dict:
+    def unknown(self, resource_id: str, path: str, hint: ParameterHint | None = None) -> dict:
         name = f"Unknown{len(self.placeholders) + 1}"
-        self.template.setdefault("Parameters", {})[name] = {"Type": "String"}
+        declaration = {"Type": hint.type if hint and hint.type else "String"}
+        if hint and hint.no_echo is not None:
+            declaration["NoEcho"] = hint.no_echo
+        self.template.setdefault("Parameters", {})[name] = declaration
         self.placeholders[name] = (resource_id, path)
         return {"Ref": name}
 
@@ -100,9 +105,22 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
         exported = group_of[resource.id]
         local = names[_group_key(resource)]
 
+        def unknown(path: str):
+            context = resource.template
+            hint = context.parameter_hints.get(path) if context and context.state == ValueState.KNOWN else None
+            return exported.unknown(resource.id, path, hint)
+
+        def reference(path: str, target: str, target_type: str, target_name: str):
+            context = resource.template
+            hint = context.reference_hints.get(path) if context and context.state == ValueState.KNOWN else None
+            if hint and hint.target_name == target_name and hint.target_type == target_type:
+                exported.exact_relation_paths.setdefault(resource.id, set()).add(path)
+                return {"Fn::GetAtt": [target, hint.attribute]} if hint.kind == "GetAtt" else {"Ref": target}
+            return {"Ref": target}
+
         def convert(value, path: str):
             if value == UNRESOLVED:
-                return exported.unknown(resource.id, path)
+                return unknown(path)
             if isinstance(value, dict):
                 return {key: convert(item, f"{path}/{key.replace('~', '~0').replace('/', '~1')}")
                         for key, item in value.items()}
@@ -111,7 +129,7 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
             if isinstance(value, str) and (match := REFERENCE.match(value)):
                 target = local.get((match.group(1), match.group(2)))
                 exported.relation_paths.setdefault(resource.id, set()).add(path)
-                return {"Ref": target} if target else exported.unknown(resource.id, path)
+                return reference(path, target, match.group(1), match.group(2)) if target else unknown(path)
             return value
 
         properties: dict = {}
@@ -122,19 +140,20 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
             if item.state == ValueState.KNOWN and selected is not None:
                 _put(properties, item.path, convert(selected.value, item.path))
             else:
-                _put(properties, item.path, exported.unknown(resource.id, item.path))
+                _put(properties, item.path, unknown(item.path))
         for relation in design.relations:
             if relation.source_resource_id != resource.id:
                 continue
             exported.relation_paths.setdefault(resource.id, set()).add(relation.source_path)
             target = relation.target_resource_id
             if target in group_of and group_of[target] is exported:
-                _put(properties, relation.source_path, {"Ref": logical[target]})
+                target_resource = next(r for r in design.resources if r.id == target)
+                _put(properties, relation.source_path, reference(relation.source_path, logical[target], target_resource.type, target_resource.name))
             else:
                 if target in group_of:
                     exported.outside_relations.append({"resource_id": resource.id,
                                                        "path": relation.source_path, "target": target})
-                _put(properties, relation.source_path, exported.unknown(resource.id, relation.source_path))
+                _put(properties, relation.source_path, unknown(relation.source_path))
         body: dict = {"Type": resource.type}
         if properties:
             body["Properties"] = properties

@@ -5,19 +5,21 @@ ranges, formats, combinations and service limits. Its matches become results
 with rule IDs `CFN_LINT.<id>`: errors FAIL with severity ERROR and warnings
 FAIL with severity WARNING. Matches the export itself causes are not results:
 those on placeholders for unknown values, on the placeholder parameters, and
-reference format matches (E1040, E1041) on relations, because the design does
-not record which attribute a relation uses. They are listed as coverage.
+reference format matches (E1040, E1041) on legacy relations whose exact Ref or
+GetAtt expression is unknown. Exact imported references keep these findings.
+Uncertain cases are listed as coverage.
 Template-authoring advice that does not apply to a design is not reported.
 """
 from __future__ import annotations
 
 import json
 
-from cfnlint.api import ManualArgs, lint
+from cfnlint.api import ManualArgs
 from cfnlint.version import __version__ as CFN_LINT_VERSION
 
 from .cfn_export import ExportedTemplate, export_templates
 from .models import Design
+from .cfn_compat import lint_template, reference_format_gap
 
 
 REFERENCE_FORMAT_RULES = {"E1040", "E1041"}
@@ -87,9 +89,17 @@ def _map(match, exported: ExportedTemplate, design: Design) -> tuple[str, dict]:
             return "coverage", {"kind": "CFN_LINT_UNKNOWN_VALUE", "resource_id": resource_id, "path": path,
                                 "reason": f"cfn-lint {rule_id} not evaluated: value unknown in design"}
     if rule_id in REFERENCE_FORMAT_RULES and path and any(
-            _within(path, ref) for ref in exported.relation_paths.get(resource_id, ())):
+            _within(path, ref) and ref not in exported.exact_relation_paths.get(resource_id, ())
+            for ref in exported.relation_paths.get(resource_id, ())):
         return "coverage", {"kind": "CFN_LINT_REFERENCE_FORMAT", "resource_id": resource_id, "path": path,
                             "reason": f"cfn-lint {rule_id} not evaluated: design does not record the referenced attribute"}
+    if rule_id in REFERENCE_FORMAT_RULES and path and resource_id:
+        source = reference_format_gap(rule_id, exported.template, location[1], path)
+        if source:
+            return "coverage", {"kind": "CFN_LINT_FORMAT_COMPATIBILITY_GAP", "resource_id": resource_id,
+                                "path": path, "rule_id": f"CFN_LINT.{rule_id}",
+                                "reason": f"cfn-lint format metadata disagrees with the documented reference; not a confirmed defect: {match.message}",
+                                "source_urls": [source], "evidence_ids": _evidence(design, resource_id, path)}
     return "result", {
         "rule_id": f"CFN_LINT.{rule_id}", "rule_version": CFN_LINT_VERSION,
         "resource_id": resource_id, "path": path, "verdict": "FAIL",
@@ -105,7 +115,7 @@ def lint_design(design: Design) -> tuple[list[dict], list[dict]]:
     coverage: list[dict] = []
     for exported in export_templates(design):
         config = ManualArgs(regions=[exported.region])
-        for match in lint(json.dumps(exported.template, ensure_ascii=False),
+        for match in lint_template(json.dumps(exported.template, ensure_ascii=False),
                           regions=[exported.region], config=config):
             if match.rule.severity not in SEVERITIES or match.rule.id in DESIGN_IGNORED_RULES:
                 continue

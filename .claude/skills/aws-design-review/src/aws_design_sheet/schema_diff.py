@@ -39,6 +39,20 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
     """Update ledger.json, ruleset.json and references.json in rules_dir for a new archive."""
     changes = diff_types(old_manifest, old_archive, new_manifest, new_archive)
     schemas = changes.pop("schemas")
+    return _apply(rules_dir, changes, schemas, new_manifest, checked_at)
+
+
+def reconcile_from_hashes(rules_dir: Path, previous: dict[str, str], schemas: dict,
+                          manifest: dict, checked_at: str) -> dict:
+    """Rebuild the local ledger without distributing the previous AWS schemas."""
+    changes = {"added": sorted(set(schemas) - set(previous)),
+               "removed": sorted(set(previous) - set(schemas)),
+               "changed": sorted(t for t in set(previous) & set(schemas)
+                                 if previous[t] != _digest(schemas[t]))}
+    return _apply(rules_dir, changes, schemas, manifest, checked_at, quarantine=True)
+
+
+def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=False):
     ledger_path, ruleset_path = rules_dir / "ledger.json", rules_dir / "ruleset.json"
     references_path = rules_dir / "references.json"
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -49,6 +63,8 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
     removed, changed = set(changes["removed"]), set(changes["changed"])
     report = {**changes, "reset": [], "review_required": [], "broken_basis": [],
               "removed_rules": [], "removed_references": []}
+    if quarantine:
+        report.update(quarantined_rules=[], quarantined_references=[])
 
     for name in changes["removed"]:
         ledger["types"].pop(name, None)
@@ -63,6 +79,10 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
         if rule["source_type"] in changed:
             problems = basis_errors(rule.get("basis", []), schemas[rule["source_type"]], rule["id"])
             report["broken_basis"].extend(problems)
+            if quarantine and problems:
+                report["quarantined_rules"].append(rule["id"])
+                ledger["types"][rule["source_type"]]["rule_ids"].remove(rule["id"])
+                continue
         kept_rules.append(rule)
     ruleset["rules"] = kept_rules
     if references is not None:
@@ -72,8 +92,12 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
                 report["removed_references"].append([item["source_type"], item["path"]])
                 continue
             if item["source_type"] in changed:
-                report["broken_basis"].extend(basis_errors(item["basis"], schemas[item["source_type"]],
-                                                           f"{item['source_type']} {item['path']}"))
+                problems = basis_errors(item["basis"], schemas[item["source_type"]],
+                                        f"{item['source_type']} {item['path']}")
+                report["broken_basis"].extend(problems)
+                if quarantine and problems:
+                    report["quarantined_references"].append([item["source_type"], item["path"]])
+                    continue
             kept.append(item)
         references["references"] = kept
 
@@ -97,15 +121,15 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
     ledger["types"] = dict(sorted(ledger["types"].items()))
     ledger["schema_region"] = new_manifest["region"]
     ledger["schema_zip_sha256"] = new_manifest["zip_sha256"]
-    ledger_path.write_text(dump_json(ledger), encoding="utf-8")
-    if report["removed_rules"]:
+    ledger_path.write_bytes(dump_json(ledger).encode("utf-8"))
+    if report["removed_rules"] or report.get("quarantined_rules"):
         major, minor, *_ = ruleset["ruleset_version"].split(".") + ["0", "0"]
         ruleset["ruleset_version"] = f"{major}.{int(minor) + 1}.0"
     if ruleset_path.exists():
-        ruleset_path.write_text(dump_json(ruleset), encoding="utf-8")
+        ruleset_path.write_bytes(dump_json(ruleset).encode("utf-8"))
     if references is not None:
-        if report["removed_references"]:
+        if report["removed_references"] or report.get("quarantined_references"):
             major, minor, *_ = references["catalog_version"].split(".") + ["0", "0"]
             references["catalog_version"] = f"{major}.{int(minor) + 1}.0"
-        references_path.write_text(dump_json(references), encoding="utf-8")
+        references_path.write_bytes(dump_json(references).encode("utf-8"))
     return report

@@ -2,6 +2,10 @@
 __pycache__/
 .pytest_cache/
 *.pyc
-src/*.egg-info/
+*.egg-info/
 output/
-.claude/scheduled_tasks.lock
+.env
+.env.*
+~$*
+schemas/.cache/
+schemas/.downloads/

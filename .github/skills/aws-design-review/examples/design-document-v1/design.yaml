@@ -1,0 +1,307 @@
+schema_version: '1.0'
+system:
+  id: fictional-system
+  name: 架空の書籍管理システム
+  description: この例の識別子・設定・要件は全て架空です。デプロイ用ではありません。
+sources:
+- id: source-brief
+  title: 架空ヒアリング記録
+  locator: fictional://workshop/001
+environments:
+- id: dev
+  name: 架空 開発
+  region: ap-northeast-1
+- id: prod
+  name: 架空 本番
+  region: ap-northeast-1
+  description: 本番も架空です。
+  overrides:
+  - resource_id: app
+    settings:
+      InstanceType:
+        mode: LITERAL
+        value: t3.small
+        rationale: 架空の負荷想定。性能は未検証。
+        sources:
+        - source-brief
+  - resource_id: db
+    settings:
+      MultiAZ:
+        mode: LITERAL
+        value: true
+        rationale: 架空サンプルの仮定値
+        sources:
+        - source-brief
+      BackupRetentionPeriod:
+        mode: LITERAL
+        value: 14
+        rationale: 架空サンプルの仮定値
+        sources:
+        - source-brief
+requirements:
+- id: req-private
+  title: DBの非公開化
+  text: DBへのアクセスはアプリ経由を想定。到達性・権限は別途検証する。
+  resources:
+  - db
+  sources:
+  - source-brief
+resources:
+- id: network
+  name: 架空 network
+  type: AWS::EC2::VPC
+  cfn_logical_id: DemoVpc
+  settings:
+    CidrBlock:
+      mode: LITERAL
+      value: 10.42.0.0/16
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    EnableDnsSupport:
+      mode: LITERAL
+      value: true
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: app-subnet
+  name: 架空 app-subnet
+  type: AWS::EC2::Subnet
+  cfn_logical_id: AppSubnet
+  settings:
+    VpcId:
+      mode: RESOURCE_REF
+      ref: network
+      sources:
+      - source-brief
+    CidrBlock:
+      mode: LITERAL
+      value: 10.42.1.0/24
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    AvailabilityZone:
+      status: UNDECIDED
+      rationale: AZ配置をレビューで決定
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: db-subnet-a
+  name: 架空 db-subnet-a
+  type: AWS::EC2::Subnet
+  cfn_logical_id: DbSubnetA
+  settings:
+    VpcId:
+      mode: RESOURCE_REF
+      ref: network
+      sources:
+      - source-brief
+    CidrBlock:
+      mode: LITERAL
+      value: 10.42.2.0/24
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    AvailabilityZone:
+      mode: LITERAL
+      value: ap-northeast-1a
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: db-subnet-b
+  name: 架空 db-subnet-b
+  type: AWS::EC2::Subnet
+  cfn_logical_id: DbSubnetB
+  settings:
+    VpcId:
+      mode: RESOURCE_REF
+      ref: network
+      sources:
+      - source-brief
+    CidrBlock:
+      mode: LITERAL
+      value: 10.42.3.0/24
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    AvailabilityZone:
+      mode: LITERAL
+      value: ap-northeast-1c
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: app-sg
+  name: 架空 app-sg
+  type: AWS::EC2::SecurityGroup
+  cfn_logical_id: AppSecurityGroup
+  settings:
+    VpcId:
+      mode: RESOURCE_REF
+      ref: network
+      sources:
+      - source-brief
+    GroupDescription:
+      mode: LITERAL
+      value: Fictional application security group
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: app
+  name: 架空 app
+  type: AWS::EC2::Instance
+  cfn_logical_id: AppServer
+  settings:
+    InstanceType:
+      mode: LITERAL
+      value: t3.micro
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    ImageId:
+      mode: EXTERNAL_REF
+      ref: catalog://fictional/approved-image
+      rationale: AMIの実IDは後日決定
+    SubnetId:
+      mode: RESOURCE_REF
+      ref: app-subnet
+      sources:
+      - source-brief
+    SecurityGroupIds:
+      mode: RESOURCE_REF
+      ref:
+      - app-sg
+      sources:
+      - source-brief
+    Monitoring:
+      mode: DEFAULT
+      rationale: 既定動作を希望するが、値は確定しない
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: db-subnets
+  name: 架空 db-subnets
+  type: AWS::RDS::DBSubnetGroup
+  cfn_logical_id: DatabaseSubnets
+  settings:
+    DBSubnetGroupDescription:
+      mode: LITERAL
+      value: Fictional database subnet group
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    SubnetIds:
+      mode: RESOURCE_REF
+      ref:
+      - db-subnet-a
+      - db-subnet-b
+      sources:
+      - source-brief
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+- id: db
+  name: 架空 db
+  type: AWS::RDS::DBInstance
+  cfn_logical_id: Database
+  settings:
+    Engine:
+      mode: LITERAL
+      value: postgres
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    EngineVersion:
+      status: UNDECIDED
+      rationale: 対応版・運用条件を確認する
+    DBInstanceClass:
+      mode: LITERAL
+      value: db.t3.micro
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    AllocatedStorage:
+      mode: LITERAL
+      value: 20
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    StorageEncrypted:
+      mode: LITERAL
+      value: true
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    MultiAZ:
+      mode: LITERAL
+      value: false
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    PubliclyAccessible:
+      mode: LITERAL
+      value: false
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    BackupRetentionPeriod:
+      mode: LITERAL
+      value: 7
+      rationale: 架空サンプルの仮定値
+      sources:
+      - source-brief
+    DBSubnetGroupName:
+      mode: RESOURCE_REF
+      ref: db-subnets
+      sources:
+      - source-brief
+    MasterUserPassword:
+      mode: SECRET_REF
+      classification: SECRET
+      ref: secret://fictional/database/password
+      rationale: 秘密の実値はこの文書に保存しない
+  rationale: 説明用の架空構成。実システムではありません。
+  sources:
+  - source-brief
+connections:
+- id: conn-placement
+  source: app
+  target: app-subnet
+  kind: REFERENCE
+  property: SubnetId
+  description: アプリの配置先
+- id: conn-db-traffic
+  source: app
+  target: db
+  kind: TRAFFIC
+  protocol: TCP
+  ports: '5432'
+  description: アプリからDBへ。疎通・SG・ルートは未評価。
+  sources:
+  - source-brief
+operations:
+- id: ops-recovery
+  title: 架空の復旧方針
+  text: 日次バックアップを想定。RPO 24時間・RTO 4時間は仮の目標で実測なし。復元訓練を計画する。
+  resources:
+  - db
+  sources:
+  - source-brief
+issues:
+- id: issue-owner
+  title: 復旧手順の責任者
+  status: UNDECIDED
+  text: 担当者と連絡先を決める。
+  resources:
+  - db

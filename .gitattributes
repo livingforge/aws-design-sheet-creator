@@ -1,0 +1,5 @@
+# Preserve the reviewed package bytes and fixed schema hashes on every platform.
+* -text
+* whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve original vendor XSD bytes; their upstream hashes are checked separately.
+**/schemas/saml/*.xsd -whitespace

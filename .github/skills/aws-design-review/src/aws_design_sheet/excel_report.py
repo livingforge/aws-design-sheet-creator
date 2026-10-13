@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -52,8 +54,15 @@ def text(value: Any) -> str:
 
 def put(ws, row: int, column: int, value: Any, *, style: tuple[str, str] | None = None,
         wrap: bool = False):
-    if isinstance(value, str):
-        value = ILLEGAL_CHARACTERS_RE.sub("", value)[:MAX_CELL]
+    if isinstance(value, str) and (utf16_length(value) > MAX_CELL or ILLEGAL_CHARACTERS_RE.search(value)):
+        # Excel's limit is UTF-16 code units. Keep the original in indexed chunks,
+        # including XML-forbidden characters encoded as JSON, rather than truncate.
+        records = getattr(ws.parent, '_full_text', [])
+        identifier = f'text-{len(records) + 1:05}'
+        records.append((identifier, ws.title, f'{get_column_letter(column)}{row}', value))
+        ws.parent._full_text = records
+        preview = ILLEGAL_CHARACTERS_RE.sub('', value[:200])
+        value = f'{preview}\n［全文: 長文 / {identifier}］'
     cell = ws.cell(row=row, column=column, value=value)
     if isinstance(value, str) and value.startswith("="):
         cell.data_type = "s"  # design text is data, never a formula
@@ -64,20 +73,69 @@ def put(ws, row: int, column: int, value: Any, *, style: tuple[str, str] | None 
     return cell
 
 
+def utf16_length(value: str) -> int:
+    return len(value.encode('utf-16-le')) // 2
+
+
+def text_chunks(value: str, limit: int = 30000):
+    chunk, size = [], 0
+    for char in value:
+        units = 2 if ord(char) > 0xffff else 1
+        if size + units > limit:
+            yield ''.join(chunk)
+            chunk, size = [], 0
+        chunk.append(char)
+        size += units
+    if chunk:
+        yield ''.join(chunk)
+
+
+def _full_text_sheet(wb):
+    records = getattr(wb, '_full_text', [])
+    if not records:
+        return
+    rows = []
+    for identifier, sheet, cell, original in records:
+        encoded = bool(ILLEGAL_CHARACTERS_RE.search(original))
+        payload = json.dumps(original, ensure_ascii=False) if encoded else original
+        chunks = list(text_chunks(payload))
+        digest = hashlib.sha256(original.encode('utf-8')).hexdigest()
+        rows.extend([identifier, sheet, cell, n, len(chunks), 'json' if encoded else 'text',
+                     chunk, digest] for n, chunk in enumerate(chunks, 1))
+    table(wb.create_sheet('長文'), ['全文ID', '元シート', '元セル', '分割番号', '分割数', '形式', '内容', '原文SHA256'],
+          rows, [18, 20, 14, 12, 12, 10, 100, 68], wrapped={7})
+
+
 def table(ws, headers: list[str], rows: list[list[Any]], widths: list[int], *,
           styled: dict[int, dict[str, tuple[str, str]]] | None = None,
-          wrapped: set[int] = frozenset()):
+          wrapped: set[int] = frozenset(), height_columns: set[int] | None = None):
     for column, (header, width) in enumerate(zip(headers, widths), 1):
         cell = put(ws, 1, column, header)
         cell.fill, cell.font = HEADER_FILL, HEADER_FONT
         ws.column_dimensions[get_column_letter(column)].width = width
     for row_number, row in enumerate(rows, 2):
+        line_count = 1
         for column, value in enumerate(row, 1):
             styles = (styled or {}).get(column)
             put(ws, row_number, column, value, style=styles.get(value) if styles else None,
                 wrap=column in wrapped)
+            if column in (wrapped if height_columns is None else height_columns) and value is not None:
+                length = lambda line: sum(2 if unicodedata.east_asian_width(c) in ('W', 'F') else 1 for c in line)
+                lines = sum(max(1, math.ceil(length(line) / max(1, widths[column - 1] - 2)))
+                            for line in str(value).split('\n'))
+                line_count = max(line_count, lines)
+        # Excel itself caps row height at 409 points; full values remain in cells.
+        ws.row_dimensions[row_number].height = min(409, max(22, 15 * line_count + 5))
+    ws.row_dimensions[1].height = 30
+    ws.sheet_view.zoomScale = 85
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{max(len(rows) + 1, 2)}"
+    ws.print_title_rows = '1:1'
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.paperSize = ws.PAPERSIZE_A3
+    ws.page_setup.fitToWidth, ws.page_setup.fitToHeight = 1, 0
+    ws.print_options.horizontalCentered = True
 
 
 def build_workbook(result: dict, design: Design | None = None) -> Workbook:
@@ -162,7 +220,87 @@ def build_workbook(result: dict, design: Design | None = None) -> Workbook:
         table(ws, ["リソース種別", "リソース名", "リソース ID", "項目パス", "状態", "値", "根拠"],
               rows, [24, 16, 13, 34, 13, 34, 64],
               styled={5: STATE_STYLES}, wrapped={6, 7})
+    review = result.get("review_summary")
+    if review is not None:
+        from .review_summary import validate_review_summary
+        raw = result.get("results", [])
+        validate_review_summary(review, raw, result.get('coverage', []))
+        ordered = sorted(range(len(raw)), key=lambda i: VERDICT_ORDER.index(raw[i]['verdict'])
+                         if raw[i]['verdict'] in VERDICT_ORDER else len(VERDICT_ORDER))
+        row_numbers = {index: position + 1 for position, index in enumerate(ordered)}
+        ws = wb.create_sheet("要確認一覧")
+        # Normalize shared coverage sets by membership. Global coverage is stored
+        # once, so every review can point to it without huge repeated cell values.
+        memberships = {}
+        for item in review['items']:
+            for index in item['coverage_indexes']:
+                memberships.setdefault(index, []).append(item['id'])
+        groups = {}
+        for index, item_ids in memberships.items():
+            groups.setdefault(tuple(item_ids), []).append(index)
+        item_groups = {item['id']: [] for item in review['items']}
+        coverage_rows, association_rows = [], []
+        for n, (item_ids, indexes) in enumerate(groups.items(), 1):
+            group = f'coverage-{n:04}'
+            coverage_rows.extend([group, index + 1, f'/coverage/{index}'] for index in indexes)
+            for identifier in item_ids:
+                item_groups[identifier].append(group)
+                association_rows.append([identifier, 'coverage_group', group, len(indexes), ''])
+        rows = []
+        for item in review['items']:
+            members = [raw[i] for i in item['result_indexes']]
+            association_rows.extend([item['id'], 'result', row_numbers[i], 1, f'/results/{i}']
+                                    for i in item['result_indexes'])
+            short_indexes = ', '.join(str(i + 1) for i in item['coverage_indexes'])
+            coverage_display = (short_indexes if len(short_indexes) <= 1000 else
+                                '未検査関連: ' + ', '.join(item_groups[item['id']]))
+            rows.append([item['id'], item['severity'], len(members), item['unknown'], item['why'], item['action'],
+                         ', '.join(str(row_numbers[i]) for i in item['result_indexes']),
+                         '\n'.join(item['result_refs']), '\n'.join(item['rule_ids']),
+                         '\n'.join(f"{resource_cells(r.get('resource_id'))[1] or r.get('resource_id')} {r.get('path') or ''}" for r in members),
+                         evidence_text(item['evidence_ids']),
+                         coverage_display, review['note']])
+        table(ws, ["確認ID", "重大度", "元の判定件数", "不明な入力", "確認が必要な理由", "確認する入力・情報と次の行為",
+                   "検査結果No", "元JSON参照", "ルールID", "対象と項目", "根拠", "未検査範囲No", "注意"],
+              rows, [16, 12, 14, 36, 46, 64, 22, 26, 36, 48, 60, 20, 56],
+              wrapped={4, 5, 6, 7, 8, 9, 10, 11, 12, 13}, height_columns={4, 5, 6})
+        ws.print_area = f'A1:F{max(1, ws.max_row)}'
+        ws.oddFooter.center.text = '詳細根拠・全対応はセルおよび確認関連／未検査関連シートを参照'
+        table(wb.create_sheet('確認関連'), ['確認ID', '関連種別', '参照No / グループ', '件数', '元JSON参照'],
+              association_rows, [18, 22, 28, 12, 30])
+        table(wb.create_sheet('未検査関連'), ['グループ', '未検査範囲No', '元JSON参照'],
+              coverage_rows, [24, 20, 30])
+    _input_scope_sheets(wb, result.get('input_scope'))
+    _full_text_sheet(wb)
     return wb
+
+
+def _input_scope_sheets(wb, scope):
+    if scope is None:
+        return
+    rows = [['設計承認', scope['design_approval']], ['説明', scope['note']],
+            ['台帳メタデータあり', scope['inventory_provided']],
+            ['資料全体の項目数', scope['total_items'] if scope['total_items'] is not None else 'UNKNOWN'],
+            ['台帳が資料全体を網羅', scope['inventory_complete'] if scope['inventory_complete'] is not None else 'UNKNOWN'],
+            ['台帳に記録された項目数', len(scope['items'])],
+            ['母資料ID', '\n'.join(scope['source_document_ids'])], ['理由', scope.get('reason', '')]]
+    rows.extend([f'{dimension}: {name}', count] for dimension, counts in scope.get('counts', {}).items()
+                for name, count in counts.items())
+    table(wb.create_sheet('適用範囲'), ['区分', '値'], rows, [55, 100], wrapped={2})
+    if scope['items']:
+        table(wb.create_sheet('入力追跡'),
+              ['項目ID', '分類', '資料上の存在', '入力への表現', '適用範囲', '値の状態', '評価状態',
+               '理由', '入力位置', '要求ルール', '観測ルール', '元JSON結果参照', '資料参照', '根拠ID'],
+              [[r['id'], r['category'], r['presence'], r['representation'], r['applicability'],
+                '\n'.join(r['value_states']), r['evaluation_state'], r['reason'], text(r['bindings']),
+                text(r['check_rule_ids']), '\n'.join(r['observed_rule_ids']),
+                '\n'.join(f'/results/{i}' for i in r['observed_result_indexes']),
+                '\n'.join(r['source_refs']), '\n'.join(r['evidence_ids'])] for r in scope['items']],
+              [16, 12, 22, 24, 22, 26, 38, 64, 60, 36, 36, 30, 48, 36], wrapped=set(range(6, 15)))
+    if scope['scope_notes']:
+        table(wb.create_sheet('未評価方針'), ['ID', '対象', '適用範囲', '理由', '資料参照', '根拠ID'],
+              [[r['id'], r['description'], r['applicability'], r['reason'], '\n'.join(r['source_refs']),
+                '\n'.join(r['evidence_ids'])] for r in scope['scope_notes']], [16, 65, 24, 90, 48, 36], wrapped={2, 4, 5, 6})
 
 
 def _summary(ws, result: dict, design: Design | None):
@@ -172,7 +310,9 @@ def _summary(ws, result: dict, design: Design | None):
     put(ws, 1, 1, "AWS 設計チェック結果").font = TITLE_FONT
     row = 3
     status = result.get("status", "")
-    items = [("処理状態", status), ("実行 ID", result.get("run_id", "")),
+    items = [("処理状態", status), ("設計承認", "NOT_ASSESSED"),
+             ("状態の意味", "COMPLETEは処理完了。設計合格・承認・デプロイ可能を意味しません。"),
+             ("実行 ID", result.get("run_id", "")),
              ("生成日時", result.get("generated_at", "")),
              ("入力ハッシュ", result.get("input_sha256", ""))]
     if design is not None:
@@ -180,7 +320,7 @@ def _summary(ws, result: dict, design: Design | None):
                       ("アカウント", design.account), ("リージョン", design.region)]
     if result.get("diagnostic"):
         items.append(("診断情報", result["diagnostic"]))
-    status_style = VERDICT_STYLES["PASS" if status == "COMPLETE" else "FAIL"]
+    status_style = ("DDEBF7", "1F4E78") if status == "COMPLETE" else VERDICT_STYLES["FAIL"]
     for label, value in items:
         put(ws, row, 1, label).font = Font(bold=True)
         put(ws, row, 2, value, style=status_style if label == "処理状態" else None, wrap=True)
@@ -200,6 +340,13 @@ def _summary(ws, result: dict, design: Design | None):
     put(ws, row, 1, "未検査範囲").font = Font(bold=True)
     put(ws, row, 2, len(result.get("coverage", []))).alignment = Alignment(horizontal="left")
 
+    if result.get("review_summary") is not None:
+        row += 1
+        put(ws, row, 1, "要確認の表示項目数").font = Font(bold=True)
+        put(ws, row, 2, result['review_summary']['item_count'])
+        row += 1
+        put(ws, row, 2, result['review_summary']['note'], wrap=True)
+
     row += 2
     put(ws, row, 1, "版").font = SECTION_FONT
     row += 1
@@ -214,6 +361,13 @@ def _summary(ws, result: dict, design: Design | None):
         row += 1
     row += 1
     put(ws, row, 1, NOTE).font = Font(italic=True, color="595959")
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+    ws.cell(row, 1).alignment = WRAP
+    ws.row_dimensions[row].height = 34
+    ws.print_options.horizontalCentered = True
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth, ws.page_setup.fitToHeight = 1, 0
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
 
 
 def main(argv: list[str] | None = None) -> int:

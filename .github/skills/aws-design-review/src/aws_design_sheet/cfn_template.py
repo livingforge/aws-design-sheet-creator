@@ -39,6 +39,21 @@ class _Unresolved(Exception):
     pass
 
 
+class _Unknown(dict):
+    """Transient marker: JSON remains the existing marker, hints travel separately."""
+    def __init__(self, hint):
+        super().__init__(UNRESOLVED)
+        self.hint = hint
+
+
+class _Reference(str):
+    """Typed design reference plus the exact originating CFN attribute."""
+    def __new__(cls, value, hint):
+        result = super().__new__(cls, value)
+        result.hint = hint
+        return result
+
+
 class _TemplateLoader(yaml.SafeLoader):
     """SafeLoader with CloudFormation short forms; timestamps stay strings."""
 
@@ -108,18 +123,24 @@ class _Resolver:
         self.dependencies: set[str] = set()
         self._condition_cache: dict[str, bool | None] = {}
 
-    def reference(self, name: str) -> str:
+    def reference(self, name: str, attribute: str | None = None) -> str:
         resource_type = self.resources[name].get("Type", "")
         if not isinstance(resource_type, str) or not TYPE.fullmatch(resource_type):
             self.dependencies.add(name)
             raise _Unresolved
-        return f"@{resource_type}/{name}"
+        return _Reference(f"@{resource_type}/{name}", {
+            "kind": "GetAtt" if attribute is not None else "Ref",
+            "target_name": name, "target_type": resource_type, "attribute": attribute})
 
     def parameter(self, name: str):
         if name in self.pseudo:
             return self.pseudo[name]
         spec = self.parameters.get(name)
         if not isinstance(spec, dict) or "Default" not in spec:
+            raise _Unresolved
+        # NoEcho is a declaration, not a redaction service. Do not inline its
+        # default into generated notes, evidence or exported property values.
+        if spec.get("NoEcho") in (True, "true", "True"):
             raise _Unresolved
         kind, default = str(spec.get("Type", "String")), spec["Default"]
         if kind.startswith("AWS::SSM::Parameter::Value"):
@@ -132,6 +153,136 @@ class _Resolver:
                 return default
             return [] if default == "" else [item.strip() for item in str(default).split(",")]
         return default
+
+    def parameter_hint(self, node):
+        """Preserve declared/result types, without copying defaults or constraints."""
+        if not isinstance(node, dict) or len(node) != 1:
+            return {}
+        key, arg = next(iter(node.items()))
+        if key == "Ref":
+            spec = self.parameters.get(arg) if isinstance(arg, str) else None
+            if not isinstance(spec, dict):
+                return {}
+            hint = {"type": spec["Type"]} if isinstance(spec.get("Type"), str) else {}
+            echo = spec.get("NoEcho")
+            if isinstance(echo, bool) or echo in ("true", "false", "True", "False"):
+                hint["no_echo"] = echo in (True, "true", "True")
+            return hint
+        if key == "Fn::If" and isinstance(arg, list) and len(arg) == 3:
+            try:
+                return self.parameter_hint(arg[1] if self.condition(arg[0]) else arg[2])
+            except (_Unresolved, TypeError):
+                hints = [self.parameter_hint(branch) for branch in arg[1:]]
+                hint = {"type": hints[0]["type"]} if hints[0].get("type") and hints[0].get("type") == hints[1].get("type") else {}
+                if any(h.get("no_echo") is True for h in hints):
+                    hint["no_echo"] = True
+                return hint
+        hint = {}
+        if key == "Fn::Select" and isinstance(arg, list) and len(arg) == 2:
+            hint = self.parameter_hint(arg[1]).copy()
+            kind = hint.pop("type", "")
+            if kind == "CommaDelimitedList":
+                hint["type"] = "String"
+            elif kind.startswith("List<") and kind.endswith(">"):
+                hint["type"] = kind[5:-1]
+        elif key == "Fn::Split":
+            hint["type"] = "CommaDelimitedList"
+        elif key in ("Fn::Join", "Fn::Sub", "Fn::Base64"):
+            hint["type"] = "String"
+        if self.uses_no_echo(node):
+            hint["no_echo"] = True
+        return hint
+
+    def uses_no_echo(self, node):
+        if isinstance(node, list):
+            return any(self.uses_no_echo(item) for item in node)
+        if not isinstance(node, dict):
+            return False
+        if set(node) == {"Ref"}:
+            return self.parameter_hint(node).get("no_echo") is True
+        if set(node) == {"Fn::Sub"}:
+            arg = node["Fn::Sub"]
+            text = arg[0] if isinstance(arg, list) and arg else arg
+            variables = arg[1] if isinstance(arg, list) and len(arg) == 2 and isinstance(arg[1], dict) else {}
+            if isinstance(text, str):
+                for name in SUB_VARIABLE.findall(text):
+                    if not name.startswith("!") and self.uses_no_echo(variables.get(name, {"Ref": name})):
+                        return True
+        return any(self.uses_no_echo(item) for item in node.values())
+
+    def expression_inputs(self, node):
+        """Explicit parameter/pseudo-parameter provenance, never parameter values."""
+        def combine(parts):
+            parts = list(parts)
+            return None if any(p is None for p in parts) else set().union(*parts)
+
+        if isinstance(node, list):
+            return combine(self.expression_inputs(item) for item in node)
+        if not isinstance(node, dict):
+            return set()
+        if set(node) == {"Ref"}:
+            name = node['Ref']
+            if isinstance(name, str) and name in self.parameters:
+                return {'parameter:' + name}
+            if name == 'AWS::StackName':
+                return {'pseudo:AWS::StackName'}
+            return set() if isinstance(name, str) and name in self.pseudo else None
+        if set(node) == {'Fn::If'} and isinstance(node['Fn::If'], list) and len(node['Fn::If']) == 3:
+            name, yes, no = node['Fn::If']
+            try:
+                return self.expression_inputs(yes if self.condition(name) else no)
+            except (_Unresolved, TypeError):
+                # An unknown condition is a separate cause; do not guess its provenance.
+                return None
+        if set(node) == {'Fn::Sub'}:
+            arg = node['Fn::Sub']
+            text = arg[0] if isinstance(arg, list) and arg else arg
+            variables = arg[1] if isinstance(arg, list) and len(arg) == 2 and isinstance(arg[1], dict) else {}
+            if isinstance(text, str):
+                return combine(self.expression_inputs(variables.get(name, {'Ref': name}))
+                               for name in SUB_VARIABLE.findall(text) if not name.startswith('!'))
+        # Only supported expression composition is suitable for display grouping.
+        if any(key not in ('Fn::Join', 'Fn::Select', 'Fn::Split', 'Fn::Base64') for key in node):
+            return None
+        return combine(self.expression_inputs(item) for item in node.values())
+
+    def definitely_present(self, node):
+        """Whether an unresolved expression cannot remove its enclosing property."""
+        if not isinstance(node, dict) or len(node) != 1:
+            return False
+        key, arg = next(iter(node.items()))
+        if key == 'Ref':
+            return isinstance(arg, str) and (arg in self.parameters or arg in self.resources or
+                                            arg in self.pseudo or arg == 'AWS::StackName')
+        if key == 'Fn::Join':
+            return isinstance(arg, list) and len(arg) == 2 and isinstance(arg[0], str) and isinstance(arg[1], list)
+        if key == 'Fn::Sub':
+            return isinstance(arg, str) or (isinstance(arg, list) and len(arg) == 2 and
+                                           isinstance(arg[0], str) and isinstance(arg[1], dict))
+        if key == 'Fn::If' and isinstance(arg, list) and len(arg) == 3:
+            try:
+                return self.definitely_present(arg[1] if self.condition(arg[0]) else arg[2])
+            except (_Unresolved, TypeError):
+                return all(self.definitely_present(branch) for branch in arg[1:])
+        return False
+
+    def literal_prefix(self, node):
+        """Conservative leading source literals, without evaluating secret defaults."""
+        if not isinstance(node, dict) or len(node) != 1 or self.uses_no_echo(node):
+            return None
+        key, arg = next(iter(node.items()))
+        if key == 'Fn::Join' and isinstance(arg, list) and len(arg) == 2 and isinstance(arg[0], str) and isinstance(arg[1], list):
+            prefix = []
+            for part in arg[1]:
+                if not isinstance(part, str):
+                    break
+                prefix.append(part)
+            return arg[0].join(prefix) or None
+        if key == 'Fn::Sub':
+            text = arg[0] if isinstance(arg, list) and arg else arg
+            if isinstance(text, str):
+                return text.split('${', 1)[0] or None
+        return None
 
     def condition(self, name: str) -> bool:
         if name not in self._condition_cache:
@@ -209,7 +360,14 @@ class _Resolver:
                     return self.intrinsic(key, argument)
                 except (_Unresolved, KeyError, IndexError, TypeError, ValueError):
                     self.collect_dependencies(node)
-                    return dict(UNRESOLVED)
+                    hint = self.parameter_hint(node)
+                    inputs = self.expression_inputs(node)
+                    if inputs:
+                        hint['inputs'] = sorted(inputs)
+                    prefix = self.literal_prefix(node)
+                    if prefix and hint.get('type') == 'String':
+                        hint['literal_prefix'] = prefix
+                    return _Unknown(hint)
         resolved = {key: self.value(item) for key, item in node.items()}
         return {key: item for key, item in resolved.items() if item is not _NO_VALUE}
 
@@ -221,10 +379,13 @@ class _Resolver:
                 return self.reference(argument)
             return self.parameter(argument)
         if key == "Fn::GetAtt":
-            target = argument[0] if isinstance(argument, list) else str(argument).split(".", 1)[0]
+            parts = argument if isinstance(argument, list) else str(argument).split(".", 1)
+            if len(parts) != 2 or not all(isinstance(p, str) and p for p in parts):
+                raise _Unresolved
+            target, attribute = parts
             if target not in self.resources:
                 raise _Unresolved
-            return self.reference(target)
+            return self.reference(target, attribute)
         if key == "Fn::If":
             name, when_true, when_false = argument
             return self.value(when_true if self.condition(name) else when_false)
@@ -294,6 +455,34 @@ def _contains_unresolved(value) -> bool:
     return False
 
 
+def _parameter_hints(value, path):
+    if isinstance(value, _Unknown):
+        return {path: value.hint} if value.hint else {}
+    hints = {}
+    items = enumerate(value) if isinstance(value, list) else value.items() if isinstance(value, dict) else []
+    for key, item in items:
+        token = str(key).replace("~", "~0").replace("/", "~1")
+        hints.update(_parameter_hints(item, f"{path}/{token}"))
+    return hints
+
+
+def _reference_hints(value, path):
+    if isinstance(value, _Reference):
+        return {path: value.hint}
+    hints = {}
+    items = enumerate(value) if isinstance(value, list) else value.items() if isinstance(value, dict) else []
+    for key, item in items:
+        token = str(key).replace("~", "~0").replace("/", "~1")
+        hints.update(_reference_hints(item, f"{path}/{token}"))
+    return hints
+
+
+def _has_transform(value):
+    if isinstance(value, dict):
+        return 'Fn::Transform' in value or any(_has_transform(v) for v in value.values())
+    return isinstance(value, list) and any(_has_transform(v) for v in value)
+
+
 def template_to_lines(template: dict, *, template_id: str, account: str,
                       region: str) -> tuple[str, ConversionReport]:
     """Return line-grammar text with one line per converted resource."""
@@ -309,20 +498,26 @@ def template_to_lines(template: dict, *, template_id: str, account: str,
             report.skipped[name] = f"type outside the AWS::Service::Resource form: {resource_type}"
             continue
         condition = body.get("Condition")
+        complete = not template.get('Transform') and not body.get('Transform') and not _has_transform(body)
         if condition is not None:
             try:
                 if not resolver.condition(condition):
                     report.skipped[name] = f"condition {condition} is false with parameter defaults"
                     continue
             except _Unresolved:
-                pass
+                complete = False
         resolver.dependencies = set()
         properties = body.get("Properties") or {}
-        segments, unresolved = [], []
+        segments, unresolved, hints, presence, references = [], [], {}, {}, {}
         for key, raw in properties.items():
             value = resolver.value(raw)
+            token = key.replace("~", "~0").replace("/", "~1")
+            path = f'/properties/{token}'
+            presence[path] = (False if value is _NO_VALUE else True if value != UNRESOLVED or resolver.definitely_present(raw) else None)
             if value is _NO_VALUE:
                 continue
+            hints.update(_parameter_hints(value, f"/properties/{token}"))
+            references.update(_reference_hints(value, f"/properties/{token}"))
             if _contains_unresolved(value):
                 unresolved.append(key)
             else:
@@ -332,6 +527,12 @@ def template_to_lines(template: dict, *, template_id: str, account: str,
         depends_on = [depends_on] if isinstance(depends_on, str) else list(depends_on)
         depends_on += sorted(resolver.dependencies - set(depends_on) - {name})
         meta = {"id": template_id, "depends_on": depends_on}
+        if hints:
+            meta["parameter_hints"] = hints
+        if references:
+            meta["reference_hints"] = references
+        if complete:
+            meta['property_presence'] = presence
         segments.insert(0, f"@Template={json.dumps(meta, ensure_ascii=False)}")
         lines.append(f"{resource_type} {name}: " + "; ".join(segments))
         report.converted.append(name)

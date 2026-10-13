@@ -1,0 +1,396 @@
+{
+  "Description": "Fictional documentation test; not deployable",
+  "Resources": {
+    "DemoACMPCA": {
+      "Type": "AWS::ACMPCA::CertificateAuthority",
+      "Properties": {
+        "Type": "fictional-example",
+        "KeyAlgorithm": "fictional-example"
+      }
+    },
+    "DemoAPIGateway": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Description": "fictional-example",
+        "MinimumCompressionSize": 0
+      }
+    },
+    "DemoAccessAnalyzer": {
+      "Type": "AWS::AccessAnalyzer::Analyzer",
+      "Properties": {
+        "AnalyzerName": "fictional-example",
+        "Type": "fictional-example"
+      }
+    },
+    "DemoAthena": {
+      "Type": "AWS::Athena::WorkGroup",
+      "Properties": {
+        "Name": "fictional-example",
+        "Description": "fictional-example"
+      }
+    },
+    "DemoAutoScaling": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "LaunchConfigurationName": "fictional-example",
+        "ServiceLinkedRoleARN": "fictional-example"
+      }
+    },
+    "DemoBackup": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {}
+    },
+    "DemoCertificateManager": {
+      "Type": "AWS::CertificateManager::Certificate",
+      "Properties": {
+        "CertificateAuthorityArn": "fictional-example",
+        "CertificateTransparencyLoggingPreference": "ENABLED"
+      }
+    },
+    "DemoCloudFormation": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "RoleARN": "fictional-example",
+        "Description": "fictional-example"
+      }
+    },
+    "DemoCloudFront": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {}
+    },
+    "DemoCloudTrail": {
+      "Type": "AWS::CloudTrail::Trail",
+      "Properties": {
+        "CloudWatchLogsLogGroupArn": "fictional-example",
+        "CloudWatchLogsRoleArn": "fictional-example"
+      }
+    },
+    "DemoCloudWatch": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ThresholdMetricId": "fictional-example",
+        "ComparisonOperator": "fictional-example"
+      }
+    },
+    "DemoConfig": {
+      "Type": "AWS::Config::ConfigurationRecorder",
+      "Properties": {
+        "Name": "fictional-example",
+        "RoleARN": "fictional-example"
+      }
+    },
+    "DemoControlTower": {
+      "Type": "AWS::ControlTower::EnabledControl",
+      "Properties": {
+        "ControlIdentifier": "fictional-example",
+        "TargetIdentifier": "fictional-example"
+      }
+    },
+    "DemoDynamoDB": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "fictional-example",
+        "BillingMode": "fictional-example",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "fictional-id",
+            "AttributeType": "S"
+          }
+        ]
+      }
+    },
+    "DemoEC2": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "fictional-example",
+        "InstanceTenancy": "fictional-example"
+      }
+    },
+    "DemoECR": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "EmptyOnDelete": false,
+        "RepositoryName": "fictional-example"
+      }
+    },
+    "DemoECS": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "PlatformVersion": "fictional-example",
+        "PropagateTags": "SERVICE"
+      }
+    },
+    "DemoEKS": {
+      "Type": "AWS::EKS::Cluster",
+      "Properties": {
+        "Name": "fictional-example",
+        "RoleArn": "fictional-example"
+      }
+    },
+    "DemoELB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "IpAddressType": "fictional-example",
+        "EnablePrefixForIpv6SourceNat": "fictional-example"
+      }
+    },
+    "DemoElastiCache": {
+      "Type": "AWS::ElastiCache::CacheCluster",
+      "Properties": {
+        "AutoMinorVersionUpgrade": false,
+        "AZMode": "fictional-example"
+      }
+    },
+    "DemoEventBridge": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "EventBusName": "fictional-example",
+        "ScheduleExpression": "fictional-example"
+      }
+    },
+    "DemoGlue": {
+      "Type": "AWS::Glue::Job",
+      "Properties": {
+        "MaxRetries": 0.0,
+        "Description": "fictional-example"
+      }
+    },
+    "DemoGuardDuty": {
+      "Type": "AWS::GuardDuty::Detector",
+      "Properties": {
+        "FindingPublishingFrequency": "fictional-example",
+        "Enable": false
+      }
+    },
+    "DemoIAM": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Description": "fictional-example",
+        "MaxSessionDuration": 0,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "DemoInspectorV2": {
+      "Type": "AWS::InspectorV2::Filter",
+      "Properties": {
+        "Name": "fictional-example",
+        "Description": "fictional-example"
+      }
+    },
+    "DemoKMS": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "fictional-example",
+        "Enabled": false
+      }
+    },
+    "DemoKinesis": {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
+        "Name": "fictional-example",
+        "RetentionPeriodHours": 0
+      }
+    },
+    "DemoKinesisFirehose": {
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+      "Properties": {
+        "DeliveryStreamType": "DatabaseAsSource",
+        "DeliveryStreamName": "fictional-example"
+      }
+    },
+    "DemoLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Description": "fictional-example",
+        "ReservedConcurrentExecutions": 0,
+        "Environment": {
+          "Variables": {
+            "STAGE": "fictional-different",
+            "DB_PASSWORD": {
+              "Ref": "FictionalSecret"
+            }
+          }
+        },
+        "Role": {
+          "Ref": "DemoIAM"
+        }
+      }
+    },
+    "DemoLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "fictional-example",
+        "KmsKeyId": "fictional-example"
+      }
+    },
+    "DemoMSK": {
+      "Type": "AWS::MSK::Cluster",
+      "Properties": {
+        "EnhancedMonitoring": "DEFAULT",
+        "KafkaVersion": "fictional-example"
+      }
+    },
+    "DemoMacie": {
+      "Type": "AWS::Macie::Session",
+      "Properties": {
+        "Status": "ENABLED",
+        "FindingPublishingFrequency": "FIFTEEN_MINUTES"
+      }
+    },
+    "DemoOpenSearch": {
+      "Type": "AWS::OpenSearchService::Domain",
+      "Properties": {
+        "DomainName": "fictional-example",
+        "IPAddressType": "fictional-example"
+      }
+    },
+    "DemoOrganizations": {
+      "Type": "AWS::Organizations::Organization",
+      "Properties": {
+        "FeatureSet": "ALL"
+      }
+    },
+    "DemoRAM": {
+      "Type": "AWS::RAM::ResourceShare",
+      "Properties": {
+        "Name": "fictional-example",
+        "AllowExternalPrincipals": false
+      }
+    },
+    "DemoRDS": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "AllocatedStorage": "fictional-example",
+        "AllowMajorVersionUpgrade": false,
+        "MasterUserPassword": {
+          "Ref": "FictionalSecret"
+        }
+      }
+    },
+    "DemoRedshift": {
+      "Type": "AWS::Redshift::Cluster",
+      "Properties": {
+        "RevisionTarget": "fictional-example",
+        "AutomatedSnapshotRetentionPeriod": 0
+      }
+    },
+    "DemoResourceGroups": {
+      "Type": "AWS::ResourceGroups::Group",
+      "Properties": {
+        "Name": "fictional-example",
+        "Description": "fictional-example"
+      }
+    },
+    "DemoRoute53": {
+      "Type": "AWS::Route53::HostedZone",
+      "Properties": {
+        "Name": "fictional-example"
+      }
+    },
+    "DemoS3": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketNamespace": "global",
+        "BucketNamePrefix": "fictional-example",
+        "VersioningConfiguration": {
+          "Status": "Suspended"
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        }
+      }
+    },
+    "DemoSES": {
+      "Type": "AWS::SES::ReceiptRuleSet",
+      "Properties": {
+        "RuleSetName": "fictional-example"
+      }
+    },
+    "DemoSNS": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "fictional-example",
+        "KmsMasterKeyId": "fictional-example"
+      }
+    },
+    "DemoSQS": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "ContentBasedDeduplication": false,
+        "DeduplicationScope": "fictional-example"
+      }
+    },
+    "DemoSSM": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Type": "String",
+        "Value": {
+          "Ref": "FictionalSecret"
+        }
+      }
+    },
+    "DemoSecretsManager": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": "fictional-example",
+        "KmsKeyId": "fictional-example",
+        "GenerateSecretString": {
+          "PasswordLength": 32,
+          "ExcludePunctuation": true
+        }
+      }
+    },
+    "DemoSecurityHub": {
+      "Type": "AWS::SecurityHub::Hub",
+      "Properties": {
+        "EnableDefaultStandards": false,
+        "ControlFindingGenerator": "fictional-example"
+      }
+    },
+    "DemoServiceCatalog": {
+      "Type": "AWS::ServiceCatalog::Portfolio",
+      "Properties": {
+        "ProviderName": "fictional-example",
+        "Description": "fictional-example"
+      }
+    },
+    "DemoShield": {
+      "Type": "AWS::Shield::Protection",
+      "Properties": {
+        "Name": "fictional-example",
+        "ResourceArn": "fictional-example"
+      }
+    },
+    "DemoStepFunctions": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "DefinitionString": "fictional-example",
+        "RoleArn": "fictional-example"
+      }
+    },
+    "DemoWAFv2": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Description": "fictional-example",
+        "Name": "fictional-example"
+      }
+    }
+  }
+}

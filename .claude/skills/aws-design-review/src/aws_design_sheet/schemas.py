@@ -14,8 +14,14 @@ from pathlib import Path
 from .schema_diff import reconcile
 
 
+def _guard_release_destination(destination):
+    if any((p / 'schema-lock.json').exists() for p in (destination, *destination.parents)):
+        raise ValueError('Released schema locks/caches are immutable; use aws-design-bootstrap or a reviewed new release.')
+
+
 def update(region: str, destination: Path, rules_dir: Path | None = None) -> dict:
     """Pin a new archive; with rules_dir, carry the review ledger across the change."""
+    _guard_release_destination(destination)
     if not re.fullmatch(r"[a-z]{2}(?:-gov)?-[a-z]+-\d+", region):
         raise ValueError("invalid AWS region")
     url = f"https://schema.cloudformation.{region}.amazonaws.com/CloudformationSchema.zip"
@@ -26,6 +32,7 @@ def update(region: str, destination: Path, rules_dir: Path | None = None) -> dic
 
 def pin(archive: bytes, url: str, region: str, destination: Path,
         rules_dir: Path | None = None) -> dict:
+    _guard_release_destination(destination)
     types: dict[str, str] = {}
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
         for name in sorted(zipped.namelist()):

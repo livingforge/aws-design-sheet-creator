@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "checked_at": "2026-10-03",
+  "sources": [
+    {
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.Messages.html",
+      "sha256": "c9ac36cd5e07f7403fab94c327a3839d9dd1f2ac23e7af27b087a99cd95e3969"
+    },
+    {
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_Events.Messages.html",
+      "sha256": "da907d8e9dd3b0bb7ebe879ff15461b832949f2142f2786f35a17b284db4b3c3"
+    }
+  ],
+  "categories": {
+    "blue-green-deployment": [
+      "creation",
+      "deletion",
+      "failure",
+      "notification"
+    ],
+    "custom-engine-version": [
+      "creation",
+      "failure",
+      "restoring"
+    ],
+    "db-cluster": [
+      "configuration change",
+      "creation",
+      "deletion",
+      "failover",
+      "failure",
+      "global failover",
+      "maintenance",
+      "notification",
+      "read replica",
+      "serverless"
+    ],
+    "db-cluster-snapshot": [
+      "backup",
+      "failure",
+      "notification"
+    ],
+    "db-instance": [
+      "availability",
+      "backtrack",
+      "backup",
+      "configuration change",
+      "creation",
+      "deletion",
+      "failover",
+      "failure",
+      "global database",
+      "low storage",
+      "maintenance",
+      "notification",
+      "read replica",
+      "recovery",
+      "restoration",
+      "security",
+      "security patching",
+      "serverless"
+    ],
+    "db-parameter-group": [
+      "configuration change"
+    ],
+    "db-proxy": [
+      "configuration change",
+      "creation",
+      "deletion",
+      "failure"
+    ],
+    "db-security-group": [
+      "configuration change",
+      "failure"
+    ],
+    "db-snapshot": [
+      "creation",
+      "deletion",
+      "failure",
+      "notification",
+      "restoration"
+    ]
+  }
+}

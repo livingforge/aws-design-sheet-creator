@@ -1,0 +1,28 @@
+[project]
+name = "aws-design-sheet"
+version = "0.2.0"
+description = "Traceable AWS design workbooks, required-input and project-policy checks"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2,<3", "openpyxl>=3.1,<4", "regex>=2024.9", "cryptography>=44,<47", "defusedxml>=0.7,<1", "lxml>=5.3,<7", "tzdata==2026.4", "PyYAML>=6,<7", "cfn-lint>=1.57,<2", "jsonschema>=4.26,<5"]
+
+[project.optional-dependencies]
+llm = ["anthropic>=1"]
+validation = ["cloudformation-validate>=1.12,<2"]
+
+[project.scripts]
+aws-design-check = "aws_design_sheet.cli:main"
+aws-design-run = "aws_design_sheet.runner:main"
+aws-design-correct = "aws_design_sheet.corrections:main"
+aws-design-benchmark = "aws_design_sheet.benchmark:main"
+aws-design-evaluate = "aws_design_sheet.evaluate:main"
+aws-design-schemas = "aws_design_sheet.schemas:main"
+aws-design-bootstrap = "aws_design_sheet.schema_bootstrap:main"
+aws-design-coverage = "aws_design_sheet.coverage_report:main"
+aws-design-excel = "aws_design_sheet.excel_report:main"
+aws-design-document = "aws_design_sheet.document_cli:main"
+aws-design-source-audit = "aws_design_sheet.source_audit:main"
+aws-design-review = "aws_design_sheet.rule_review:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

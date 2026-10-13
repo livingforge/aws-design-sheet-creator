@@ -1,0 +1,10 @@
+{
+  "facts": [
+    {"type": "AWS::EC2::VPC", "resource": "main", "path": "/properties/CidrBlock", "value": "10.0.0.0/16", "document": "network.txt", "line": 1},
+    {"type": "AWS::EC2::VPC", "resource": "main", "path": "/properties/EnableDnsSupport", "value": false, "document": "network.txt", "line": 1},
+    {"type": "AWS::EC2::Subnet", "resource": "app-a", "path": "/properties/VpcId", "value": "main", "document": "network.txt", "line": 2},
+    {"type": "AWS::EC2::Subnet", "resource": "app-a", "path": "/properties/CidrBlock", "value": "10.0.1.0/24", "document": "network.txt", "line": 2},
+    {"type": "AWS::EC2::Subnet", "resource": "app-a", "path": "/properties/MapPublicIpOnLaunch", "value": false, "document": "network.txt", "line": 2}
+  ],
+  "findings": []
+}

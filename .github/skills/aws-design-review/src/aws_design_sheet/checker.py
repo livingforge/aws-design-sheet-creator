@@ -22,6 +22,8 @@ from .network_modes import subnet_ipv6_checks, vpc_ipv4_source
 from .checks.aiops.investigation_group_uniqueness import evaluate_aiops_investigation_group_uniqueness
 from .network_ipv4 import SOURCE as VPC_CIDR_SOURCE, vpc_ipv4_addresses
 from .rule_engine import evaluate_rule_all, load_ruleset, reference_view
+from .cfn_static_review import refine_static_review
+from .rds_local_zone import guard_local_zone
 from .checks.batch.platform_guard import guard_batch_findings
 from .rule_review import load_reference_catalog
 
@@ -169,6 +171,17 @@ class Checker:
                  ledger_path: Path | None = None,
                  ruleset_path: Path | None = None,
                  references_path: Path | None = None, *, cfn_lint: bool = False):
+        from .schema_bootstrap import resolve_schema_dir
+        original_schema_dir = schema_dir.absolute()
+        schema_dir = resolve_schema_dir(original_schema_dir)
+        if schema_dir != original_schema_dir:
+            def local_rule(path, name):
+                if path is None or path.absolute() == original_schema_dir.parent / 'rules' / name:
+                    return schema_dir.parent / 'rules' / name
+                return path
+            ledger_path = local_rule(ledger_path, 'ledger.json')
+            ruleset_path = local_rule(ruleset_path, 'ruleset.json')
+            references_path = local_rule(references_path, 'references.json')
         self.cfn_lint = cfn_lint
         raw_manifest = (schema_dir / "manifest.json").read_bytes()
         self.manifest = json.loads(raw_manifest)
@@ -257,6 +270,7 @@ class Checker:
         if design.region != self.manifest["region"]:
             raise ValueError(f"schema region {self.manifest['region']} does not match design region {design.region}")
         self.results, self.coverage = [], []
+        proof_evidence = {e.id: (e.document_id, e.start_line, e.end_line, e.excerpt) for e in design.evidence}
         self.relations_by_source = defaultdict(list)
         for relation in design.relations:
             self.relations_by_source[relation.source_resource_id].append(relation)
@@ -274,7 +288,9 @@ class Checker:
             self._field_conflicts(resource)
             view = reference_view(resource, self.relations_by_source[resource.id], resource_types)
             for rule in self.rules_by_type[resource.type]:
-                self.results.extend(guard_batch_findings(rule, design, resource, evaluate_rule_all(rule, view)))
+                findings = [refine_static_review(rule, view, finding, proof_evidence) for finding in evaluate_rule_all(rule, view)]
+                findings = guard_local_zone(rule, design, resource, findings)
+                self.results.extend(guard_batch_findings(rule, design, resource, findings))
             if self.ledger:
                 entry = self.ledger["types"][resource.type]
                 state = entry["state"]
@@ -304,8 +320,10 @@ class Checker:
         self._rds(design)
         self._s3_access_grants(design)
         cfn_lint_version = None
+        cfn_compat_version = None
         if self.cfn_lint:
             from .cfn_lint_check import CFN_LINT_VERSION, lint_design
+            from .cfn_compat import VERSION as cfn_compat_version
             lint_results, lint_coverage = lint_design(design)
             self.results += lint_results
             self.coverage += lint_coverage
@@ -324,11 +342,15 @@ class Checker:
                 if line.strip() and line_number not in covered:
                     self.uncovered("UNPROCESSED_TEXT", None, None,
                                    f"{document.id}: line {line_number} not extracted")
+        from .review_summary import build_review_summary
+        from .input_scope import build_input_scope
         return {"run_id": str(uuid4()), "status": "COMPLETE",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "input_sha256": hashlib.sha256(design.model_dump_json(exclude_none=False).encode()).hexdigest(),
                 "summary": dict(Counter(r["verdict"] for r in self.results)),
                 "results": self.results, "coverage": self.coverage,
+                "review_summary": build_review_summary(design, self.results, self.coverage),
+                "input_scope": build_input_scope(design, self.results),
                 "versions": {"model": design.model_version, "rules": RULE_VERSION,
                              "extractor": design.extractor_version,
                              "profile": self.profile.get("version"), "profile_sha256": self.profile_hash,
@@ -339,7 +361,8 @@ class Checker:
                              "ruleset_sha256": self.ruleset_hash,
                              "references": self.references_version,
                              "references_sha256": self.references_hash,
-                             "cfn_lint": cfn_lint_version}}
+                             "cfn_lint": cfn_lint_version,
+                             "cfn_compat": cfn_compat_version}}
 
     def _add_check_finding(self, finding: dict):
         self.results.append({"rule_version": "1.0", "severity": "ERROR",

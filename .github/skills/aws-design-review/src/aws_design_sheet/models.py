@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import hashlib
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 
 class StrictModel(BaseModel):
@@ -113,6 +113,28 @@ class Scope(StrictModel):
     region: str
 
 
+class ParameterHint(StrictModel):
+    """Declaration-only metadata for an unresolved CFN expression; never a value."""
+    type: str | None = None
+    no_echo: bool | None = None
+    inputs: list[str] = Field(default_factory=list)
+    literal_prefix: str | None = None
+
+
+class ReferenceHint(StrictModel):
+    """Exact CFN expression metadata, bound to its declared target (never a physical ID)."""
+    kind: Literal["Ref", "GetAtt"]
+    target_name: str = Field(min_length=1)
+    target_type: str = Field(min_length=1)
+    attribute: str | None = None
+
+    @model_validator(mode="after")
+    def valid_attribute(self):
+        if (self.kind == "GetAtt" and not self.attribute) or (self.kind == "Ref" and self.attribute is not None):
+            raise ValueError("GetAtt requires an attribute; Ref cannot have one")
+        return self
+
+
 class TemplateContext(StrictModel):
     """Explicit template membership and complete DependsOn declaration.
 
@@ -123,6 +145,18 @@ class TemplateContext(StrictModel):
     depends_on: list[str] | None = None
     state: ValueState = ValueState.KNOWN
     evidence_ids: list[str] = Field(default_factory=list)
+    parameter_hints: dict[str, ParameterHint] = Field(default_factory=dict)
+    reference_hints: dict[str, ReferenceHint] = Field(default_factory=dict)
+    # None: incomplete design notes. Mapping: complete CFN properties, with
+    # true/false/None meaning definitely supplied/omitted/conditionally supplied.
+    property_presence: dict[str, bool | None] | None = None
+
+    @model_serializer(mode="wrap")
+    def compatible_dump(self, handler):
+        data = handler(self)
+        if not self.reference_hints:
+            data.pop("reference_hints", None)
+        return data
 
     @field_validator("state", mode="before")
     @classmethod
@@ -185,6 +219,60 @@ class Correction(StrictModel):
     source_run_id: str
 
 
+class InputBinding(StrictModel):
+    resource_id: str
+    path: str
+
+    @field_validator("path")
+    @classmethod
+    def property_path(cls, value):
+        if not value.startswith("/properties/"):
+            raise ValueError("input binding must use a /properties/ JSON Pointer")
+        return value
+
+
+class ScopeNote(StrictModel):
+    id: str
+    description: str
+    applicability: Literal["IN_SCOPE", "OUT_OF_SCOPE", "UNKNOWN"] = "UNKNOWN"
+    reason: str
+    source_refs: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class InputItem(StrictModel):
+    """Source inventory entry. None/UNKNOWN means no claim, never inferred approval."""
+    id: str
+    category: str
+    presence: Literal["PRESENT", "EXPLICIT_OMISSION", "UNKNOWN"] = "UNKNOWN"
+    representation: Literal["CONCRETE", "PARTIAL", "NOT_REPRESENTED", "UNKNOWN"] = "UNKNOWN"
+    applicability: Literal["IN_SCOPE", "OUT_OF_SCOPE", "UNKNOWN"] = "UNKNOWN"
+    reason: str
+    bindings: list[InputBinding] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    # Optional requested checks; absent metadata is not an implicit checklist.
+    check_rule_ids: list[str] | None = None
+
+
+class InputInventory(StrictModel):
+    source_document_ids: list[str]
+    total_items: int | None = Field(default=None, ge=0)
+    complete: bool | None = None
+    items: list[InputItem] = Field(default_factory=list)
+    scope_notes: list[ScopeNote] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_inventory(self):
+        if len({i.id for i in self.items}) != len(self.items) or len({i.id for i in self.scope_notes}) != len(self.scope_notes):
+            raise ValueError("duplicate input inventory ID")
+        if self.total_items is not None and self.total_items < len(self.items):
+            raise ValueError("input inventory denominator is smaller than supplied inventory")
+        if self.complete and self.total_items != len(self.items):
+            raise ValueError("complete inventory requires an exact explicit denominator")
+        return self
+
+
 class Design(StrictModel):
     model_version: str = "1.0"
     extractor_version: str | None = None
@@ -198,6 +286,14 @@ class Design(StrictModel):
     relations: list[Relation] = Field(default_factory=list)
     requirements: list[Requirement] = Field(default_factory=list)
     corrections: list[Correction] = Field(default_factory=list)
+    input_inventory: InputInventory | None = None
+
+    @model_serializer(mode="wrap")
+    def compatible_dump(self, handler):
+        data = handler(self)
+        if self.input_inventory is None:
+            data.pop("input_inventory", None)
+        return data
 
     @field_validator("model_version")
     @classmethod
@@ -238,4 +334,15 @@ class Design(StrictModel):
         for requirement in self.requirements:
             if any(e not in evidences for e in requirement.evidence_ids):
                 raise ValueError(f"unknown evidence in requirement {requirement.id}")
+        if self.input_inventory is not None:
+            inventory = self.input_inventory
+            resource_ids = {r.id for r in self.resources}
+            if any(d not in documents for d in inventory.source_document_ids):
+                raise ValueError("unknown source document in input inventory")
+            for item in [*inventory.items, *inventory.scope_notes]:
+                if any(e not in evidences for e in item.evidence_ids):
+                    raise ValueError("unknown evidence in input inventory")
+            for item in inventory.items:
+                if any(b.resource_id not in resource_ids for b in item.bindings):
+                    raise ValueError("unknown resource in input inventory binding")
         return self

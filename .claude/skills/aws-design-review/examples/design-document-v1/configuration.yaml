@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Fictional documentation example; not a deployable reference architecture
+Parameters:
+  DemoImage:
+    Type: AWS::EC2::Image::Id
+  DemoPassword:
+    Type: String
+    NoEcho: true
+Resources:
+  DemoVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.42.0.0/16
+      EnableDnsSupport: true
+  AppSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: DemoVpc
+      CidrBlock: 10.42.1.0/24
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ''
+  DbSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: DemoVpc
+      CidrBlock: 10.42.2.0/24
+      AvailabilityZone: ap-northeast-1a
+  DbSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: DemoVpc
+      CidrBlock: 10.42.3.0/24
+      AvailabilityZone: ap-northeast-1c
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: DemoVpc
+      GroupDescription: Fictional application security group
+  AppServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.small
+      SubnetId:
+        Ref: AppSubnet
+      SecurityGroupIds:
+      - Ref: AppSecurityGroup
+      ImageId:
+        Ref: DemoImage
+  DatabaseSubnets:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Fictional database subnet group
+      SubnetIds:
+      - Ref: DbSubnetA
+      - Ref: DbSubnetB
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageEncrypted: true
+      MultiAZ: false
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+      DBSubnetGroupName:
+        Ref: DatabaseSubnets
+      MasterUserPassword:
+        Ref: DemoPassword

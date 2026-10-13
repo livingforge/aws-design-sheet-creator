@@ -1,6 +1,6 @@
 ---
 name: aws-design-review
-description: Review AWS design text or saved intermediate JSON with the bundled checker and explain findings and unchecked scope.
+description: Generate AWS design workbooks and review required inputs, declared project policies, local AWS findings and optional CFN comparison with traceable evidence.
 ---
 
-Use the `aws-design-review` skill in `.github/skills/aws-design-review/SKILL.md`. Run the installed Python CLI, inspect its JSON output, and report findings with their evidence and coverage limits. Keep generated reports separate from the user's source files.
+Use the `aws-design-review` skill in `.github/skills/aws-design-review/SKILL.md`. Select the structured generation, documented line-text or saved checker-JSON workflow before running the installed Python CLI. Keep generation, completeness, project-policy conformity, CFN comparison and AWS static findings separate. Report evidence and unchecked scope. Use fresh output folders and do not deploy AWS resources or fetch secret references.

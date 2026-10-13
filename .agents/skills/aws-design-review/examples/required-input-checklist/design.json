@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.1",
+  "system": {
+    "id": "demo",
+    "name": "Required input example",
+    "description": "Fictional declarations; not deployable infrastructure."
+  },
+  "environments": [
+    {
+      "id": "prod",
+      "name": "Production",
+      "region": "ap-northeast-1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "minutes-retention",
+      "title": "Fictional retention decision",
+      "locator": "example#retention"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req-retention",
+      "title": "Log retention",
+      "text": "Explicitly configure log retention for production.",
+      "sources": [
+        "minutes-retention"
+      ]
+    }
+  ],
+  "required_inputs": [
+    {
+      "id": "required-retention",
+      "requirement_id": "req-retention",
+      "resource_id": "access-log",
+      "path": "/properties/RetentionInDays",
+      "environments": [
+        "prod"
+      ],
+      "confirmation": "CONFIRMED",
+      "sources": [
+        "minutes-retention"
+      ],
+      "rationale": "Explicit project input, not an expected-value comparison."
+    }
+  ],
+  "resources": [
+    {
+      "id": "worker",
+      "name": "Worker",
+      "type": "AWS::Lambda::Function",
+      "settings": {
+        "Code": {
+          "mode": "LITERAL",
+          "value": {
+            "ZipFile": "def handler(event, context): return None"
+          }
+        },
+        "Role": {
+          "status": "UNDECIDED"
+        }
+      }
+    },
+    {
+      "id": "access-log",
+      "name": "Access log",
+      "type": "AWS::Logs::LogGroup",
+      "settings": {}
+    }
+  ]
+}

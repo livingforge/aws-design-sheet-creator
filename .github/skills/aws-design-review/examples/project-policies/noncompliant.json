@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.1",
+  "system": {
+    "id": "policy-demo",
+    "name": "案件方針の検査例"
+  },
+  "environments": [
+    {
+      "id": "dev",
+      "name": "開発",
+      "region": "ap-northeast-1"
+    },
+    {
+      "id": "prod",
+      "name": "本番",
+      "region": "ap-northeast-1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "decision",
+      "title": "検証用の案件決定（実在承認ではない）",
+      "locator": "example:project-decision-1"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req-security",
+      "title": "S3公開アクセス制御",
+      "text": "BlockPublicAclsを有効にする。これだけで実際の公開可否や全セキュリティ要件の成立は判定しない。",
+      "sources": [
+        "decision"
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "media",
+      "name": "Media",
+      "type": "AWS::S3::Bucket",
+      "cfn_logical_id": "Media",
+      "settings": {
+        "PublicAccessBlockConfiguration": {
+          "mode": "LITERAL",
+          "value": {
+            "BlockPublicAcls": false,
+            "IgnorePublicAcls": true,
+            "BlockPublicPolicy": true,
+            "RestrictPublicBuckets": true
+          },
+          "sources": [
+            "decision"
+          ]
+        }
+      }
+    }
+  ],
+  "project_policies": [
+    {
+      "id": "block-public-acls",
+      "requirement_id": "req-security",
+      "resource_id": "media",
+      "path": "/properties/PublicAccessBlockConfiguration/BlockPublicAcls",
+      "operator": "EQUALS",
+      "values": [
+        true
+      ],
+      "when": [],
+      "environments": [
+        "prod"
+      ],
+      "sources": [
+        "decision"
+      ],
+      "confirmation": "CONFIRMED",
+      "rationale": "検証用の案件方針としてBlockPublicAcls=trueを明示。現実の承認ではない。"
+    }
+  ]
+}
