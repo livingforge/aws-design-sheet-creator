@@ -146,7 +146,7 @@ def adapt(document):
                 'version': VERSION, 'text': source, 'sha256': hashlib.sha256(source.encode()).hexdigest(),
                 'extracted_ranges': [[1, len(lines)]]}], 'evidence': evidence,
             'resources': [{'id': r.id, 'type': r.type, 'name': r.id,
-                           'scope': {'environment': env.id, 'account': 'UNDECLARED', 'region': env.region},
+                           'scope': {'environment': env.id, 'account': 'UNDECLARED', 'region': getattr(r, 'region', None) or env.region},
                            'fields': fields[r.id]} for r in resources.values()],
             'relations': relations,
             'requirements': [{'id': n.id, 'description': n.text} for n in document.design.requirements]}
@@ -162,12 +162,28 @@ def adapt(document):
 
 def run_checker(design):
     from .checker import Checker
-    checker = Checker(ROOT / 'schemas', ROOT / 'profiles/document-bridge.json',
-                      ROOT / 'rules/ledger.json', ROOT / 'rules/ruleset.json',
-                      ROOT / 'rules/references.json', cfn_lint=False)
-    try: return checker.check(design)
-    finally:
-        if checker.archive: checker.archive.close()
+    from .schema_bootstrap import resolve_schema_dir
+    combined = {'status': 'COMPLETE', 'results': [], 'coverage': [], 'versions': {}}
+    regions = sorted({r.scope.region for r in design.resources})
+    for region in regions:
+        root = resolve_schema_dir(ROOT / 'schemas', region)
+        checker = Checker(root, ROOT / 'profiles/document-bridge.json',
+                          root.parent / 'rules/ledger.json', root.parent / 'rules/ruleset.json',
+                          root.parent / 'rules/references.json', cfn_lint=False)
+        # Keep the whole graph: regional resource checks must still see references
+        # to resources in other regions. Retain each source resource's results once.
+        regional = design.model_copy(update={'region': region})
+        try: result = checker.check(regional)
+        finally:
+            if checker.archive: checker.archive.close()
+        if result['status'] != 'COMPLETE':raise ValueError('regional checker did not complete')
+        owned = {r.id for r in design.resources if r.scope.region == region}
+        for key in ('results', 'coverage'):
+            combined[key].extend(r for r in result[key] if r.get('resource_id') in owned or
+                                 r.get('resource_id') is None and region == regions[0])
+        combined['versions'][region] = result['versions']
+    if len(regions) == 1:combined['versions'] = combined['versions'][regions[0]]
+    return combined
 
 
 def run_linter(design):
@@ -202,12 +218,23 @@ def evaluate(document):
         return evaluation
     evaluation.stages['adapter'] = {'status': 'COMPLETE', 'resources': len(design.resources)}
     evaluation.provenance['adapter_input_sha256'] = hashlib.sha256(design.model_dump_json().encode()).hexdigest()
-    from .document_catalog import catalog
-    if design.region != catalog().manifest['region']:
-        evaluation.status = 'SKIPPED'; evaluation.assessment = 'NOT_EVALUATED'
-        for name in ('checker', 'cfn_lint'): evaluation.stages[name] = {'status': 'SKIPPED', 'reason': 'Unsupported region'}
-        _trace(evaluation, document)
-        return evaluation
+    if document.model_version == '1.0':
+        from .document_catalog import catalog
+        if design.region != catalog().manifest['region']:
+            evaluation.status = 'SKIPPED'; evaluation.assessment = 'NOT_EVALUATED'
+            for name in ('checker', 'cfn_lint'):evaluation.stages[name] = {'status': 'SKIPPED', 'reason': 'Unsupported region for legacy document'}
+            _trace(evaluation, document)
+            return evaluation
+    evaluation.provenance['regional_catalogs'] = getattr(document, 'regional_catalog_provenance', {})
+    evaluation.provenance['resource_regions'] = {r.id:r.scope.region for r in design.resources}
+    from .document_dependencies import inspect_dependencies
+    dependencies,dependency_coverage=inspect_dependencies(document)
+    evaluation.results.extend({**r,'stage':'declared_dependencies'} for r in dependencies)
+    evaluation.coverage.extend({**r,'stage':'declared_dependencies'} for r in dependency_coverage)
+    evaluation.stages['declared_dependencies']={'status':'COMPLETE','scope':'explicit logical graph only; no CFN stack inference'}
+    from .document_regions import inspect_placement
+    evaluation.results.extend({**r,'stage':'declared_regions'} for r in inspect_placement(document))
+    evaluation.stages['declared_regions']={'status':'COMPLETE','scope':'explicit regional placement only'}
     unknown_resources = {r['resource_id'] for r in evaluation.coverage if r['kind'] == 'BRIDGE_UNKNOWN_VALUE'}
     for name, runner in [('checker', run_checker), ('cfn_lint', run_linter)]:
         try:

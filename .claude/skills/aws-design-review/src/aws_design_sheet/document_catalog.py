@@ -13,7 +13,7 @@ SERVICES={name:(name,) for name in (
     'KMS','Logs','SecretsManager','SNS','SQS','SSM','Config','CloudTrail','Backup','CertificateManager',
     'ACMPCA','WAFv2','Shield','GuardDuty','SecurityHub','InspectorV2','Macie','AccessAnalyzer','Organizations',
     'ControlTower','CloudFormation','ResourceGroups','RAM','ServiceCatalog','StepFunctions','Kinesis',
-    'KinesisFirehose','Glue','Athena','Redshift','ElastiCache','MSK','SES')}
+    'KinesisFirehose','Glue','Athena','Redshift','ElastiCache','MSK','SES','Cognito')}
 SERVICES.update(APIGateway=('ApiGateway','ApiGatewayV2'),ELB=('ElasticLoadBalancing','ElasticLoadBalancingV2'),
     EventBridge=('Events','EventSchemas','Scheduler','Pipes'),Route53=('Route53','Route53Resolver'),
     OpenSearch=('OpenSearchService','Elasticsearch'))
@@ -31,12 +31,16 @@ def matches(pattern,parts):
 
 
 class Catalog:
-    def __init__(self,root=ROOT/'schemas', *, expected_pin=None):
-        from .schema_bootstrap import read_lock, resolve_schema_dir
+    def __init__(self,root=ROOT/'schemas', *, expected_pin=None, region=None):
+        from .schema_bootstrap import resolve_schema_dir, lock_path
+        root=Path(root)
         if expected_pin is None:
-            expected_pin = read_lock(root)['zip_sha256'] if (root/'schema-lock.json').exists() else PIN
-            root = resolve_schema_dir(root)
+            locked = lock_path(root,region).exists()
+            root = resolve_schema_dir(root,region)
+            expected_pin = json.loads((root/'manifest.json').read_text(encoding='utf8'))['zip_sha256'] if locked else PIN
         self.manifest=json.loads((root/'manifest.json').read_text(encoding='utf8'))
+        if region is not None and self.manifest['region']!=region:
+            raise ValueError('documentation catalog region mismatch')
         raw=(root/self.manifest['archive']).read_bytes()
         if hashlib.sha256(raw).hexdigest()!=expected_pin or self.manifest['zip_sha256']!=expected_pin:
             raise ValueError('documentation catalog schema pin mismatch')
@@ -48,7 +52,8 @@ class Catalog:
         ref_raw=(root.parent/'rules/references.json').read_bytes()
         self.references=json.loads(ref_raw)['references']
         self.reference_sha256=hashlib.sha256(ref_raw).hexdigest()
-        assert len(SERVICES)==50 and set(self.services.values())==set(SERVICES)
+        if not self.schemas or not set(self.services.values())<=set(SERVICES):
+            raise ValueError('empty or unsupported documentation service catalog')
 
     def branches(self,kind,node,seen=()):
         if not isinstance(node,dict):return
@@ -167,13 +172,29 @@ class Catalog:
                 'services':services,'resources':resources}
 
 
-@lru_cache(maxsize=2)
-def _catalog(root, pin):return Catalog(root, expected_pin=pin)
+@lru_cache(maxsize=8)
+def _catalog(root, pin, region, signatures):return Catalog(root, expected_pin=pin, region=region)
 
 
-@lru_cache(maxsize=1)
-def catalog():
-    from .schema_bootstrap import read_lock, resolve_schema_dir
+def catalog(region=None):
+    from .schema_bootstrap import resolve_schema_dir, lock_path, fingerprint
     root = ROOT/'schemas'
-    pin = read_lock(root)['zip_sha256'] if (root/'schema-lock.json').exists() else PIN
-    return _catalog(resolve_schema_dir(root), pin)
+    resolved=resolve_schema_dir(root,region)
+    manifest=json.loads((resolved/'manifest.json').read_text(encoding='utf8'))
+    # resolve_schema_dir verified the cache against its lock, including any recorded drift.
+    pin = manifest['zip_sha256'] if lock_path(root,region).exists() else PIN
+    signatures=tuple(fingerprint(p) for p in (resolved/'manifest.json',resolved/manifest['archive'],resolved.parent/'rules/references.json'))
+    return _catalog(resolved, pin, region, signatures)
+
+
+catalog.cache_clear=_catalog.cache_clear
+
+
+def input_type_inventory():
+    """JSON contract inventory; runtime still checks the selected regional catalog."""
+    from .schema_bootstrap import read_lock
+    types=set(catalog().schemas)
+    for path in (ROOT/'schemas').glob('schema-lock.*.json'):
+        region=path.name[len('schema-lock.'):-len('.json')]
+        types.update(read_lock(ROOT/'schemas',region).get('catalog_types',[]))
+    return sorted(types)

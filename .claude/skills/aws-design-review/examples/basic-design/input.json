@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.1",
+  "system": {"id": "sample-portal", "name": "架空ポータル", "description": "基本設計とパラメータシートを1つの入力で管理する架空の例です。デプロイ可能な構成ではありません。"},
+  "environments": [
+    {"id": "dev", "name": "開発", "region": "ap-northeast-1"},
+    {"id": "prod", "name": "本番", "region": "ap-northeast-1",
+     "overrides": [{"resource_id": "app-logs", "settings": {"RetentionInDays": {"mode": "LITERAL", "value": 400, "decision_ids": ["dec-log-retention"], "rationale": "本番は監査対応で13か月保持"}}}]}
+  ],
+  "sources": [{"id": "src-req", "title": "架空要件定義書 v1.0", "locator": "docs/requirements.md"}],
+  "requirements": [
+    {"id": "req-sec-01", "title": "保存データの暗号化", "text": "保存データは顧客管理の鍵で暗号化する。", "sources": ["src-req"]},
+    {"id": "req-ops-01", "title": "ログ保持", "text": "アプリケーションログを本番で1年以上保持する。", "sources": ["src-req"]},
+    {"id": "req-avail-01", "title": "可用性", "text": "業務時間帯の稼働率99.5%以上。", "sources": ["src-req"]}
+  ],
+  "decisions": [
+    {"id": "dec-overview", "section": "overview", "title": "システムの位置付け", "statement": "社内向けポータルの静的資産とログ基盤を東京リージョンに構築する。", "sources": ["src-req"]},
+    {"id": "dec-vpc-cidr", "section": "network", "title": "VPCとサブネットのアドレス", "statement": "VPCは10.0.0.0/16、サブネットはAZごとに/24で割り当てる。",
+     "rationale": "社内拠点のアドレス帯と重複しない範囲", "alternatives": ["172.16.0.0/16（拠点VPNと重複するため不採用）"],
+     "applies_to": {"resources": ["vpc", "subnet-a", "subnet-c"]}},
+    {"id": "dec-encryption", "section": "security", "title": "保存データの暗号化", "statement": "S3とCloudWatch Logsの保存データはKMSのカスタマー管理キーで暗号化する。",
+     "requirement_ids": ["req-sec-01"], "applies_to": {"types": ["AWS::S3::Bucket", "AWS::Logs::LogGroup"]}, "sources": ["src-req"],
+     "expansions": [{"property": "KmsKeyId", "mode": "EXTERNAL_REF", "ref": "kms-key-arn/portal-logs", "types": ["AWS::Logs::LogGroup"], "rationale": "ログ用のカスタマー管理キー"}]},
+    {"id": "dec-versioning", "section": "data", "title": "S3のバージョニング", "statement": "誤削除に備え、S3バケットはバージョニングを有効にする。",
+     "policy_ids": ["pol-versioning"], "applies_to": {"types": ["AWS::S3::Bucket"]},
+     "expansions": [{"property": "VersioningConfiguration", "mode": "LITERAL", "value": {"Status": "Enabled"}}]},
+    {"id": "dec-log-retention", "section": "monitoring", "title": "ログの保持期間", "statement": "アプリケーションログは開発で30日、本番で400日保持する。",
+     "requirement_ids": ["req-ops-01"], "applies_to": {"resources": ["app-logs"]}},
+    {"id": "dec-edge", "section": "edge", "title": "外部公開", "statement": "インターネットへの公開は行わない。", "status": "NOT_APPLICABLE"},
+    {"id": "dec-backup", "section": "backup-dr", "title": "バックアップとDR", "statement": "RPO/RTOを要件確定後に決める。", "status": "UNDECIDED", "requirement_ids": ["req-avail-01"]},
+    {"id": "dec-contact", "section": "operations", "title": "障害時の連絡体制", "statement": "一次連絡は運用担当、30分以内に開発責任者へエスカレーションする。"}
+  ],
+  "project_policies": [
+    {"id": "pol-versioning", "requirement_id": "req-sec-01", "resource_id": "assets", "path": "/properties/VersioningConfiguration/Status",
+     "operator": "EQUALS", "values": ["Enabled"], "environments": ["dev", "prod"], "sources": ["src-req"], "rationale": "誤削除対策"}
+  ],
+  "resources": [
+    {"id": "vpc", "name": "ポータルVPC", "type": "AWS::EC2::VPC",
+     "settings": {"CidrBlock": {"mode": "LITERAL", "value": "10.0.0.0/16", "decision_ids": ["dec-vpc-cidr"]},
+                  "EnableDnsSupport": {"mode": "LITERAL", "value": true}}},
+    {"id": "subnet-a", "name": "サブネットA", "type": "AWS::EC2::Subnet",
+     "settings": {"VpcId": {"mode": "RESOURCE_REF", "ref": "vpc"},
+                  "CidrBlock": {"mode": "LITERAL", "value": "10.0.1.0/24", "decision_ids": ["dec-vpc-cidr"]}}},
+    {"id": "subnet-c", "name": "サブネットC", "type": "AWS::EC2::Subnet",
+     "settings": {"VpcId": {"mode": "RESOURCE_REF", "ref": "vpc"},
+                  "CidrBlock": {"status": "UNDECIDED", "decision_ids": ["dec-vpc-cidr"]}}},
+    {"id": "assets", "name": "静的資産バケット", "type": "AWS::S3::Bucket",
+     "settings": {"BucketEncryption": {"mode": "COMPOSITE", "value": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "aws:kms", "KMSMasterKeyID": {"$design": {"mode": "EXTERNAL_REF", "ref": "kms-key-alias/portal", "decision_ids": ["dec-encryption"]}}}}]},
+                    "decision_ids": ["dec-encryption"]},
+                  "VersioningConfiguration": {"mode": "LITERAL", "value": {"Status": "Enabled"}, "decision_ids": ["dec-versioning"]}}},
+    {"id": "app-logs", "name": "アプリケーションログ", "type": "AWS::Logs::LogGroup",
+     "settings": {"RetentionInDays": {"mode": "LITERAL", "value": 30, "decision_ids": ["dec-log-retention"]},
+                  "LogGroupName": {"mode": "LITERAL", "value": "/portal/app"}}}
+  ],
+  "connections": [
+    {"id": "conn-subnet-a", "source": "subnet-a", "target": "vpc", "kind": "REFERENCE", "property": "VpcId"},
+    {"id": "conn-subnet-c", "source": "subnet-c", "target": "vpc", "kind": "REFERENCE", "property": "VpcId"}
+  ]
+}

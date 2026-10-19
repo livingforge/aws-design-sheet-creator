@@ -239,15 +239,29 @@ class Inspector:
     def __init__(self, document, cat=None, include_extensions=True):
         self.document = document
         self.cat = cat or catalog()
+        self.regional = cat is None and document.model_version == '1.1'
+        self.catalogs = {}
         self.include_extensions = include_extensions
         self.rows = []
         self.exclusions = set()
         self.env = next(e for e in document.design.environments if e.id == document.environment_id)
         self.region_matches = getattr(self.env, 'region', self.cat.manifest['region']) == self.cat.manifest['region']
         self.overrides = {o.resource_id: o.settings for o in self.env.overrides}
+        # Decision expansions fill only absent settings; explicit inputs keep precedence.
+        self.expanded = {}
+        if getattr(document, 'decision_expansions', None):
+            from .document_v11 import SchemaSetting
+            for record in document.decision_expansions:
+                if record['result'] == 'APPLIED':
+                    self.expanded.setdefault(record['resource_id'], {})[record['property']] = (
+                        SchemaSetting.model_validate(record['setting']), record['input_pointer'])
         self.sources = {s.id: s.model_dump() for s in document.design.sources}
         self.seen = set()
         self.limit_hit = False
+
+    def effective(self, resource):
+        derived = {name: value for name, (value, _) in self.expanded.get(resource.id, {}).items()}
+        return {**derived, **resource.settings, **self.overrides.get(resource.id, {})}
 
     def condition_value(self, resource, value, parts=(), depth=0):
         """Read-only outputs are unavailable, not absent design decisions."""
@@ -298,7 +312,7 @@ class Inspector:
                    'NOT_APPLICABLE': '条件不成立または対象環境外。適用条件の変更時に再確認する。',
                    'BRANCH_CONFLICT': '選択肢の必要条件を満たす構成に修正する。複数分岐を一律必須にはしません。'}
         top = parts[0] if parts else '@branch'
-        setting = {**resource.settings, **self.overrides.get(resource.id, {})}.get(top)
+        setting = self.effective(resource).get(top)
         selected_setting = setting
         if setting and setting.mode == 'COMPOSITE':
             nested = setting.value
@@ -311,6 +325,8 @@ class Inspector:
         index = self.document.design.resources.index(resource)
         input_pointer = '/resources/' + str(index) + '/settings/' + token(str(top))
         if not parts: input_pointer = '/resources/' + str(index) + '/settings'
+        if top in self.expanded.get(resource.id, {}) and top not in resource.settings and top not in self.overrides.get(resource.id, {}):
+            input_pointer = self.expanded[resource.id][top][1]
         if top in self.overrides.get(resource.id, {}):
             override = next(i for i, o in enumerate(self.env.overrides) if o.resource_id == resource.id)
             env_index = self.document.design.environments.index(self.env)
@@ -485,7 +501,11 @@ class Inspector:
 
     def run(self):
         for resource in self.document.design.resources:
-            settings = {**resource.settings, **self.overrides.get(resource.id, {})}
+            if self.regional:
+                self.cat = catalog(resource.region or self.env.region)
+                self.region_matches = True  # catalog verifies the selected region and its pin.
+            self.catalogs[self.cat.manifest['region']] = self.cat.manifest['zip_sha256']
+            settings = self.effective(resource)
             tree = {k: setting_value(v) for k, v in settings.items()}
             source = {'provider': 'pinned-cfn-schema', 'resource_type': resource.type,
                       **{k: self.cat.manifest[k] for k in ('region', 'retrieved_at', 'source', 'zip_sha256')}}
@@ -515,7 +535,8 @@ class Inspector:
             'unique_input_paths': len({(r['resource_id'], r['path']) for r in self.rows}),
             'read_only_excluded': len(self.exclusions), 'traversal_limit_reached': self.limit_hit,
             'denominator_definition': 'obligation rows, not all catalog properties; different reasons can target one input path'},
-            provenance={'pinned_schema_sha256': self.cat.manifest['zip_sha256'], 'cfn_lint_version': CFN_LINT_VERSION,
+            provenance={'pinned_schema_sha256': (catalog(self.env.region).manifest['zip_sha256'] if self.regional else self.cat.manifest['zip_sha256']),
+                        'regional_schema_sha256': self.catalogs, 'cfn_lint_version': CFN_LINT_VERSION,
                         'input_sha256': self.document.input_sha256},
             limitations=[
                 'AWS conditions absent from the pinned schemas or registered cfn-lint error JSON schemas are not covered.',

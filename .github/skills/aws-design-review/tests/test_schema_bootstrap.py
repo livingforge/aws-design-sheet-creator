@@ -58,6 +58,77 @@ def deliver(monkeypatch, raw):
     monkeypatch.setattr(boot, 'download', download)
 
 
+def test_format_one_lock_without_type_inventory_can_initialize(release, monkeypatch):
+    root, raw, lock = release
+    lock.pop('catalog_types')
+    (root/'schema-lock.json').write_bytes(boot.encode(lock))
+    deliver(monkeypatch, raw)
+    assert boot.setup(root)['status'] == 'CREATED'
+    monkeypatch.setattr(boot, 'download', lambda *_: pytest.fail('offline cache contacted network'))
+    assert boot.setup(root, check_only=True)['status'] == 'CACHED'
+
+
+def regional_lock(root, raw, lock, tmp_path):
+    east = {**lock, 'format_version': 2, 'region': 'us-east-1', 'baseline_region': 'ap-northeast-1',
+            'source': 'https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip'}
+    preview = tmp_path / 'east-preview'
+    preview.mkdir()
+    east.update(boot.generate_bundle(raw, preview, root, east))
+    (root / 'schema-lock.us-east-1.json').write_bytes(boot.encode(east))
+    return east
+
+
+def test_two_regions_same_zip_have_separate_verified_caches(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    east = regional_lock(root, raw, lock, tmp_path)
+    deliver(monkeypatch, raw)
+    tokyo = boot.setup(root)
+    result = boot.setup(root, region='us-east-1')
+    assert tokyo['schema_dir'] != result['schema_dir']
+    assert json.loads((Path(result['schema_dir'])/'manifest.json').read_text())['region'] == 'us-east-1'
+    monkeypatch.setattr(boot, 'download', lambda *_: pytest.fail('offline cache contacted network'))
+    assert boot.setup(root, region='us-east-1', check_only=True)['status'] == 'CACHED'
+    assert boot.resolve_schema_dir(root, 'us-east-1') == boot.bundle_path(root, east)/'schemas'
+    assert boot.resolve_schema_dir(root, 'ap-northeast-1') == Path(tokyo['schema_dir'])
+
+
+@pytest.mark.parametrize('region', ['us-west-2', '../us-east-1', 'us-east-1/../../'])
+def test_missing_or_escaping_region_never_uses_default_lock(release, region):
+    root, _, _ = release
+    with pytest.raises(boot.SchemaSetupError):boot.resolve_schema_dir(root, region)
+
+
+def test_wrong_named_regional_lock_is_rejected(release):
+    root, _, lock = release
+    (root/'schema-lock.us-east-1.json').write_bytes(boot.encode(lock))
+    with pytest.raises(boot.SchemaSetupError, match='Requested region'):
+        boot.read_lock(root, 'us-east-1')
+
+
+def test_region_manifest_mixup_is_not_an_offline_success(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    regional_lock(root, raw, lock, tmp_path)
+    deliver(monkeypatch, raw)
+    result = boot.setup(root, region='us-east-1')
+    path = Path(result['schema_dir'])/'manifest.json'
+    manifest = json.loads(path.read_text());manifest['region'] = 'ap-northeast-1'
+    path.write_bytes(boot.encode(manifest))
+    with pytest.raises(boot.SchemaSetupError, match='manifest'):
+        boot.resolve_schema_dir(root, 'us-east-1')
+
+
+def test_new_lock_preserves_previous_generation_of_identical_zip(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    east = regional_lock(root, raw, lock, tmp_path)
+    deliver(monkeypatch, raw)
+    original = boot.setup(root, region='us-east-1')
+    old = Path(original['schema_dir'])/'manifest.json';before = old.read_bytes()
+    east['reviewed_at'] = '2026-10-14T00:00:00+00:00'
+    (root/'schema-lock.us-east-1.json').write_bytes(boot.encode(east))
+    after = boot.setup(root, region='us-east-1')
+    assert original['schema_dir'] != after['schema_dir'] and old.read_bytes() == before
+
+
 def test_success_reuse_and_offline_check_preserve_unknown_files(release, monkeypatch):
     root, raw, lock = release
     deliver(monkeypatch, raw)
@@ -124,6 +195,9 @@ def test_missing_cache_and_changed_catalog_or_inputs_fail(release, monkeypatch):
         boot.resolve_schema_dir(root)
     lock['catalog_sha256'] = '0' * 64
     (root / 'schema-lock.json').write_bytes(boot.encode(lock))
+    # A same-size rewrite can keep the (size, mtime, ctime, inode) fingerprint
+    # within one filesystem timestamp tick; this test is about the changed hash.
+    boot._lock.cache_clear()
     deliver(monkeypatch, raw)
     with pytest.raises(boot.SchemaSetupError, match='catalog differs'):
         boot.setup(root)
@@ -198,3 +272,111 @@ def test_legacy_updater_cannot_overwrite_release_or_cache(release, monkeypatch):
             pin(raw, lock['source'], lock['region'], destination)
     assert (root / 'schema-lock.json').read_bytes() == before
     assert not (root / '.cache').exists()
+
+
+def drift_lock(root, raw, lock, tmp_path):
+    """A format-3 us-east-1 lock reviewed against the fixture archive."""
+    _, schemas = boot.validate_archive(raw)
+    east = {**lock, 'format_version': 3, 'acquisition': boot.DRIFT_POLICY, 'region': 'us-east-1', 'baseline_region': 'ap-northeast-1',
+            'source': 'https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip',
+            'reviewed_type_sha256': {t: _digest(s) for t, s in sorted(schemas.items())}}
+    preview = tmp_path / 'drift-preview'
+    preview.mkdir()
+    east.update(boot.generate_bundle(raw, preview, root, east))
+    (root / 'schema-lock.us-east-1.json').write_bytes(boot.encode(east))
+    return east
+
+
+def drifted(raw):
+    """One changed and one added type, as AWS does between daily rebuilds."""
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        entries = [(i.filename, json.loads(archive.read(i))) for i in archive.infolist()]
+    entries[0][1]['properties']['Added'] = {'type': 'string'}
+    kind = entries[1][1]['typeName'].rsplit('::', 1)[0] + '::Extra'
+    entries.append(('aws-extra-fixture.json', {'typeName': kind, 'properties': {'Name': {'type': 'string'}}, 'additionalProperties': False}))
+    return zipped(entries), entries[0][1]['typeName'], kind
+
+
+def test_format_three_exact_archive_is_reviewed_exact(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    drift_lock(root, raw, lock, tmp_path)
+    deliver(monkeypatch, raw)
+    result = boot.setup(root, region='us-east-1')
+    assert result['status'] == 'CREATED' and result['review_status'] == 'REVIEWED_EXACT'
+    assert result['review_drift'] == {'added': 0, 'removed': 0, 'changed': 0}
+    monkeypatch.setattr(boot, 'download', lambda *_: pytest.fail('offline cache contacted network'))
+    assert boot.setup(root, region='us-east-1', check_only=True)['review_status'] == 'REVIEWED_EXACT'
+
+
+def test_newer_official_archive_is_accepted_with_recorded_drift(release, monkeypatch, tmp_path):
+    from aws_design_sheet.document_catalog import Catalog
+    root, raw, lock = release
+    east = drift_lock(root, raw, lock, tmp_path)
+    newer, changed, added = drifted(raw)
+    deliver(monkeypatch, newer)
+    result = boot.setup(root, region='us-east-1')
+    assert result['status'] == 'CREATED' and result['review_status'] == 'DRIFTED_FROM_REVIEWED'
+    assert result['review_drift'] == {'added': 1, 'removed': 0, 'changed': 1}
+    assert result['zip_sha256'] == boot.digest(newer) != east['zip_sha256']
+    bundle = Path(result['schema_dir']).parent
+    assert bundle == boot.bundle_path(root, east, boot.digest(newer))
+    drift = json.loads((bundle / 'drift.json').read_text(encoding='utf-8'))
+    assert drift['changed'] == [changed] and drift['added'] == [added] and drift['reviewed_zip_sha256'] == east['zip_sha256']
+    reconciliation = json.loads((bundle / 'reconciliation.json').read_text(encoding='utf-8'))
+    assert changed in reconciliation['changed'] and added in reconciliation['added']
+    ledger = json.loads((bundle / 'rules/ledger.json').read_text(encoding='utf-8'))
+    assert ledger['types'][added]['state'] == 'UNRESEARCHED' and ledger['schema_zip_sha256'] == boot.digest(newer)
+    monkeypatch.setattr(boot, 'download', lambda *_: pytest.fail('offline cache contacted network'))
+    assert boot.setup(root, region='us-east-1', check_only=True)['review_status'] == 'DRIFTED_FROM_REVIEWED'
+    assert boot.resolve_schema_dir(root, 'us-east-1') == Path(result['schema_dir'])
+    assert Catalog(root, region='us-east-1').manifest['review_status'] == 'DRIFTED_FROM_REVIEWED'
+
+
+@pytest.mark.parametrize('target', ['drift', 'receipt', 'catalog'])
+def test_tampered_drift_cache_is_rejected(release, monkeypatch, tmp_path, target):
+    root, raw, lock = release
+    drift_lock(root, raw, lock, tmp_path)
+    newer, _, _ = drifted(raw)
+    deliver(monkeypatch, newer)
+    bundle = Path(boot.setup(root, region='us-east-1')['schema_dir']).parent
+    if target == 'drift':
+        value = json.loads((bundle / 'drift.json').read_text());value['changed'] = []
+        (bundle / 'drift.json').write_bytes(boot.encode(value))
+    elif target == 'receipt':
+        value = json.loads((bundle / 'generation.json').read_text());value['generated']['catalog_sha256'] = '0' * 64
+        (bundle / 'generation.json').write_bytes(boot.encode(value))
+    else:
+        (bundle / 'catalog.json').write_bytes(b'{}')
+    boot._verified.cache_clear()
+    with pytest.raises(boot.SchemaSetupError):
+        boot.resolve_schema_dir(root, 'us-east-1')
+
+
+def test_older_lock_formats_still_refuse_a_changed_archive(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    regional_lock(root, raw, lock, tmp_path)
+    newer, _, _ = drifted(raw)
+    deliver(monkeypatch, newer)
+    with pytest.raises(boot.SchemaSetupError, match='Official URL content changed'):
+        boot.setup(root, region='us-east-1')
+
+
+def test_several_drift_caches_for_one_lock_are_ambiguous(release, monkeypatch, tmp_path):
+    root, raw, lock = release
+    east = drift_lock(root, raw, lock, tmp_path)
+    newer, _, _ = drifted(raw)
+    deliver(monkeypatch, newer)
+    bundle = Path(boot.setup(root, region='us-east-1')['schema_dir']).parent
+    shutil.copytree(bundle, boot.bundle_path(root, east, 'f' * 64))
+    boot._verified.cache_clear()
+    with pytest.raises(boot.SchemaSetupError, match='Several schema caches'):
+        boot.resolve_schema_dir(root, 'us-east-1')
+
+
+def test_format_three_lock_requires_reviewed_type_fingerprints(release, tmp_path):
+    root, raw, lock = release
+    east = drift_lock(root, raw, lock, tmp_path)
+    east.pop('reviewed_type_sha256')
+    (root / 'schema-lock.us-east-1.json').write_bytes(boot.encode(east))
+    with pytest.raises(boot.SchemaSetupError, match='reviewed type'):
+        boot.read_lock(root, 'us-east-1')

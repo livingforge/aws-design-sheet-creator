@@ -40,7 +40,9 @@ def validate_requirements(spec):
         parts = [p.replace('~1', '/').replace('~0', '~') for p in req.path.split('/')[2:]]
         parts = [int(p) if p.isdigit() else p for p in parts]
         kind = resources[req.resource_id].type
-        if cat.readonly(kind, parts) or not cat.at(kind, parts):
+        catalogs = ([catalog(getattr(resources[req.resource_id], 'region', None) or env.region)
+                     for env in spec.environments] if spec.schema_version == '1.1' else [cat])
+        if any(c.readonly(kind, parts) or not c.at(kind, parts) for c in catalogs):
             raise ValueError('required-input path is unknown or read-only')
         if req.when is not None:
             from jsonschema import Draft7Validator, SchemaError

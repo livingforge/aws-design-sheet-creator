@@ -1,76 +1,74 @@
 # AWS Design Review — Agent / Skill distribution
 
-AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、既存Checker／cfn-lintによる静的評価を、ローカルPythonで実行する配布版です。バージョン0.2.0。
+AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.3.0。生成成功と設計の承認は別の結果です。
 
 ## 導入
 
-このリポジトリを取得し、利用するホストの **aws-design-reviewフォルダーだけ** を利用者のプロジェクトへ配置してください。他のSkill・設定ファイルを上書きしないでください。
+利用するホストの **aws-design-reviewフォルダー全体** をプロジェクトへ配置してください。既存のSkillや設定は上書きせず、新しい場所で確認します。
 
-|ホスト|配置するSkill|追加Agent（任意）|
+|ホスト|配置するSkill|任意のAgent|
 |---|---|---|
 |Claude Code|`.claude/skills/aws-design-review/`|`.claude/agents/aws-design-review.md`|
 |Codex|`.agents/skills/aws-design-review/`|Skillを直接指定|
 |GitHub Copilot|`.github/skills/aws-design-review/`|`.github/agents/aws-design-review.agent.md`|
 
-旧Codex版の`.codex/skills/aws-design-review`を使っている場合は、新配置へ移行してください。新旧の同名Skillを同時に登録しないでください。
+旧Codexの`.codex/skills`を使っている場合は新配置へ移行し、同名Skillを二重登録しないでください。ホストのバージョン・信頼設定によって実行許可が必要です。CLI検証と実ホスト呼び出しは別の証拠です。
 
-この固定依存版にはPython 3.12以上（3.14.1を除く）が必要です。検証環境はWindows／Python 3.12.10です。配置後、Skillフォルダーを作業ディレクトリにしてWindows PowerShellで実行します。
+固定依存にはPython 3.12以上（3.14.1を除く）が必要です。検証対象はWindows / Python 3.12.10。Skillフォルダーで実行します。
 
 ```powershell
 & .\scripts\install.ps1
 & .\.venv\Scripts\aws-design-document.exe .\examples\project-policies\design.json --environment prod --output .\output\first-review --evaluate
 ```
 
-インストールはPyPIから依存を取得します。既存の`.venv`は上書き・削除しません。配置を移動した場合も新しいコピーへインストールしてください。Linux/macOSではSkillフォルダーで`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated install --index-url https://pypi.org/simple -c requirements.lock -e .`、`.venv/bin/python -m aws_design_sheet.schema_bootstrap`を実行できますが、このリリースの実行検証環境はWindowsです。
+インストーラーは新しい`.venv`を作り、PyPIから固定制約付き依存を取得します。既存環境は上書き・削除しません。移動後は新しいコピーへ導入してください。テストも行う場合は`-Tests`を指定します。
 
-Claude Codeでは`/aws-design-review`、Codexでは`$aws-design-review`を指定し、入力ファイル、対象環境、出力先を伝えます。Copilotでは同名Skillを指定するか同梱Agentを選択してください。ホストのバージョン・組織設定・ワークスペース信頼により、Skillやコマンド実行の許可が必要です。
+Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated install --index-url https://pypi.org/simple -c requirements.lock -e .`、`.venv/bin/python -m aws_design_sheet.schema_bootstrap --all-regions`の順です。この候補の実行検証環境はWindowsです。
 
-## スキーマの初回取得・更新
+## 地域別スキーマの取得
 
-初回セットアップは**インターネット接続が必要**です。インストーラーは依存をPyPIから、CloudFormationスキーマをAWS公式の東京リージョン公開URLから取得します。AWS資格情報やアカウント操作は不要です。ZIP本体、派生した入力スキーマ、文書カタログは配布していません。
+初回はネット接続が必要です。東京とus-east-1のCloudFormationスキーマを、それぞれAWS公式の公開URLから取得します。AWS資格情報やアカウント操作は不要です。ZIPと生成カタログは配布に含めません。
 
-`schemas/schema-lock.json`に公式URL・リージョン・確認日時・ツール版・承認済みSHA-256・カタログ生成結果のハッシュを固定しています。今回のZIPは`f1bba9effaad133ec6e444464992fd4f00058545875a6a4fdc069b6246d24c5b`。取得後、`schemas/.cache/<SHA-256>/`にZIP、取得日時付きmanifest、実行用ルール台帳、文書カタログ、生成記録を作ります。アーカイブ内のファイルは展開しません。
+|地域|ロック|レビュー済み公式ZIPのSHA-256|生成カタログ（レビュー時）|
+|---|---|---|---|
+|ap-northeast-1|`schemas/schema-lock.json`|`9c9c1cfdc6dc0ff549e67f029191746398a63a00147065b5afe56c58771cfe46`|51サービス・608型・4058上位プロパティ|
+|us-east-1|`schemas/schema-lock.us-east-1.json`|`6083e23a0701c379f90ec2c6bd382ee79e99cb472018460d0645c35aeee98553`|51サービス・640型・4197上位プロパティ|
+
+従来の50サービスを維持してCognitoを追加しました。件数は生成対象であり、AWS全条件の評価完了を表しません。us-east-1では東京の調査済み判定を流用せず、地域適用性の再確認を残します。
+
+インストーラーは`--all-regions`を実行します。キャッシュは`schemas/.cache/<region>/<ZIP SHA-256>/<lock SHA-256>/`に分離し、取得記録、manifest、カタログ、ルール、変更記録を検証します。
 
 ```powershell
-# ネットを使わず既存キャッシュを検査
-& .\.venv\Scripts\aws-design-bootstrap.exe --check
-# 失敗した初回取得を再試行（作成済みの仮想環境を利用）
-& .\.venv\Scripts\aws-design-bootstrap.exe
+# ネット接続なしで両地域を検証
+& .\.venv\Scripts\aws-design-bootstrap.exe --check --all-regions
+# 初回取得の再試行
+& .\.venv\Scripts\aws-design-bootstrap.exe --all-regions
+# 一地域のみ
+& .\.venv\Scripts\aws-design-bootstrap.exe --check --region us-east-1
 ```
 
-導入済みの通常生成・必須入力・案件方針・ローカルAWS評価はオフラインで使えます。任意のLLM抽出と公式資料の追加調査は別途ネットが必要です。公式URLの中身が固定ハッシュと異なれば停止します。最新版へ黙って切り替えたり、スキーマ欠落を合格扱いしたりしません。更新はスキーマ差分・台帳・カタログ・回帰を再検証した新しい配布版を別フォルダーへ導入してください。`aws-design-schemas`による配布ルートの上書きは拒否します。
+公式URLは最新版だけを返し、AWSは1日に複数回ZIPを作り直します。そのため取得したZIPがレビュー済みのZIPと異なっても停止せず、型ごとの差分（追加・変更・削除）を `drift.json` と manifest の `review_status: DRIFTED_FROM_REVIEWED` に記録します。差分のある型の規則は、9月29日の基準スナップショットとの照合で要再確認・隔離として扱い、レビュー済みとはみなしません。実行結果の `catalog`・`regional_catalogs` と設計書の注意事項にも、この状態と件数が出ます。一致した場合は `REVIEWED_EXACT` です。
 
-公式URLは最新版を指すため、内容変更後に同じ版を新規取得できる保証はありません。検証済みキャッシュを保持すれば、その固定版をオフラインで再実行できます。
+別地域への置換、ZIPの構造検査の解除、不足スキーマを使った成功扱いはしません。生成したキャッシュは取得記録・manifest・カタログ・ルール・差分記録の整合を検証し、改ざんや破損を検出します。旧キャッシュと失敗記録は保持します。検証済みキャッシュがあれば通常生成・ローカル評価はオフラインで再実行できます。同じ版のZIPを後から取得できる保証はないため、取得したキャッシュは保持してください。
 
-既存キャッシュは検査して再利用し、破損や不一致があれば上書きせず停止します。失敗した取得・途中データは`schemas/.downloads/`に残ります。復旧には新しいSkillコピーを使うか、問題のキャッシュを別の場所に保存してから初回取得を再試行してください。旧キャッシュや未知のファイルを自動削除しません。
+## 入力と結果
 
-新スキーマでは全1,629タイプのうち追加23タイプを未調査、変更96タイプのうち83タイプを再確認、従来「追加ルールなし」だった13タイプを未調査に戻しています。現行スキーマで根拠を再現できない1ルール・5参照は実行用カタログから除外し、再確認事項を残しました。50サービス文書カタログは587タイプ・3,905書込可能な最上位プロパティを含みます。これらはAWS全条件の評価済み件数ではありません。
+構造化入力1.0/1.1には`aws-design-document`、規定の行形式には`aws-design-run`、保存済みChecker中間JSONには`aws-design-check`を使います。詳細は各Skillの`references/usage.md`を参照してください。Office/PDFや自由文を生成CLIへ直接渡す契約ではありません。
 
-## 使い分け
+1.1の資源は`region`を指定でき、省略時は環境の地域を使います。CloudFrontのviewer ACM証明書とCLOUDFRONT WAFはus-east-1への限定的な参照判定を持ちます。通常の地域間参照制約は保持します。複数地域に対する単一CFNファイル比較は拒否します。明示されたDEPENDENCY接続の循環は検査しますが、スタックやデプロイ順を推測しません。
 
-|目的|入力とコマンド|読む結果|
-|---|---|---|
-|設計書作成・必要入力確認|生成入力1.0／1.1 → `aws-design-document`|`design.xlsx`、`checklist.json`、`input_completeness`|
-|案件方針の照合|同じ入力へ`project_policies`を明示|`project-policy.json`、`project_policy_assessment`|
-|AWS静的評価|上記に`--evaluate`を追加|`evaluation.json`、`aws_assessment`|
-|CFNとの記載比較|上記に`--cfn <file>`を追加|比較結果。CFNから不足値は補わない|
-|既存の行形式設計テキスト検査|`aws-design-run`|中間JSON・検査JSON|
-|既存の中間JSON再検査|`aws-design-check`|検査JSON|
+`summary.json`、`checklist.json`、`project-policy.json`、`evaluation.json`をそれぞれ確認します。1.1では`review-report.json`と`review-report.md`が実行状態・元資料の状態・未解決理由・対応機能・未検査範囲をまとめます。同じ情報を設計JSONとExcelにも保存します。
 
-生成用JSONと検査器用の中間JSONは別契約です。自由文・Office・PDFをそのまま生成CLIへ渡さないでください。詳細は各Skill内の`references/usage.md`を参照してください。
+元資料状態と項目対応がある場合は`--source-trace FILE`を渡します。元のFICTIONAL_DECIDEDやNOT_RUNを正規化後のDECIDEDと混同しません。追跡データのない元資料状態は推測しません。RESOURCE_REFは対応済みで、未対応付けのsymbolは入力側の結び付け不足として報告します。APP行とAWS判定も区別します。
 
 ## 範囲とデータ
 
-実行完了・CFN一致・入力充足・案件適合・AWS指摘は別の結果です。未知値や未登録要件を合格にせず、全体の妥当性やデプロイ成功は保証しません。AWS認証、実環境変更、秘密参照先の取得は基本機能には不要です。案件宣言は人が出典と条件を登録し、原文から自動推定しません。
+ゼロ終了やGENERATED/COMPLETEは設計全体の承認ではありません。FAIL・要確認・未登録要件・未検査条件を個別に確認してください。CLI結果だけでは実ホスト受入を証明できません。物理IDや秘密参照は取得せず、AWS実環境は変更しません。
 
-秘密値は入力せず、秘密参照を利用してください。出力には利用者の設計値や出典が含まれるため、出力先の共有範囲を利用者が管理してください。任意のLLM抽出は`install.ps1 -Llm`とAnthropic認証を別途必要とし、入力を外部APIへ送信します。既定では利用しません。
+秘密値ではなく秘密参照を入力してください。出力には設計値や出典が含まれるため、指定した保存先で管理します。任意の`-Llm`は別途Anthropic認証を必要とし、入力を外部APIへ送信します。既定では利用しません。
 
-同梱するのは実行ソース、ルール・プロファイル、公式スキーマ取得用の固定ハッシュ、小さな架空の使用例、126件の関連テスト、導入手順です。開発Git履歴、開発全テスト、巨大な評価証跡、大学案件の全資料、Library記録、Officeファイル、キャッシュ、認証情報は含めません。3ホストのSkill内容は同一で、`release-manifest.json`にファイルハッシュを記録しています。
+配布物は許可リストにある実行コード、ルール、ロック、小規模な架空例、関連テスト、操作文書です。開発Git履歴、大量の評価証跡、案件の全文資料、Officeファイル、キャッシュ、認証情報は含めません。3ホストのSkill内容は同一で、`release-manifest.json`にハッシュを記録します。
 
-テストする場合は新しいコピーへ`install.ps1 -Tests`で導入し、そのSkillフォルダーで`.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`を実行します。生成は毎回新しい出力先を指定してください。
+## ライセンス
 
-## ライセンス・出典
-
-プロジェクトのコードは[MIT](LICENSE)です。第三者資材はプロジェクトのMITへ読み替えず、[出典とライセンス案内](THIRD_PARTY_NOTICES.md)を参照してください。
-
-ホスト配置の確認元：[Claude Code](https://code.claude.com/docs/en/skills)、[Codex](https://learn.chatgpt.com/docs/build-skills)、[GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)。確認日：2026-10-13。
+コードは[MIT](LICENSE)。第三者資料は[出典とライセンス案内](THIRD_PARTY_NOTICES.md)に従います。

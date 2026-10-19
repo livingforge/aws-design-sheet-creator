@@ -100,6 +100,28 @@ S3_REPLICATION_DESTINATION = re.compile(
 )
 
 
+def cloudfront_reference_scope(source, target, path):
+    """Only the documented viewer-certificate / WebACL regional exceptions.
+
+    None means the ordinary same-scope reference rule still applies. This does
+    not authorize arbitrary cross-region references or resolve physical ARNs.
+    """
+    if source.type != 'AWS::CloudFront::Distribution':return None
+    types = {'/properties/DistributionConfig/ViewerCertificate/AcmCertificateArn': 'AWS::CertificateManager::Certificate',
+             '/properties/DistributionConfig/WebACLId': 'AWS::WAFv2::WebACL'}
+    if types.get(path) != target.type:return None
+    if source.scope.environment != target.scope.environment or source.scope.account != target.scope.account:
+        return 'FAIL', 'CloudFront reference target environment or account differs'
+    if target.scope.region != 'us-east-1':
+        return 'FAIL', 'CloudFront viewer certificate or CLOUDFRONT WebACL must be in us-east-1'
+    if target.type == 'AWS::WAFv2::WebACL':
+        scope = target.field('/properties/Scope')
+        if scope is None or scope.state != ValueState.KNOWN:
+            return 'NEEDS_REVIEW', 'CloudFront WebACL target Scope is unresolved'
+        if scope.selected().value != 'CLOUDFRONT':return 'FAIL', 'CloudFront WebACL target Scope must be CLOUDFRONT'
+    return 'PASS', 'resource reference resolved within documented CloudFront regional scope; physical ARN not resolved'
+
+
 def reference_type(type_name: str, path: str,
                    catalog: dict[tuple[str, str], str] | None = None) -> str | None:
     for (source_type, pattern), target_type in (REFERENCE_TYPES if catalog is None else catalog).items():
@@ -608,6 +630,12 @@ class Checker:
                 self.add("REFERENCE", source, rel.source_path, "NEEDS_REVIEW", "target not found",
                          actual=rel.target_resource_id or rel.unresolved_name,
                          evidence=rel.evidence_ids, dependencies=[rel.source_path])
+            elif target.type == expected_type and (global_scope := cloudfront_reference_scope(source, target, rel.source_path)):
+                self.add('REFERENCE', source, rel.source_path, global_scope[0], global_scope[1],
+                         actual=target.id, evidence=rel.evidence_ids)
+                self.results[-1].update(source_checked_at='2026-10-13', source_urls=[
+                    'https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html',
+                    'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafv2-webacl.html'])
             elif target.type != expected_type or (target.scope != source.scope and not (
                     source.type == "AWS::S3::Bucket" and target.type == "AWS::S3::Bucket" and
                     S3_REPLICATION_DESTINATION.fullmatch(rel.source_path)) and not (

@@ -6,8 +6,10 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
-from .document_catalog import catalog, matches, pointer
-from .document_model import (Connection, Document, DocumentInput, Environment, Item, Observation,
+from .document_catalog import catalog, matches, pointer, input_type_inventory
+from .document_decisions import Decision, Section, validate_decisions
+from .document_changes import ChangeRecord
+from .document_model import (ID, Connection, Document, DocumentInput, Environment, Item, Observation,
                              Override, Resource, Setting)
 from .document_normalize import InputError, compare, expression, parse, secret_literal
 from .document_requirements import validate_requirements
@@ -37,6 +39,8 @@ class SchemaSetting(Setting):
          'then':{'required':['value'],'properties':{'value':{'type':['object','array']}}}}
     ]})
     mode: Literal['LITERAL','DEFAULT','OMITTED','RESOURCE_REF','EXTERNAL_REF','EXPRESSION','SECRET_REF','COMPOSITE'] | None = None
+    # Basic-design decisions this value realizes; explicit links only.
+    decision_ids: list[ID]=Field(default_factory=list)
 
     @model_validator(mode='after')
     def shape(self):
@@ -51,8 +55,9 @@ class SchemaSetting(Setting):
 
 class SchemaResource(Resource):
     model_config=ConfigDict(json_schema_extra={})
-    type: str = Field(json_schema_extra={'enum':sorted(catalog().schemas)})
+    type: str = Field(json_schema_extra={'enum':input_type_inventory()})
     settings: dict[str,SchemaSetting]=Field(default_factory=dict)
+    region: str | None = Field(default=None, pattern=r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$')
 
 
 class SchemaOverride(Override):
@@ -67,30 +72,40 @@ class SchemaInput(DocumentInput):
     schema_version: Literal['1.1']
     resources: list[SchemaResource]=Field(min_length=1)
     environments: list[SchemaEnvironment]=Field(min_length=1)
+    design_outline: list[Section] | None = None
+    decisions: list[Decision]=Field(default_factory=list)
+    # Approved workbook changes, appended by aws-design-changes apply.
+    change_log: list[ChangeRecord]=Field(default_factory=list)
 
     @model_validator(mode='after')
     def integrity(self):
         validate_requirements(self)
-        cat=catalog();objects=[self.system,*self.environments,*self.sources,*self.resources,*self.requirements,*self.connections,*self.operations,*self.issues]
+        validate_decisions(self)
+        if len({c.change_id for c in self.change_log})!=len(self.change_log):raise ValueError('duplicate change ID')
+        objects=[self.system,*self.environments,*self.sources,*self.resources,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
         ids=[x.id for x in objects]
         if len(ids)!=len(set(ids)):raise ValueError('duplicate stable ID')
         resources={r.id:r for r in self.resources};sources={s.id for s in self.sources}
         bindings=[r.cfn_logical_id for r in self.resources if r.cfn_logical_id]
         if len(bindings)!=len(set(bindings)):raise ValueError('duplicate CFN binding')
-        for resource in self.resources:
-            if resource.type not in cat.schemas:raise ValueError('resource is outside the 50-service catalog')
+        decisions={d.id for d in self.decisions}
         def provenance(obj):
             if any(s not in sources for s in obj.sources):raise ValueError('invalid source reference')
-        def validate(resource,values):
+            links=getattr(obj,'decision_ids',[])
+            if len(links)!=len(set(links)) or set(links)-decisions:raise ValueError('invalid decision reference')
+        def validate(resource,values,cat):
+            if resource.type not in cat.schemas:raise ValueError('resource is outside the regional service catalog')
             for name,setting in values.items():
                 if name not in cat.writable(resource.type):raise ValueError('unknown or read-only top-level property')
-                visit_setting(setting,resource.type,[name],resources,provenance)
-        for resource in self.resources:provenance(resource);validate(resource,resource.settings)
+                visit_setting(setting,resource.type,[name],resources,provenance,cat=cat)
+        for resource in self.resources:provenance(resource)
         for env in self.environments:
+            for resource in self.resources:validate(resource,resource.settings,catalog(resource.region or env.region))
             if len({o.resource_id for o in env.overrides})!=len(env.overrides):raise ValueError('duplicate environment override')
             for o in env.overrides:
                 if o.resource_id not in resources:raise ValueError('invalid override resource')
-                validate(resources[o.resource_id],o.settings)
+                resource=resources[o.resource_id]
+                validate(resource,o.settings,catalog(resource.region or env.region))
         for note in [*self.requirements,*self.operations,*self.issues]:
             provenance(note)
             if any(r not in resources for r in note.resources):raise ValueError('invalid note resource')
@@ -98,16 +113,23 @@ class SchemaInput(DocumentInput):
             provenance(conn)
             if conn.source not in resources or conn.target not in resources:raise ValueError('invalid connection endpoint')
             if conn.kind=='REFERENCE':
-                if conn.property not in cat.writable(resources[conn.source].type):raise ValueError('unknown connection property')
+                source=resources[conn.source]
+                if any(conn.property not in catalog(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError('unknown connection property')
             elif conn.property is not None:raise ValueError('only reference connections have a property')
+        from .document_decisions import expanded_setting, expansion_targets
+        for d in self.decisions:
+            for e in d.expansions:
+                for env in self.environments:
+                    for rid in expansion_targets(self,d,e,env.id):
+                        resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},catalog(resource.region or env.region))
         from .document_policy_model import validate_policies
         validate_policies(self)
         return self
 
 
-def visit_setting(setting,kind,parts,resources,provenance,trace=None):
+def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None):
     """Validate typed decision nodes and preserve their original representation."""
-    cat=catalog();provenance(setting)
+    cat=cat or catalog();provenance(setting)
     if cat.readonly(kind,parts) or not cat.at(kind,parts):raise ValueError('unknown or read-only nested property')
     if trace is not None:trace.append({'path':pointer(parts),'status':setting.status,'mode':setting.mode})
     if setting.status!='DECIDED':return
@@ -126,7 +148,7 @@ def visit_setting(setting,kind,parts,resources,provenance,trace=None):
         return
     def walk(value,path,composite):
         if composite and isinstance(value,dict) and set(value)=={'$design'}:
-            visit_setting(SchemaSetting.model_validate(value['$design']),kind,path,resources,provenance,trace);return
+            visit_setting(SchemaSetting.model_validate(value['$design']),kind,path,resources,provenance,trace,cat=cat);return
         if sensitive(kind,path):raise ValueError('sensitive input requires a typed secret reference')
         if secret_literal(value) and not isinstance(value,(dict,list)):raise ValueError('secret-like literal')
         cat.shape(kind,path,value)
@@ -223,6 +245,7 @@ class SchemaItem(Item):
     expected: SchemaSetting
     common: SchemaSetting | None = None
     schema_pointer: str
+    origin: Literal['common','environment','decision','cfn_only']
     decision_paths: list[dict]=Field(default_factory=list)
     comparison_details: list[dict]=Field(default_factory=list)
     comparison: Literal['MATCH','EXPRESSION_MATCH','DIFFERENT','UNRESOLVED','NOT_COMPARED']
@@ -238,13 +261,30 @@ class SchemaDocument(Document):
     catalog_provenance: dict
     resource_services: dict[str,str]
     read_only_omissions: list[str]
+    resource_regions: dict[str,str]=Field(default_factory=dict)
+    regional_catalog_provenance: dict[str,dict]=Field(default_factory=dict)
+    review_report: dict=Field(default_factory=dict)
+    decision_trace: dict=Field(default_factory=dict)
+    decision_expansions: list[dict]=Field(default_factory=list)
 
 
 def normalize_schema(raw,environment,cfn_raw=None):
-    spec=SchemaInput.model_validate(parse(raw));cat=catalog()
+    parsed=parse(raw)
+    # Setup errors must retain their category outside Pydantic's value-error wrapper.
+    if isinstance(parsed,dict):
+        regions=set()
+        for key in ('environments','resources'):
+            if isinstance(parsed.get(key),list):
+                for entry in parsed[key]:
+                    region=entry.get('region') if isinstance(entry,dict) else None
+                    if isinstance(region,str) and re.fullmatch(r'[a-z]{2}(?:-gov)?-[a-z]+-\d+',region):regions.add(region)
+        for region in sorted(regions):catalog(region)
+    spec=SchemaInput.model_validate(parsed)
     env=next((e for e in spec.environments if e.id==environment),None)
     if env is None:raise InputError('unknown environment')
-    if env.region!=cat.manifest['region']:raise InputError('design region differs from pinned documentation schema')
+    cats={region:catalog(region) for region in {env.region,*[r.region or env.region for r in spec.resources]}}
+    if cfn_raw and len({r.region or env.region for r in spec.resources})>1:
+        raise InputError('a single comparison CFN cannot assert multi-region deployment scope')
     template=parse(cfn_raw) if cfn_raw else None;notices=[];omissions=[]
     if template is not None:
         if not isinstance(template,dict) or not isinstance(template.get('Resources'),dict):raise InputError('CFN Resources mapping required')
@@ -252,12 +292,17 @@ def normalize_schema(raw,environment,cfn_raw=None):
             if not isinstance(body,dict) or not isinstance(body.get('Type'),str) or not isinstance(body.get('Properties',{}),dict):raise InputError('invalid CFN resource shape')
             if logical not in {r.cfn_logical_id for r in spec.resources}:notices.append('Unbound CFN resource: '+logical+' / '+body['Type'])
     resources={r.id:r for r in spec.resources};overrides={o.resource_id:o.settings for o in env.overrides}
+    from .document_decisions import expansions
+    expanded,expansion_records=expansions(spec,env.id)
     items=[];resource_comparisons={}
     for ri,r in enumerate(spec.resources):
+        cat=cats[r.region or env.region]
         body=template['Resources'].get(r.cfn_logical_id) if template else None
         state=('NO_CFN' if template is None else 'NO_BINDING' if not r.cfn_logical_id else 'MISSING' if body is None
                else 'TYPE_MISMATCH' if body['Type']!=r.type else 'CONDITIONAL' if 'Condition' in body or 'Transform' in body or 'Transform' in template else 'PRESENT')
-        resource_comparisons[r.id]=state;effective={**r.settings,**overrides.get(r.id,{})};names=set(effective)
+        # Explicit common/environment settings always win over decision expansions.
+        derived={name:value for name,(value,_) in expanded.get(r.id,{}).items()}
+        resource_comparisons[r.id]=state;effective={**derived,**r.settings,**overrides.get(r.id,{})};names=set(effective)
         props=body.get('Properties',{}) if body and body['Type']==r.type else {}
         for name in props:
             if cat.readonly(r.type,[name]):omissions.append(r.id+pointer([name]));continue
@@ -265,9 +310,11 @@ def normalize_schema(raw,environment,cfn_raw=None):
             names.add(name)
         for name in sorted(names):
             wanted=effective.get(name,SchemaSetting(status='UNDECIDED',rationale='Design setting not supplied'))
-            origin='environment' if name in overrides.get(r.id,{}) else 'common' if name in r.settings else 'cfn_only'
+            origin=('environment' if name in overrides.get(r.id,{}) else 'common' if name in r.settings
+                    else 'decision' if name in derived else 'cfn_only')
             source=(f'/environments/{spec.environments.index(env)}/overrides/{next(i for i,o in enumerate(env.overrides) if o.resource_id==r.id)}/settings/{name}'
-                    if origin=='environment' else f'/resources/{ri}/settings/{name}' if origin=='common' else '')
+                    if origin=='environment' else f'/resources/{ri}/settings/{name}' if origin=='common'
+                    else expanded[r.id][name][1] if origin=='decision' else '')
             obs_state={'MISSING':'RESOURCE_MISSING','PRESENT':'ABSENT'}.get(state,state)
             obs_value=None
             if state in ('PRESENT','CONDITIONAL') and name in props:
@@ -294,7 +341,7 @@ def normalize_schema(raw,environment,cfn_raw=None):
                 'UNRESOLVED':'VALUE_OR_CONDITION_NOT_RESOLVED; NOT_DESIGN_APPROVAL',
                 'NOT_COMPARED':'NO_COMPARISON; NOT_DESIGN_APPROVAL'}[result]
             if wanted.mode=='OMITTED' and result=='MATCH':basis='DECLARED_OMISSION_MATCH; NOT_INPUT_COMPLETENESS_OR_DESIGN_APPROVAL'
-            trace=[];visit_setting(wanted,r.type,[name],resources,lambda x:None,trace)
+            trace=[];visit_setting(wanted,r.type,[name],resources,lambda x:None,trace,cat=cat)
             items.append(SchemaItem(item_id=r.id+'.'+name,row_id=env.id+'/'+r.id+'.'+name,resource_id=r.id,
                 name=name,input_pointer=source,service=cat.services[r.type],expected=wanted,
                 common=r.settings.get(name) if origin=='environment' else None,origin=origin,defined=observed,
@@ -321,8 +368,22 @@ def normalize_schema(raw,environment,cfn_raw=None):
               'Array item IDs are JSON pointers: reordering arrays changes index-based leaf paths.',
               'Write-only metadata does not by itself classify an input as secret. Secret values require references.']
     from .document_checklist import attach
-    return attach(SchemaDocument(environment_id=env.id,input_sha256=hashlib.sha256(raw).hexdigest(),
+    provenance={region:{**{k:c.manifest[k] for k in ('region','source','retrieved_at','zip_sha256')},'reference_catalog_sha256':c.reference_sha256,
+                        **{k:c.manifest[k] for k in ('review_status','reviewed_zip_sha256','review_drift') if k in c.manifest}}
+                for region,c in cats.items()}
+    for region,origin in sorted(provenance.items()):
+        if origin.get('review_status')=='DRIFTED_FROM_REVIEWED':
+            drift=origin['review_drift']
+            notices.append(f"Schema {region} was acquired after the reviewed release and differs from it "
+                           f"(added {drift['added']}, changed {drift['changed']}, removed {drift['removed']} types). "
+                           'Rules for changed types are reconciled as review-required; drifted types are not treated as reviewed.')
+    document=attach(SchemaDocument(environment_id=env.id,input_sha256=hashlib.sha256(raw).hexdigest(),
         cfn_sha256=hashlib.sha256(cfn_raw).hexdigest() if cfn_raw else None,design=spec,items=items,
         resource_comparisons=resource_comparisons,connection_comparisons=connections,notices=notices,
-        catalog_provenance={**{k:cat.manifest[k] for k in ('region','source','retrieved_at','zip_sha256')},'reference_catalog_sha256':cat.reference_sha256},
-        resource_services={r.id:cat.services[r.type] for r in spec.resources},read_only_omissions=omissions))
+        catalog_provenance=provenance[env.region],regional_catalog_provenance=provenance,
+        resource_regions={r.id:r.region or env.region for r in spec.resources},
+        resource_services={r.id:cats[r.region or env.region].services[r.type] for r in spec.resources},read_only_omissions=omissions,
+        decision_expansions=expansion_records))
+    from .document_decisions import trace
+    document.decision_trace=trace(document)
+    return document

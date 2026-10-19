@@ -113,6 +113,11 @@ def validate_policies(spec):
     if not unique([r.id for r in declarations]) or existing & {r.id for r in declarations}: fail('DUPLICATE_POLICY_ID')
 
     def check_path(resource, predicate):
+        cats = ([catalog(getattr(resource, 'region', None) or env.region) for env in spec.environments]
+                if spec.schema_version == '1.1' else [cat])
+        for selected in cats:check_regional_path(resource, predicate, selected)
+
+    def check_regional_path(resource, predicate, cat):
         parts = path_parts(predicate.path)
         typed = [int(p) if p.isdigit() else p for p in parts]
         if cat.readonly(resource.type, typed) or not cat.at(resource.type, typed): fail('UNKNOWN_POLICY_PATH')

@@ -11,6 +11,10 @@ from .document_layout import LAYOUT, LAYOUT_VERSION
 from .excel_report import HEADER_FILL, HEADER_FONT
 
 
+EDIT_COLUMNS=('修正案（値）','修正理由','適用先（共通/環境）')
+IMPORT_KEY='@import-key'
+
+
 def text(value):
     return value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,sort_keys=True)
 
@@ -47,6 +51,17 @@ def observation(item):
 def workbook(document, *, services=None, service_only=False):
     book=Workbook();book.remove(book.active)
     layout=dict(LAYOUT)
+    if document.model_version=='1.1' and not service_only:
+        layout['地域別資源']=(['資源ID','リージョン','公式スキーマSHA-256','公式取得元'],[36,24,70,100])
+        if document.review_report:
+            layout['原資料状態']=(['原資料設定ID','区分','元の状態','元の検証状態','生成項目ID','原資料位置'],[24,15,36,30,60,55])
+            layout['実行サマリ根拠']=(['記録ID','区分','JSON'],[32,30,120])
+        if getattr(document,'decision_trace',{}).get('status','NOT_CHECKED')!='NOT_CHECKED':
+            layout['設計方針']=(['方針ID','章','題名・状態','方針','理由・代替案','要件・検査','適用範囲・具体化','出典'],[30,26,34,65,55,40,48,26])
+            layout['方針トレース']=(['方針ID','設定ID・パス','設定の状態','値の解決','入力追跡'],[30,60,30,22,70])
+            layout['方針指摘']=(['指摘ID','区分・コード','方針・章・要件','設定・資源','内容'],[60,40,34,50,70])
+            if document.decision_trace.get('expansions'):
+                layout['方針展開']=(['展開ID','方針ID','設定ID','結果','展開値','入力追跡'],[30,30,45,24,60,40])
     if not service_only:
         layout['必要入力']=(['検査ID','項目ID・パス','必須種別・必要性','条件・根拠','入力状態・解決','結果','対応方法'],[36,42,28,70,26,25,58])
         layout['必要入力根拠']=(['根拠ID','区分','内容'],[36,26,120])
@@ -61,7 +76,9 @@ def workbook(document, *, services=None, service_only=False):
     if document.model_version=='1.1':
         selected=sorted(set(document.resource_services.values()) if services is None else services)
         layout={k:v for k,v in layout.items() if not k.endswith('設定') and (not service_only or k=='概要')}
-        for service in selected:layout[service+'設定']=LAYOUT['EC2設定']
+        columns,widths=LAYOUT['EC2設定']
+        # Reviewers type proposals only into these columns; aws-design-changes reads nothing else.
+        for service in selected:layout[service+'設定']=([*columns,*EDIT_COLUMNS],[*widths,30,40,18])
     sheets={}
     for name,(columns,widths) in layout.items():
         ws=book.create_sheet(name);sheets[name]=ws
@@ -100,12 +117,23 @@ def workbook(document, *, services=None, service_only=False):
             points=17*(height+1) if document.model_version=='1.1' else 15*height
             ws.row_dimensions[ws.max_row].height=min(390,max(30,points))
     d=document.design;env=next(e for e in d.environments if e.id==document.environment_id)
+    if document.model_version=='1.1' and document.review_report and not service_only:
+        add('実行サマリ根拠',['@review-report','JSON',document.review_report])
+        for row in document.review_report['source_records']:
+            add('原資料状態',[row['setting_id'],row['kind'],row['status'],row['verification_status'],row['item_ids'],row['source_pointer']])
     for key,label,value in [('system','システム',d.system.name),('description','説明',d.system.description),
         ('environment','環境',env.name+' / '+env.id),('region','リージョン',env.region),('environment_note','環境説明',env.description),
         ('version','入力 / 共通モデル / レイアウト版',d.schema_version+' / '+document.model_version+' / '+LAYOUT_VERSION),
         ('status','生成 / 設計評価',document.generation_status+' / '+document.evaluation_status),
         ('note','注意','生成成功は構造検証と文書生成の完了を示します。設計評価の合格ではありません。')]:add('概要',[d.system.id+'.'+key,label,value])
+    if document.model_version=='1.1':
+        add('概要',[IMPORT_KEY,'修正案の取込キー',{'format_version':'1.0','input_sha256':document.input_sha256,
+            'environment_id':document.environment_id,'edit_columns':list(EDIT_COLUMNS)}])
     for r in d.resources:
+        if document.model_version=='1.1' and not service_only:
+            region=document.resource_regions.get(r.id,env.region)
+            origin=document.regional_catalog_provenance.get(region,document.catalog_provenance)
+            add('地域別資源',[r.id,region,origin['zip_sha256'],origin['source']])
         state=document.resource_comparisons[r.id]
         add('構成一覧',[r.id,r.name,r.type,r.cfn_logical_id or '未対応付け',state,r.rationale,', '.join(r.sources)])
         if state!='PRESENT':add('差異',[r.id,state,r.type,r.cfn_logical_id or '',r.rationale])
@@ -125,7 +153,10 @@ def workbook(document, *, services=None, service_only=False):
         if getattr(item,'comparison_details',None):
             provenance+='\n比較箇所: '+text([d for d in item.comparison_details if d['result']!='MATCH'])
         if document.model_version=='1.1':provenance+='\n比較根拠: '+item.comparison_basis
-        add(item.service+'設定',[item.item_id,item.resource_id,item.name,expected,defined,item.comparison,provenance])
+        if getattr(item.expected,'decision_ids',None):provenance+='\n方針: '+', '.join(item.expected.decision_ids)
+        if item.origin=='decision':provenance+='\n出所: 方針から展開（入力に個別の設定なし）'
+        add(item.service+'設定',[item.item_id,item.resource_id,item.name,expected,defined,item.comparison,provenance,
+                                 *(['']*len(EDIT_COLUMNS) if document.model_version=='1.1' else [])])
         if item.expected.status=='UNDECIDED':add('未決事項',[item.item_id,item.name,item.expected.status,item.expected.rationale,item.resource_id,', '.join(item.expected.sources)])
         if item.comparison!='MATCH':add('差異',[item.item_id,item.comparison,setting(item.expected),defined,'未比較・未解決は差異なしを意味しません。'+provenance])
         if item.origin=='environment':add('環境差分',[item.item_id,item.resource_id+' / '+item.name,setting(item.common) if item.common else '共通設定なし',setting(item.expected),provenance])
@@ -203,6 +234,27 @@ def workbook(document, *, services=None, service_only=False):
             row['input_state']+' / '+row['value_resolution'],row['result'],row['action']])
         for index in range(start,sheets['必要入力'].max_row+1):
             sheets['必要入力'].cell(index,1).hyperlink=f"#'必要入力根拠'!A{detail_row}"
+    trace=getattr(document,'decision_trace',{})
+    if document.model_version=='1.1' and trace:
+        add('概要',['@design-decisions','方針トレースの実行 / 判定',trace['status']+' / '+trace['assessment']])
+        if trace['status']!='NOT_CHECKED':add('概要',['@design-decision-counts','方針トレースの集計',trace['summary']])
+        add('概要',['@design-decision-limits','方針トレースの限界',trace['limitations']])
+    if document.model_version=='1.1' and not service_only and trace.get('status','NOT_CHECKED')!='NOT_CHECKED':
+        titles={s['section_id']:s['title'] for s in trace['sections']};rows={r['decision_id']:r for r in trace['decisions']}
+        for decision in d.decisions:
+            row=rows[decision.id];scope=decision.applies_to
+            scope_text=('対象: '+', '.join([*scope.resources,*scope.types])+('\n環境: '+', '.join(scope.environments) if scope.environments else '')) if scope else '適用範囲は未宣言'
+            add('設計方針',[decision.id,decision.section+'\n'+titles[decision.section],decision.title+'\n'+decision.status,decision.statement,
+                decision.rationale+('\n代替案: '+' / '.join(decision.alternatives) if decision.alternatives else ''),
+                '要件: '+(', '.join(decision.requirement_ids) or 'なし')+'\n検査: '+(', '.join(decision.policy_ids) or 'なし')+('\n結果: '+text(row['policy_results']) if row['policy_results'] else ''),
+                scope_text+'\n具体化: '+row['realization']+' / '+row['mechanization'],', '.join(decision.sources)])
+        for link in trace['links']:
+            add('方針トレース',[link['decision_id'],link['item_id']+'\n'+link['path'],link['status']+' / '+(link['mode'] or '-'),link['value_resolution'],link['input_pointer']])
+        for record in trace.get('expansions',[]):
+            add('方針展開',[record['expansion_id'],record['decision_id'],record['item_id'],record['result'],text(record['setting']),record['input_pointer']])
+        for f in trace['findings']:
+            add('方針指摘',[f['finding_id'],f['kind']+' / '+f['code'],'\n'.join(f[k] for k in ('decision_id','section_id','requirement_id') if f.get(k)),
+                '\n'.join(f[k] for k in ('item_id','path','resource_id') if f.get(k)),f['message']])
     if document.model_version=='1.1':
         add('概要',['@comparison-legend','比較と値の解決','DECIDEDは入力方針の決定。RESOLVEDは記載値が具体値であること。MATCHは記載された具体値の一致のみ。EXPRESSION_MATCHは式の一致のみで実値は未解決。REFERENCE_MATCHは参照宣言の一致のみ。いずれも設計合格や接続・デプロイの成立を意味しません。'])
         add('概要',['@catalog','CFNスキーマ',document.catalog_provenance])
