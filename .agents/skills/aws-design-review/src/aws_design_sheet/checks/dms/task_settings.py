@@ -4,6 +4,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 TASKS={'AWS::DMS::ReplicationTask':'MigrationType','AWS::DMS::ReplicationConfig':'ReplicationType'}
@@ -19,7 +20,7 @@ def consumers(ctx,r,side):
     path='/properties/'+side+'EndpointArn'
     for task in ctx.design.resources:
         if task.type not in TASKS:continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==task.id and ref.source_path==path and ref.target_resource_id==r.id]
+        refs=[ref for ref in relations_from(ctx.design, task.id) if ref.source_path==path and ref.target_resource_id==r.id]
         if refs:yield task if resolved(task) and linked(ctx,task,path,r.type) is r else None
 
 

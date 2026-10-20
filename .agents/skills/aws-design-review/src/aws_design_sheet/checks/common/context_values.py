@@ -4,6 +4,7 @@ from __future__ import annotations
 from ...models import ValueState
 from .context import Context
 from .field_reads import UNKNOWN, linked as _linked, read
+from .index import relations_at
 
 CFN = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 
@@ -17,7 +18,7 @@ class _Context(Context):
 
 def value(ctx, resource, path):
     """A property relation establishes presence, but does not resolve a scalar."""
-    refs = [r for r in ctx.design.relations if r.source_resource_id == resource.id and r.source_path == path]
+    refs = relations_at(ctx.design, resource.id, path)
     if refs:
         ctx.evidence.extend(e for ref in refs for e in ref.evidence_ids)
         ctx.dependencies.append(resource.id + path)
@@ -26,7 +27,7 @@ def value(ctx, resource, path):
 
 
 def linked(ctx, resource, path, expected):
-    refs = [r for r in ctx.design.relations if r.source_resource_id == resource.id and r.source_path == path]
+    refs = relations_at(ctx.design, resource.id, path)
     if any(r.condition for r in refs):
         return None
     for field in resource.fields:

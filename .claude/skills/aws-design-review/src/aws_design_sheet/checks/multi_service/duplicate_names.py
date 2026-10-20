@@ -2,6 +2,7 @@
 from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
 from ..common.literals import known_scope, literal
+from ..common.index import resources_of_type
 
 
 def token(ctx,resource,spec):
@@ -734,7 +735,7 @@ def evaluate_multi_service_duplicate_names(design,resource):
     if spec is None:return []
     ctx=_Context(design,resource);own=owner(ctx,resource,spec);name=token(ctx,resource,spec);duplicate=False
     if own is not None and name is not None:
-        for other in design.resources:
+        for other in resources_of_type(design, resource.type):
             if other.id==resource.id or other.type!=resource.type or other.scope!=resource.scope:continue
             if owner(ctx,other,spec)==own and token(ctx,other,spec)==name:duplicate=True
     return [ctx.finding(spec['rule_id'],'/properties/'+spec['paths'][0],

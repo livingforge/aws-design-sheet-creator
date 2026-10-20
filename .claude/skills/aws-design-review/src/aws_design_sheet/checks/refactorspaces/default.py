@@ -5,13 +5,14 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 SOURCES={'REFACTOR_SPACES_ACTIVE_DEFAULT':['https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-refactorspaces-route.html']}
 
 
 def identity(ctx,r,prop,kind,prefix):
     path='/properties/'+prop;raw=read(ctx,r,path)
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if refs:
         other=linked(ctx,r,path,kind)
         return ('resource',other.id) if resolved(other) and raw is ABSENT else None

@@ -5,6 +5,7 @@ from ..common.context_values import _Context, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import known_scope, literal
 from ..common.template_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -15,7 +16,7 @@ SOURCES = {
 def application_region(ctx,resource,path):
     uri=read(ctx,resource,path)
     match=re.fullmatch(r's3://([a-z0-9.-]{3,63})(?:/[^\s?#]*)?',uri) if literal(uri) and len(uri)<=1024 else None
-    refs=[r for r in ctx.design.relations if r.source_resource_id==resource.id and r.source_path==path]
+    refs=[r for r in relations_from(ctx.design, resource.id) if r.source_path==path]
     if not match or not known_scope(resource) or not resolved(resource) or len(refs)!=1 or refs[0].condition:
         return 'NEEDS_REVIEW'
     bucket=ctx.by_id.get(refs[0].target_resource_id)

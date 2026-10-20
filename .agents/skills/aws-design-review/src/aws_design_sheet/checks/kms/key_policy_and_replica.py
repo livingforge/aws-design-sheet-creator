@@ -6,6 +6,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, UNKNOWN
 from ..common.json_constants import reject_constant
 from ..common.partitions import public_partition
+from ..common.index import relations_from, resources_of_type
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -104,7 +105,7 @@ def kms_local(design, resource):
         'literal primary key ARN must identify another Region in the same partition; primary status, existence and regional key support remain external'))
     duplicates = []
     if match or primary:
-        for other in design.resources:
+        for other in resources_of_type(design, resource.type):
             if other.id == resource.id or other.type != resource.type:
                 continue
             if other.scope.account != resource.scope.account or other.scope.region != resource.scope.region:
@@ -121,7 +122,7 @@ def kms_local(design, resource):
 
 
 def replica_primary(ctx, resource, path):
-    refs = [r for r in ctx.design.relations if r.source_resource_id == resource.id and r.source_path == path]
+    refs = [r for r in relations_from(ctx.design, resource.id) if r.source_path == path]
     if len(refs) != 1:
         return None
     primary = ctx.by_id.get(refs[0].target_resource_id)

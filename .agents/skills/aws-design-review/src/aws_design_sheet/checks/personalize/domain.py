@@ -3,6 +3,7 @@ from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'PERSONALIZE_SCHEMA_GROUP_DOMAIN':[CF+'aws-resource-personalize-schema.html',CF+'aws-resource-personalize-dataset.html',CF+'aws-resource-personalize-datasetgroup.html']}
@@ -13,7 +14,7 @@ def domain(ctx,r):
     own=value(ctx,r,'/properties/Domain');seen=False;pending=False;required=False
     for dataset in ctx.design.resources:
         if dataset.type!='AWS::Personalize::Dataset':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==dataset.id and ref.source_path=='/properties/SchemaArn' and ref.target_resource_id==r.id]
+        refs=[ref for ref in relations_from(ctx.design, dataset.id) if ref.source_path=='/properties/SchemaArn' and ref.target_resource_id==r.id]
         if not refs:continue
         seen=True
         if not resolved(dataset) or read(ctx,dataset,'/properties/SchemaArn') is not ABSENT or linked(ctx,dataset,'/properties/SchemaArn',r.type) is not r:

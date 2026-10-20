@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "LAMBDA_VPC_MEMBERSHIP"
 VPC_CONFIG = "/properties/VpcConfig"
@@ -43,9 +44,8 @@ def evaluate_lambda_vpc_membership(design: Design, resource: Resource) -> dict[s
         return _result(resource, "NOT_APPLICABLE", "resource type does not match", [], [])
 
     config = resource.field(VPC_CONFIG)
-    references = [r for r in design.relations
-                  if r.source_resource_id == resource.id and
-                  any(r.source_path.startswith(VPC_CONFIG + "/" + name + "/")
+    references = [r for r in relations_from(design, resource.id)
+                  if any(r.source_path.startswith(VPC_CONFIG + "/" + name + "/")
                       for name in MEMBERS)]
     if config is None and not references:
         return _result(resource, "NOT_APPLICABLE", "VPC configuration is not present", [], [])
@@ -94,8 +94,8 @@ def evaluate_lambda_vpc_membership(design: Design, resource: Resource) -> dict[s
         if not target or target.type != MEMBERS[parts[3]] or target.scope != resource.scope:
             dependencies.append(path)
             continue
-        vpc_refs = [r for r in design.relations
-                    if r.source_resource_id == target.id and r.source_path == VPC_ID]
+        vpc_refs = [r for r in relations_from(design, target.id)
+                    if r.source_path == VPC_ID]
         evidence.extend(e for ref in vpc_refs for e in ref.evidence_ids)
         evidence.extend(_evidence(target.field(VPC_ID)))
         if len(vpc_refs) != 1:

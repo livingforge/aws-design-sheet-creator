@@ -6,6 +6,7 @@ from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
 from .inheritance import effective_stack
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={
@@ -31,7 +32,7 @@ def bucket_region(ctx,r):
     path='/properties/SourceBundle/S3Bucket'
     other=linked(ctx,r,path,'AWS::S3::Bucket')
     if resolved(other):return other.scope.region
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if len(refs)!=1 or refs[0].condition:return None
     other=ctx.by_id.get(refs[0].target_resource_id);raw=read(ctx,r,path)
     if not resolved(other) or other.type!='AWS::S3::Bucket' or other.scope.environment!=r.scope.environment:return None
@@ -47,7 +48,7 @@ def version_verdict(ctx,r):
     found=False;pending=False
     for env in ctx.design.resources:
         if env.type!='AWS::ElasticBeanstalk::Environment':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==env.id and ref.source_path=='/properties/VersionLabel' and ref.target_resource_id==r.id]
+        refs=[ref for ref in relations_from(ctx.design, env.id) if ref.source_path=='/properties/VersionLabel' and ref.target_resource_id==r.id]
         if not refs:continue
         if not resolved(env) or linked(ctx,env,'/properties/VersionLabel',r.type) is not r or not same_app(ctx,env,'/properties/ApplicationName',r,'/properties/ApplicationName'):
             pending=True;continue
@@ -96,7 +97,7 @@ def architecture_verdict(ctx,r):
     found=False;pending=False
     for env in ctx.design.resources:
         if env.type!='AWS::ElasticBeanstalk::Environment':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==env.id and ref.source_path=='/properties/VersionLabel' and ref.target_resource_id==r.id]
+        refs=[ref for ref in relations_from(ctx.design, env.id) if ref.source_path=='/properties/VersionLabel' and ref.target_resource_id==r.id]
         if not refs:continue
         if not resolved(env) or linked(ctx,env,'/properties/VersionLabel',r.type) is not r or not same_app(ctx,env,'/properties/ApplicationName',r,'/properties/ApplicationName'):
             pending=True;continue

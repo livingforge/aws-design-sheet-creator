@@ -2,6 +2,7 @@
 import re
 from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT
+from ..common.index import resources_of_types
 
 URL = 'https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html'
 SOURCES = {rule: [URL] for rule in ('ROUTE53_ROUTING_POLICY_CONFLICT', 'ROUTE53_WEIGHTED_TTL_MATCH')}
@@ -80,7 +81,7 @@ def route53_records(design, resource):
         conflicts=bool(policy and len(policy)>1 and policy & {'Region','Failover','GeoLocation'})
         ttl_conflict=False
         own_ttl=ttl(ctx,resource,base)
-        for other in design.resources:
+        for other in resources_of_types(design, ('AWS::Route53::RecordSet', 'AWS::Route53::RecordSetGroup')):
             if not known_scope or other.scope!=resource.scope:
                 continue
             for other_base in records(ctx,other):

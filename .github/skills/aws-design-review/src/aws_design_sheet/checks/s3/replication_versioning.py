@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE = "S3_REPLICATION_VERSIONING"
 BUCKET = "AWS::S3::Bucket"
@@ -99,8 +100,8 @@ def evaluate_s3_replication_versioning(design: Design, resource: Resource) -> di
     else:
         resources = {item.id: item for item in design.resources}
         for path, literal in destinations:
-            references = [rel for rel in design.relations
-                          if rel.source_resource_id == resource.id and rel.source_path == path]
+            references = [rel for rel in relations_from(design, resource.id)
+                          if rel.source_path == path]
             evidence.extend(e for ref in references for e in ref.evidence_ids)
             if len(references) != 1:
                 pending.append(path)  # A literal ARN is not evidence of an in-design bucket.

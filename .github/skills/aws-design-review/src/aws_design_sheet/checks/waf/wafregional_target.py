@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 SOURCES={'WAFREGIONAL_ASSOCIATION_TARGET_KIND':['https://docs.aws.amazon.com/waf/latest/APIReference/API_wafRegional_AssociateWebACL.html','https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafregional-webacl.html']}
 
@@ -12,7 +13,7 @@ SOURCES={'WAFREGIONAL_ASSOCIATION_TARGET_KIND':['https://docs.aws.amazon.com/waf
 def target_kind(ctx,r):
     if not resolved(r):return 'NEEDS_REVIEW'
     path='/properties/ResourceArn';raw=read(ctx,r,path)
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if refs:
         if len(refs)!=1 or refs[0].condition or raw is not ABSENT:return 'NEEDS_REVIEW'
         targets=[other for other in ctx.design.resources if other.id==refs[0].target_resource_id]

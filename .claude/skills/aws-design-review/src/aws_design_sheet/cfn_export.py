@@ -36,6 +36,10 @@ class ExportedTemplate:
     relation_paths: dict[str, set[str]] = field(default_factory=dict)
     exact_relation_paths: dict[str, set[str]] = field(default_factory=dict)
     outside_relations: list[dict] = field(default_factory=list)
+    placeholder_owners: dict[str, list[str]] = field(default_factory=dict, repr=False)  # resource ID -> paths
+
+    def placeholder_paths(self, resource_id: str | None) -> list[str]:
+        return self.placeholder_owners.get(resource_id, [])
 
     def unknown(self, resource_id: str, path: str, hint: ParameterHint | None = None) -> dict:
         name = f"Unknown{len(self.placeholders) + 1}"
@@ -44,6 +48,7 @@ class ExportedTemplate:
             declaration["NoEcho"] = hint.no_echo
         self.template.setdefault("Parameters", {})[name] = declaration
         self.placeholders[name] = (resource_id, path)
+        self.placeholder_owners.setdefault(resource_id, []).append(path)
         return {"Ref": name}
 
 
@@ -93,13 +98,23 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
     group_of: dict[str, ExportedTemplate] = {}
     logical: dict[str, str] = {}
     names: dict[tuple, dict[tuple[str, str], str]] = {}
+    used: dict[tuple, set[str]] = {}
+    by_id: dict[str, Resource] = {}
+    relations_of: dict[str, list] = {}
     for resource in design.resources:
         key = _group_key(resource)
         exported = groups.get(key) or groups.setdefault(key, ExportedTemplate(*key))
         group_of[resource.id] = exported
-        logical[resource.id] = _logical_id(resource.name, set(exported.resource_ids))
+        logical[resource.id] = _logical_id(resource.name, used.setdefault(key, set()))
         exported.resource_ids[logical[resource.id]] = resource.id
         names.setdefault(key, {})[(resource.type, resource.name)] = logical[resource.id]
+        by_id.setdefault(resource.id, resource)
+    for relation in design.relations:
+        relations_of.setdefault(relation.source_resource_id, []).append(relation)
+    logical_by_name: dict[tuple, dict[str, list[str]]] = {}
+    for key, local in names.items():
+        for (_, name), logical_id in local.items():
+            logical_by_name.setdefault(key, {}).setdefault(name, []).append(logical_id)
 
     for resource in design.resources:
         exported = group_of[resource.id]
@@ -141,13 +156,11 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
                 _put(properties, item.path, convert(selected.value, item.path))
             else:
                 _put(properties, item.path, unknown(item.path))
-        for relation in design.relations:
-            if relation.source_resource_id != resource.id:
-                continue
+        for relation in relations_of.get(resource.id, ()):
             exported.relation_paths.setdefault(resource.id, set()).add(relation.source_path)
             target = relation.target_resource_id
             if target in group_of and group_of[target] is exported:
-                target_resource = next(r for r in design.resources if r.id == target)
+                target_resource = by_id[target]
                 _put(properties, relation.source_path, reference(relation.source_path, logical[target], target_resource.type, target_resource.name))
             else:
                 if target in group_of:
@@ -158,8 +171,9 @@ def export_templates(design: Design) -> list[ExportedTemplate]:
         if properties:
             body["Properties"] = properties
         if resource.template and resource.template.depends_on:
-            depends = [local[(t, n)] for (t, n) in local if n in resource.template.depends_on
-                       and local[(t, n)] != logical[resource.id]]
+            by_name = logical_by_name[_group_key(resource)]
+            depends = [logical_id for n in set(resource.template.depends_on) for logical_id in by_name.get(n, ())
+                       if logical_id != logical[resource.id]]
             if depends:
                 body["DependsOn"] = sorted(set(depends))
         exported.template["Resources"][logical[resource.id]] = body

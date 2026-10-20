@@ -4,6 +4,7 @@ from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT
 from ..common.scope import symmetric_key_verdict
+from ..common.index import resources_of_type
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 NAMES = {
@@ -53,7 +54,7 @@ def finite_ledger_checks(design, resource):
         key = identity(ctx, resource, paths)
         known_scope = (re.fullmatch(r'[0-9]{12}', resource.scope.account)
                        and re.fullmatch(r'[a-z]+(?:-[a-z]+)+-[0-9]+', resource.scope.region))
-        collisions = [other.id for other in design.resources if known_scope and key is not None
+        collisions = [other.id for other in resources_of_type(design, resource.type) if known_scope and key is not None
                       and other.id != resource.id and other.type == resource.type and other.scope == resource.scope
                       and identity(ctx, other, paths) == key]
         results.append({**ctx.finding(rule, '/properties/' + (paths[0] if paths else ''),

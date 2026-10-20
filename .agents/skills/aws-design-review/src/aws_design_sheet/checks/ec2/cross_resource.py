@@ -33,6 +33,7 @@ import ipaddress
 from ...models import ValueState
 from ..registry import resource_check
 from ..common.context import Context
+from ..common.index import relations_from
 
 
 SOURCES = {
@@ -164,8 +165,8 @@ def evaluate_vpc_peering_cidr(design: Design, resource: Resource) -> dict[str, A
         for block in ctx.design.resources:
             if block.type != "AWS::EC2::VPCCidrBlock" or block.scope != vpc.scope:
                 continue
-            refs = [ref for ref in design.relations
-                    if ref.source_resource_id == block.id and ref.source_path == "/properties/VpcId"]
+            refs = [ref for ref in relations_from(design, block.id)
+                    if ref.source_path == "/properties/VpcId"]
             if len(refs) == 1 and refs[0].target_resource_id == vpc.id:
                 values.append(ctx.value(block, "/properties/CidrBlock"))
         networks = []
@@ -310,8 +311,8 @@ def evaluate_traffic_mirror_filter_rule_number(design: Design, resource: Resourc
     direction_path = "/properties/TrafficDirection"
 
     def identity(item: Resource) -> tuple[str, str] | None:
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == item.id and ref.source_path == filter_path]
+        refs = [ref for ref in relations_from(design, item.id)
+                if ref.source_path == filter_path]
         if len(refs) > 1:
             return None
         if refs:
@@ -385,8 +386,8 @@ def evaluate_gateway_route_table_vpc(design: Design, resource: Resource) -> dict
         return ctx.finding("EC2_GATEWAY_ROUTE_TABLE_SAME_VPC", "/properties/GatewayId",
                            "NEEDS_REVIEW", "route table is not linked in the design")
     route_vpc = ctx.target(route_table, "/properties/VpcId", "AWS::EC2::VPC")
-    gateway_refs = [ref for ref in design.relations
-                    if ref.source_resource_id == resource.id and ref.source_path == "/properties/GatewayId"]
+    gateway_refs = [ref for ref in relations_from(design, resource.id)
+                    if ref.source_path == "/properties/GatewayId"]
     ctx.evidence.extend(item for ref in gateway_refs for item in ref.evidence_ids)
     gateway = ctx.by_id.get(gateway_refs[0].target_resource_id) if len(gateway_refs) == 1 else None
     if gateway is None or gateway.type not in ("AWS::EC2::InternetGateway", "AWS::EC2::VPNGateway"):
@@ -399,8 +400,8 @@ def evaluate_gateway_route_table_vpc(design: Design, resource: Resource) -> dict
     for attachment in design.resources:
         if attachment.type != "AWS::EC2::VPCGatewayAttachment" or attachment.scope != resource.scope:
             continue
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == attachment.id and ref.source_path == gateway_path]
+        refs = [ref for ref in relations_from(design, attachment.id)
+                if ref.source_path == gateway_path]
         if len(refs) == 1 and refs[0].target_resource_id == gateway.id:
             attached_vpcs.append(ctx.target(attachment, "/properties/VpcId", "AWS::EC2::VPC"))
     if route_vpc is None or len(attached_vpcs) != 1 or attached_vpcs[0] is None:
@@ -442,8 +443,8 @@ def evaluate_client_vpn_cidr_overlap(design: Design, resource: Resource) -> dict
             subnet_path = None
         else:
             continue
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == item.id and ref.source_path == endpoint_path]
+        refs = [ref for ref in relations_from(design, item.id)
+                if ref.source_path == endpoint_path]
         if len(refs) != 1 or refs[0].target_resource_id != resource.id:
             continue
         if subnet_path:
@@ -705,8 +706,8 @@ def evaluate_eip_instance_interface_count(design: Design, resource: Resource) ->
     for attachment in design.resources:
         if attachment.type != "AWS::EC2::NetworkInterfaceAttachment" or attachment.scope != resource.scope:
             continue
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == attachment.id and ref.source_path == "/properties/InstanceId"]
+        refs = [ref for ref in relations_from(design, attachment.id)
+                if ref.source_path == "/properties/InstanceId"]
         if len(refs) == 1 and refs[0].target_resource_id == instance.id:
             count = (count if count is not None else 1) + 1
     if count is None:
@@ -721,9 +722,9 @@ def evaluate_eip_instance_interface_count(design: Design, resource: Resource) ->
 @resource_check('AWS::EC2::Instance')
 def evaluate_instance_launch_template(design: Design, resource: Resource) -> list[dict[str, Any]]:
     field = resource.field("/properties/LaunchTemplate")
-    refs = [ref for ref in design.relations if ref.source_resource_id == resource.id and
-            ref.source_path in ("/properties/LaunchTemplate/LaunchTemplateId",
-                                "/properties/LaunchTemplate/LaunchTemplateName")]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path in ("/properties/LaunchTemplate/LaunchTemplateId",
+                                   "/properties/LaunchTemplate/LaunchTemplateName")]
     if (field is None or field.state in (ValueState.MISSING, ValueState.NOT_APPLICABLE)) and not refs:
         return []
     ctx = Context(design, resource)
@@ -821,8 +822,8 @@ def evaluate_ec2_fleet_unit_type(design: Design, resource: Resource) -> dict[str
             return ctx.finding(rule, path, "PASS", "an override uses attribute-based instance selection")
         paths = (f"/properties/LaunchTemplateConfigs/{index}/LaunchTemplateSpecification/LaunchTemplateId",
                  f"/properties/LaunchTemplateConfigs/{index}/LaunchTemplateSpecification/LaunchTemplateName")
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == resource.id and ref.source_path in paths]
+        refs = [ref for ref in relations_from(design, resource.id)
+                if ref.source_path in paths]
         if len(refs) != 1:
             uncertain = True
             continue
@@ -902,8 +903,8 @@ def evaluate_vpn_route_propagation_vpc(design: Design, resource: Resource) -> di
     for attachment in design.resources:
         if attachment.type != "AWS::EC2::VPCGatewayAttachment" or attachment.scope != resource.scope:
             continue
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == attachment.id and ref.source_path == "/properties/VpnGatewayId"]
+        refs = [ref for ref in relations_from(design, attachment.id)
+                if ref.source_path == "/properties/VpnGatewayId"]
         if len(refs) == 1 and refs[0].target_resource_id == gateway.id:
             attached_vpcs.append(ctx.target(attachment, "/properties/VpcId", "AWS::EC2::VPC"))
     if len(attached_vpcs) != 1 or attached_vpcs[0] is None:
@@ -997,8 +998,8 @@ def evaluate_transit_gateway_route_table_association(design: Design, resource: R
     rule = "EC2_TRANSIT_GATEWAY_ATTACHMENT_SINGLE_ROUTE_TABLE"
     path = "/properties/TransitGatewayAttachmentId"
     current = ctx.value(resource, path)
-    refs = [ref for ref in design.relations
-            if ref.source_resource_id == resource.id and ref.source_path == path]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path == path]
     current_id = refs[0].target_resource_id if len(refs) == 1 else current
     if not isinstance(current_id, str):
         return ctx.finding(rule, path, "NEEDS_REVIEW", "attachment ID is unresolved")
@@ -1006,8 +1007,8 @@ def evaluate_transit_gateway_route_table_association(design: Design, resource: R
     for other in design.resources:
         if other.id == resource.id or other.type != resource.type or other.scope != resource.scope:
             continue
-        other_refs = [ref for ref in design.relations
-                      if ref.source_resource_id == other.id and ref.source_path == path]
+        other_refs = [ref for ref in relations_from(design, other.id)
+                      if ref.source_path == path]
         other_id = other_refs[0].target_resource_id if len(other_refs) == 1 else ctx.value(other, path)
         if not isinstance(other_id, str):
             uncertain = True
@@ -1071,8 +1072,8 @@ def evaluate_spot_fleet_template_interfaces(design: Design, resource: Resource) 
         if version not in ("1", "$Latest"):
             results.append(ctx.finding(rule, path, "NEEDS_REVIEW", "selected template version cannot be matched to design data"))
             continue
-        refs = [ref for ref in design.relations if ref.source_resource_id == resource.id and
-                ref.source_path in (f"{path}/LaunchTemplateId", f"{path}/LaunchTemplateName")]
+        refs = [ref for ref in relations_from(design, resource.id)
+                if ref.source_path in (f"{path}/LaunchTemplateId", f"{path}/LaunchTemplateName")]
         ctx.evidence.extend(e for ref in refs for e in ref.evidence_ids)
         template = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
         if template is None or template.type != "AWS::EC2::LaunchTemplate" or template.scope != resource.scope:
@@ -1179,8 +1180,8 @@ def evaluate_spot_fleet_unit_type(design: Design, resource: Resource) -> dict[st
             uncertain = True
             continue
         base = f"/properties/SpotFleetRequestConfigData/LaunchTemplateConfigs/{index}/LaunchTemplateSpecification"
-        refs = [ref for ref in design.relations if ref.source_resource_id == resource.id and
-                ref.source_path in (f"{base}/LaunchTemplateId", f"{base}/LaunchTemplateName")]
+        refs = [ref for ref in relations_from(design, resource.id)
+                if ref.source_path in (f"{base}/LaunchTemplateId", f"{base}/LaunchTemplateName")]
         template = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
         if template is None or template.type != "AWS::EC2::LaunchTemplate" or template.scope != resource.scope:
             uncertain = True
@@ -1243,8 +1244,8 @@ def evaluate_instance_template_primary_interface(design: Design, resource: Resou
         version = ctx.value(resource, f"{path}/Version")
     if version not in ("1", "$Latest"):
         return ctx.finding(rule, path, "NEEDS_REVIEW", "launch template version is unresolved")
-    refs = [ref for ref in design.relations if ref.source_resource_id == resource.id and
-            ref.source_path in (f"{path}/LaunchTemplateId", f"{path}/LaunchTemplateName")]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path in (f"{path}/LaunchTemplateId", f"{path}/LaunchTemplateName")]
     template = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
     if template is None or template.type != "AWS::EC2::LaunchTemplate" or template.scope != resource.scope:
         return ctx.finding(rule, path, "NEEDS_REVIEW", "launch template is not linked in the design")

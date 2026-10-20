@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'ENTITY_NORMALIZATION_SUBTYPE_GROUPS':[CF+'aws-properties-entityresolution-schemamapping-schemainputattribute.html',CF+'aws-properties-entityresolution-matchingworkflow-inputsource.html','https://docs.aws.amazon.com/entityresolution/latest/userguide/create-schema-mapping.html','https://docs.aws.amazon.com/entityresolution/latest/userguide/create-matching-workflow-provider.html']}
@@ -26,7 +27,7 @@ def normalization(ctx,r):
     seen=False;pending=False
     for workflow in ctx.design.resources:
         if workflow.type!='AWS::EntityResolution::MatchingWorkflow':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==workflow.id and ref.target_resource_id==r.id and re.fullmatch(r'/properties/InputSourceConfig/[0-9]+/SchemaArn',ref.source_path)]
+        refs=[ref for ref in relations_from(ctx.design, workflow.id) if ref.target_resource_id==r.id and re.fullmatch(r'/properties/InputSourceConfig/[0-9]+/SchemaArn',ref.source_path)]
         for ref in refs:
             if schema(ctx,workflow,ref.source_path) is not r:pending=True;continue
             flag=value(ctx,workflow,ref.source_path.rsplit('/',1)[0]+'/ApplyNormalization')

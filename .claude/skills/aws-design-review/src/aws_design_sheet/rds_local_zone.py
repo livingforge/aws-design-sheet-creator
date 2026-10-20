@@ -3,6 +3,7 @@ from .checks.common.context_values import _Context, linked, value
 from .checks.common.literals import known_scope
 from .models import ValueState
 from .rule_engine import reference_view
+from .checks.common.index import relations_from
 
 RULE='RDS.DBSUBNETGROUP.SUBNET_IDS_MIN_TWO'
 SOURCE='https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html'
@@ -20,7 +21,7 @@ def guard_local_zone(rule, design, resource, findings):
     if not template or template.state!=ValueState.KNOWN or template.property_presence is None:
         return findings
     ctx=_Context(design,resource)
-    view=reference_view(resource,[r for r in design.relations if r.source_resource_id==resource.id],
+    view=reference_view(resource,relations_from(design, resource.id),
                         {r.id:r.type for r in design.resources})
     raw=value(ctx,view,'/properties/SubnetIds')
     if not isinstance(raw,list) or len(raw)!=1:

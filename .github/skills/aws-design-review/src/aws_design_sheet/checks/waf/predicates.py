@@ -4,6 +4,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import expand, literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'WAF_CLASSIC_PREDICATE_TARGET':[CF+'aws-properties-'+p+'-predicate.html' for p in ('waf-rule','wafregional-rule','wafregional-ratebasedrule')]}
@@ -21,7 +22,7 @@ def predicate(ctx,r,path):
     if kind=='RegexMatch' or kind=='GeoMatch' and r.type=='AWS::WAF::Rule':return 'NEEDS_REVIEW'
     source=path+'/DataId'
     if read(ctx,r,source) is not ABSENT:return 'NEEDS_REVIEW'
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==source]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==source]
     if len(refs)!=1 or refs[0].condition:return 'NEEDS_REVIEW'
     matches=[other for other in ctx.design.resources if other.id==refs[0].target_resource_id]
     if len(matches)!=1 or not resolved(matches[0]):return 'NEEDS_REVIEW'

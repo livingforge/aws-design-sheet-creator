@@ -4,6 +4,7 @@ from __future__ import annotations
 from ...models import ValueState
 from ..registry import resource_check
 from ..common.context import Context
+from ..common.index import relations_from
 
 DB_CLUSTER = "AWS::RDS::DBCluster"
 BASE = "/properties/"
@@ -26,8 +27,8 @@ def _presence(design: Design, resource: Resource, name: str) -> bool | None:
     """Whether a property is supplied; None means its design value is unresolved."""
     path = BASE + name
     field = resource.field(path)
-    refs = [ref for ref in design.relations
-            if ref.source_resource_id == resource.id and ref.source_path == path]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path == path]
     if field is not None and field.state not in (ValueState.KNOWN, ValueState.MISSING,
                                                  ValueState.NOT_APPLICABLE):
         return None

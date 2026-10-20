@@ -2,6 +2,7 @@
 from ..registry import resource_check
 from ..common.context_values import _Context
 from .matchmaking_ruleset_region import ruleset_region
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -14,7 +15,7 @@ def local_config_conflict(ctx,resource):
     path='/properties/RuleSetName'
     for other in ctx.design.resources:
         if other.type!='AWS::GameLift::MatchmakingConfiguration':continue
-        refs=[r for r in ctx.design.relations if r.source_resource_id==other.id and r.source_path==path]
+        refs=[r for r in relations_from(ctx.design, other.id) if r.source_path==path]
         if len(refs)==1 and refs[0].target_resource_id==resource.id and ruleset_region(ctx,other,path)=='FAIL':
             return 'FAIL'
     # Input references never prove that every deployed consumer was enumerated.

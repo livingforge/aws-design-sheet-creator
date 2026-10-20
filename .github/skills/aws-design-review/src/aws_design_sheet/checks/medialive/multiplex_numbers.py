@@ -4,6 +4,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'MEDIALIVE_MULTIPLEX_PROGRAM_NUMBER_COLLISION':[CF+'aws-properties-medialive-multiplexprogram-multiplexprogramsettings.html','https://docs.aws.amazon.com/medialive/latest/ug/multiplex-create.html']}
@@ -12,7 +13,7 @@ SOURCES={'MEDIALIVE_MULTIPLEX_PROGRAM_NUMBER_COLLISION':[CF+'aws-properties-medi
 def multiplex(ctx,r):
     if not resolved(r):return None
     path='/properties/MultiplexId';raw=read(ctx,r,path)
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if refs:
         other=linked(ctx,r,path,'AWS::MediaLive::Multiplex')
         return ('resource',other.id) if resolved(other) and raw is ABSENT else None

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ..registry import resource_check
+from ..common.index import relations_from
 
 ASSOCIATIONS = {
     "AWS::EC2::SubnetRouteTableAssociation": (
@@ -41,8 +42,8 @@ def evaluate_ec2_subnet_association_vpc(design: Design, resource: Resource) -> d
                                 (second_name, second_type)):
         path = "/properties/" + name
         evidence.extend(_evidence(resource.field(path)))
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == resource.id and ref.source_path == path]
+        refs = [ref for ref in relations_from(design, resource.id)
+                if ref.source_path == path]
         evidence.extend(id for ref in refs for id in ref.evidence_ids)
         if len(refs) != 1:
             dependencies.append(path)
@@ -52,8 +53,8 @@ def evaluate_ec2_subnet_association_vpc(design: Design, resource: Resource) -> d
             dependencies.append(path)
             continue
         evidence.extend(_evidence(target.field(VPC_PATH)))
-        vpc_refs = [ref for ref in design.relations
-                    if ref.source_resource_id == target.id and ref.source_path == VPC_PATH]
+        vpc_refs = [ref for ref in relations_from(design, target.id)
+                    if ref.source_path == VPC_PATH]
         evidence.extend(id for ref in vpc_refs for id in ref.evidence_ids)
         if len(vpc_refs) != 1:
             dependencies.append(path + " -> " + target.id + VPC_PATH)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ...models import ValueState
+from .index import relations_at
 
 ABSENT = object()
 UNKNOWN = object()
@@ -65,8 +66,6 @@ def linked(ctx: _Context, resource: Resource, path: str, expected: str):
             ctx.dependencies.append(resource.id + current)
             return None
         current = current.rsplit('/', 1)[0]
-    refs = [r for r in ctx.design.relations
-            if r.source_resource_id == resource.id and r.source_path == path]
-    if not refs:
+    if not relations_at(ctx.design, resource.id, path):
         return None
     return ctx.target(resource, path, expected)

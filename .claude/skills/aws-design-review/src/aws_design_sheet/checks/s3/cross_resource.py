@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ..registry import resource_check
 from ..common.context import Context
+from ..common.index import relations_from
 
 
 SOURCES = {
@@ -21,8 +22,8 @@ def evaluate_access_grants_location_region(design: Design, resource: Resource) -
     location = ctx.value(resource, path)
     if location == "s3://":
         return ctx.finding(rule, path, "NOT_APPLICABLE", "default S3 location is used")
-    refs = [ref for ref in design.relations
-            if ref.source_resource_id == resource.id and ref.source_path == path]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path == path]
     ctx.evidence.extend(e for ref in refs for e in ref.evidence_ids)
     bucket = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
     if bucket is None or bucket.type != "AWS::S3::Bucket":
@@ -48,8 +49,8 @@ def evaluate_access_grant_registered_location(design: Design, resource: Resource
         if locations:
             return ctx.finding(rule, path, "PASS", "default Access Grants location is declared in this Region")
         return ctx.finding(rule, path, "NEEDS_REVIEW", "default Access Grants location registration is external")
-    refs = [ref for ref in design.relations
-            if ref.source_resource_id == resource.id and ref.source_path == path]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path == path]
     ctx.evidence.extend(e for ref in refs for e in ref.evidence_ids)
     location = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
     if location is None or location.type != "AWS::S3::AccessGrantsLocation":

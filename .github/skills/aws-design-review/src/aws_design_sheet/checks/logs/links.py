@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT
 from .policy_limits import URL as ACCOUNT_POLICY_URL, prefix
 from .processors import transformer_processors
+from ..common.index import resources_of_type
 
 SOURCES = {'LOGS_TRANSFORMER_STANDARD_CLASS': [
     'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-logs-transformer.html',
@@ -19,7 +20,7 @@ def declared_account_transformer(ctx, resource, group):
     if not re.fullmatch(r'\d{12}', resource.scope.account) or not re.fullmatch(r'[a-z]{2}(?:-[a-z]+)+-\d+', resource.scope.region):
         return False
     name = value(ctx, group, '/properties/LogGroupName')
-    for policy in ctx.design.resources:
+    for policy in resources_of_type(ctx.design, 'AWS::Logs::AccountPolicy'):
         if policy.type != 'AWS::Logs::AccountPolicy' or policy.scope != resource.scope:
             continue
         if value(ctx, policy, '/properties/PolicyType') != 'TRANSFORMER_POLICY':
@@ -44,7 +45,7 @@ def transformed_input_declaration(design, resource):
     group = linked(ctx, resource, '/properties/LogGroupName', 'AWS::Logs::LogGroup')
     found = False
     if enabled is True and group:
-        for other in design.resources:
+        for other in resources_of_type(design, 'AWS::Logs::Transformer'):
             if other.type != 'AWS::Logs::Transformer' or other.scope != resource.scope:
                 continue
             transformed_group = linked(ctx, other, '/properties/LogGroupIdentifier', group.type)
@@ -80,7 +81,7 @@ def integration_singleton(design, resource):
     ctx = _Context(design, resource)
     names = set()
     if re.fullmatch(r'\d{12}', resource.scope.account) and re.fullmatch(r'[a-z]{2}(?:-[a-z]+)+-\d+', resource.scope.region):
-        for other in design.resources:
+        for other in resources_of_type(design, resource.type):
             if other.type != resource.type or other.scope != resource.scope:
                 continue
             name = value(ctx, other, '/properties/IntegrationName')

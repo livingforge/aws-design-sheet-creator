@@ -7,6 +7,7 @@ No provider schema/cache or installed dependency is mutated.
 """
 from __future__ import annotations
 
+import json
 import re
 from cfnlint.api import ManualArgs, lint
 from cfnlint.core import get_rules
@@ -40,15 +41,32 @@ class ApiGatewaySecurityPolicy(CfnLintJsonSchema):
         return err.message
 
 
+_RULES: dict[str, object] = {}
+
+
+def _rules(options: ManualArgs):
+    """Load cfn-lint's rule directory once per rule selection.
+
+    Loading imports every rule module, which costs far more than linting a small
+    template. cfn-lint's own runner reuses one collection across templates:
+    `RulesCollection.run` re-initializes each rule for the template it checks.
+    """
+    selection = [options.get("ignore_checks", []), options.get("include_checks", []),
+                 options.get("configure_rules"), options.get("include_experimental", False),
+                 options.get("mandatory_checks")]
+    key = json.dumps(selection, sort_keys=True, default=repr)
+    if key not in _RULES:
+        rules = get_rules([], selection[0], selection[1], configure_rules=selection[2],
+                          include_experimental=selection[3], mandatory_rules=selection[4])
+        rules.register(ApiGatewaySecurityPolicy())
+        _RULES[key] = rules
+    return _RULES[key]
+
+
 def lint_template(template: str, *, regions: list[str], config: ManualArgs | None = None):
     """Same cfn-lint engine plus the explicitly versioned compatibility rule."""
     options = config or ManualArgs(regions=regions)
-    rules = get_rules([], options.get("ignore_checks", []), options.get("include_checks", []),
-                      configure_rules=options.get("configure_rules"),
-                      include_experimental=options.get("include_experimental", False),
-                      mandatory_rules=options.get("mandatory_checks"))
-    rules.register(ApiGatewaySecurityPolicy())
-    return lint(template, rules=rules, regions=regions, config=options)
+    return lint(template, rules=_rules(options), regions=regions, config=options)
 
 
 def reference_format_gap(rule_id: str, template: dict, logical: str, path: str) -> str | None:

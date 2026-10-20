@@ -3,11 +3,12 @@ import re
 from .context_values import value
 from .field_reads import read
 from .literals import known_scope, literal
+from .index import relations_from
 
 
 def script_bucket_region(ctx,resource,path):
     name=read(ctx,resource,path)
-    refs=[r for r in ctx.design.relations if r.source_resource_id==resource.id and r.source_path==path]
+    refs=[r for r in relations_from(ctx.design, resource.id) if r.source_path==path]
     if not known_scope(resource) or not literal(name) or not re.fullmatch(r'[a-z0-9.-]{3,63}',name) or len(refs)!=1 or refs[0].condition:
         return 'NEEDS_REVIEW'
     bucket=ctx.by_id.get(refs[0].target_resource_id)

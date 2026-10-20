@@ -4,6 +4,7 @@ from ..registry import resource_check
 from ..common.context_values import _Context, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import known_scope, literal
+from ..common.index import relations_from
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -15,7 +16,7 @@ def stream_scope(ctx,resource,path):
     # StreamName is a name, not an ARN. Require literal matching names in
     # addition to an explicit relation before comparing cross-scope targets.
     name = read(ctx,resource,path)
-    refs = [r for r in ctx.design.relations if r.source_resource_id==resource.id and r.source_path==path]
+    refs = [r for r in relations_from(ctx.design, resource.id) if r.source_path==path]
     if not known_scope(resource) or not literal(name) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}',name) or len(refs)!=1 or refs[0].condition:
         return 'NEEDS_REVIEW'
     stream = ctx.by_id.get(refs[0].target_resource_id)

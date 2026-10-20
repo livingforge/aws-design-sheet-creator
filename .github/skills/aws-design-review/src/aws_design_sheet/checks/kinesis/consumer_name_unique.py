@@ -3,6 +3,7 @@ import re
 from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
 from ..common.literals import known_scope, literal
+from ..common.index import resources_of_type
 
 SOURCES = {
     'KINESIS_CONSUMER_NAME_UNIQUE': ['https://docs.aws.amazon.com/kinesis/latest/APIReference/API_RegisterStreamConsumer.html'],
@@ -28,7 +29,7 @@ def evaluate_kinesis_consumer_name_unique(design,resource):
     if resource.type=='AWS::Kinesis::StreamConsumer':
         name=get('/properties/ConsumerName');own=stream_identity(ctx,resource)
         pending=not literal(name) or own is None;duplicate=False
-        for other in design.resources:
+        for other in resources_of_type(design, resource.type):
             if other.id==resource.id or other.type!=resource.type or other.scope!=resource.scope:continue
             other_name=value(ctx,other,'/properties/ConsumerName')
             if literal(name) and literal(other_name) and other_name!=name:continue

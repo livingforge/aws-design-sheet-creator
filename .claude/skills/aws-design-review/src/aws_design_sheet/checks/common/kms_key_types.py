@@ -5,6 +5,7 @@ from .field_reads import ABSENT, read
 from .key_types_and_base64 import ASYMMETRIC
 from .literals import literal
 from .scoped_resolution import resolved
+from .index import relations_from
 
 HMAC=('HMAC_224','HMAC_256','HMAC_384','HMAC_512')
 SIGNING_ONLY=('ML_DSA_44','ML_DSA_65','ML_DSA_87','ECC_NIST_EDWARDS25519')
@@ -20,7 +21,7 @@ def partition(region):
 def primary_key(ctx,replica):
     path='/properties/PrimaryKeyArn';raw=read(ctx,replica,path)
     match=re.fullmatch(r'arn:(aws|aws-cn|aws-us-gov):kms:([a-z0-9-]+):([0-9]{12}):key/mrk-[a-f0-9]{32}',raw) if literal(raw) else None
-    refs=[r for r in ctx.design.relations if r.source_resource_id==replica.id and r.source_path==path]
+    refs=[r for r in relations_from(ctx.design, replica.id) if r.source_path==path]
     if match is None or len(refs)!=1 or refs[0].condition:return None
     key=ctx.by_id.get(refs[0].target_resource_id)
     if not resolved(key) or key.type!='AWS::KMS::Key':return None

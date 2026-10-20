@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ...models import ValueState
+from .index import relations_at, resources_by_id
 
 
 def _evidence(field: FieldValue | None) -> list[str]:
@@ -15,7 +16,7 @@ class Context:
     def __init__(self, design: Design, resource: Resource):
         self.design = design
         self.resource = resource
-        self.by_id = {item.id: item for item in design.resources}
+        self.by_id = resources_by_id(design)
         self.evidence: list[str] = []
         self.dependencies: list[str] = []
 
@@ -33,8 +34,7 @@ class Context:
         if field is not None and field.state not in (ValueState.KNOWN, ValueState.MISSING):
             self.dependencies.append(f"{source.id}{path}")
             return None
-        refs = [ref for ref in self.design.relations
-                if ref.source_resource_id == source.id and ref.source_path == path]
+        refs = relations_at(self.design, source.id, path)
         self.evidence.extend(item for ref in refs for item in ref.evidence_ids)
         if len(refs) != 1:
             self.dependencies.append(f"{source.id}{path}")

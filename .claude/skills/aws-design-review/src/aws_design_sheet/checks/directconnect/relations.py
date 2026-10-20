@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={
@@ -17,7 +18,7 @@ TGW='AWS::EC2::TransitGateway'
 
 def explicit(ctx,r,path,kind):
     if not resolved(r):return None
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if len(refs)!=1 or refs[0].condition:return None
     raw=read(ctx,r,path)
     if raw is not ABSENT and not literal(raw):return None
@@ -51,7 +52,7 @@ def gateway_asn(ctx,r):
     seen=False;pending=False
     for association in ctx.design.resources:
         if association.type!='AWS::DirectConnect::DirectConnectGatewayAssociation':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==association.id and ref.source_path=='/properties/DirectConnectGatewayId' and ref.target_resource_id==gateway.id]
+        refs=[ref for ref in relations_from(ctx.design, association.id) if ref.source_path=='/properties/DirectConnectGatewayId' and ref.target_resource_id==gateway.id]
         if not refs:continue
         if explicit(ctx,association,'/properties/DirectConnectGatewayId',DCG) is not gateway:pending=True;continue
         peer=explicit(ctx,association,'/properties/AssociatedGatewayId',TGW)
@@ -74,7 +75,7 @@ def lag_settings(ctx,r):
     rows=[r]
     for other in ctx.design.resources:
         if other.type!='AWS::DirectConnect::Connection':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==other.id and ref.source_path=='/properties/LagId' and ref.target_resource_id==r.id]
+        refs=[ref for ref in relations_from(ctx.design, other.id) if ref.source_path=='/properties/LagId' and ref.target_resource_id==r.id]
         if not refs:continue
         if not resolved(other) or linked(ctx,other,'/properties/LagId',r.type) is not r:pending=True;continue
         seen=True;rows.append(other)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import ipaddress
 
 from .models import Design, FieldValue, Resource, ValueState
+from .checks.common.index import resources_of_type
 
 VPC_CIDR = "/properties/CidrBlock"
 VPC_IPAM = "/properties/Ipv4IpamPoolId"
@@ -89,7 +90,7 @@ def subnet_ipv6_checks(design: Design) -> list[dict]:
         ref = refs[0]
         target = by_id.get(ref.target_resource_id)
         if target is None and ref.unresolved_name:
-            matches = [item for item in design.resources if item.type == "AWS::EC2::VPC"
+            matches = [item for item in resources_of_type(design, "AWS::EC2::VPC") if item.type == "AWS::EC2::VPC"
                        and item.name == ref.unresolved_name and item.scope == resource.scope]
             target = matches[0] if len(matches) == 1 else None
         return target if target and target.type == "AWS::EC2::VPC" and target.scope == resource.scope else None

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "RDS_EVENT_SUBSCRIPTION_SOURCE_TYPE"
 SOURCE_TYPE = "/properties/SourceType"
@@ -35,8 +36,8 @@ def evaluate_rds_event_source_type(design: Design, resource: Resource) -> dict[s
     """Check only same-scope, resolved logical SourceIds; physical IDs need review."""
     source_field = resource.field(SOURCE_TYPE)
     ids_field = resource.field(SOURCE_IDS)
-    refs = [ref for ref in design.relations
-            if ref.source_resource_id == resource.id and ref.source_path.startswith(SOURCE_IDS + "/")]
+    refs = [ref for ref in relations_from(design, resource.id)
+            if ref.source_path.startswith(SOURCE_IDS + "/")]
     evidence = _evidence(source_field) + _evidence(ids_field)
     evidence.extend(id for ref in refs for id in ref.evidence_ids)
     dependencies: list[str] = []

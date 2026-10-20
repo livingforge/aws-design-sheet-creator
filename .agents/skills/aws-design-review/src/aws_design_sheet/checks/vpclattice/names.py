@@ -2,6 +2,7 @@
 from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
 from ..common.literals import known_scope, literal
+from ..common.index import resources_of_type
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={
@@ -28,7 +29,7 @@ def evaluate_vpclattice_names(design,resource):
   path='/properties/'+key
   def known(x):return type(x) is int and 1<=x<=100 if key=='Priority' else literal(x)
   raw=value(ctx,resource,path);pending=not known(raw) or own is None;duplicate=False
-  for other in design.resources:
+  for other in resources_of_type(design, resource.type):
    if other.id==resource.id or other.type!=resource.type or other.scope!=resource.scope:continue
    other_value=value(ctx,other,path)
    if known(raw) and known(other_value) and raw!=other_value:continue

@@ -4,6 +4,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'MEDIAPACKAGE_MULTIVIEW_SOURCES':[CF+'aws-properties-mediapackagev2-channel-multiviewconfiguration.html',CF+'aws-resource-mediapackagev2-channel.html']}
@@ -11,7 +12,7 @@ SOURCES={'MEDIAPACKAGE_MULTIVIEW_SOURCES':[CF+'aws-properties-mediapackagev2-cha
 
 def group(ctx,r):
     path='/properties/ChannelGroupName'
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if refs:
         target=linked(ctx,r,path,'AWS::MediaPackageV2::ChannelGroup')
         if not resolved(target):return None

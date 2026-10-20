@@ -6,6 +6,8 @@ mixed severities and different template/scope contexts remain separate.
 """
 from __future__ import annotations
 
+from collections import defaultdict
+
 from .models import Design, ValueState
 
 
@@ -52,10 +54,24 @@ def _cause(resource, finding):
             source, finding.get('severity'))
 
 
+def _coverage_by_resource(coverage: list[dict]) -> dict:
+    indexes = defaultdict(list)
+    for i, row in enumerate(coverage):
+        indexes[row.get('resource_id')].append(i)
+    return indexes
+
+
+def _coverage_indexes(by_resource: dict, resource_ids: list) -> list[int]:
+    """Coverage rows without a resource, or for one of these resources, in coverage order."""
+    return sorted(i for resource_id in {None, *resource_ids} for i in by_resource.get(resource_id, ()))
+
+
 def build_review_summary(design: Design, results: list[dict], coverage: list[dict]) -> dict:
     resources = {r.id: r for r in design.resources}
     groups = {}
     items = []
+    # Per-group membership sets; the lists keep first-seen order for the report.
+    seen, evidence = defaultdict(set), defaultdict(set)
     for index, finding in enumerate(results):
         if finding.get('verdict') != 'NEEDS_REVIEW':
             continue
@@ -97,13 +113,15 @@ def build_review_summary(design: Design, results: list[dict], coverage: list[dic
         item['result_indexes'].append(index)
         item['result_refs'].append(f'/results/{index}')
         for target, source_key in [('rule_ids', 'rule_id'), ('resource_ids', 'resource_id')]:
-            if finding.get(source_key) not in item[target]:
+            if finding.get(source_key) not in seen[key, target]:
+                seen[key, target].add(finding.get(source_key))
                 item[target].append(finding.get(source_key))
-        item['evidence_ids'] = sorted(set(item['evidence_ids']) | set(finding.get('evidence_ids', [])))
-    for item in items:
+        evidence[key].update(finding.get('evidence_ids', []))
+    coverage_by_resource = _coverage_by_resource(coverage)
+    for key, item in groups.items():
+        item['evidence_ids'] = sorted(evidence[key])
         item['grouped'] = len(item['result_indexes']) > 1
-        item['coverage_indexes'] = [i for i, row in enumerate(coverage)
-                                    if row.get('resource_id') is None or row.get('resource_id') in item['resource_ids']]
+        item['coverage_indexes'] = _coverage_indexes(coverage_by_resource, item['resource_ids'])
     return {'version': '1', 'raw_needs_review_count': sum(len(i['result_indexes']) for i in items),
             'item_count': len(items), 'items': items, 'coverage_ref': '/coverage',
             'note': '確認項目数は表示上の集約数。判定・重大度・未検査範囲は変わらず、人間の実作業数や時間短縮の実測ではない。'}
@@ -115,6 +133,7 @@ def validate_review_summary(summary: dict, results: list[dict], coverage: list[d
     actual = [i for item in summary['items'] for i in item['result_indexes']]
     if sorted(actual) != expected or summary['raw_needs_review_count'] != len(expected) or summary['item_count'] != len(summary['items']):
         raise ValueError('review summary does not cover each NEEDS_REVIEW result exactly once')
+    coverage_by_resource = _coverage_by_resource(coverage) if coverage is not None else None
     for item in summary['items']:
         if not item['result_indexes'] or item['verdict'] != 'NEEDS_REVIEW' or any(
                 results[i].get('severity') != item['severity'] for i in item['result_indexes']):
@@ -126,7 +145,5 @@ def validate_review_summary(summary: dict, results: list[dict], coverage: list[d
                 or set(item['evidence_ids']) != {e for r in members for e in r.get('evidence_ids', [])}):
             raise ValueError('review summary has stale references, rules, targets or evidence')
         if coverage is not None:
-            expected_coverage = [i for i, row in enumerate(coverage)
-                                 if row.get('resource_id') is None or row.get('resource_id') in item['resource_ids']]
-            if item['coverage_indexes'] != expected_coverage:
+            if item['coverage_indexes'] != _coverage_indexes(coverage_by_resource, item['resource_ids']):
                 raise ValueError('review summary has incomplete coverage references')

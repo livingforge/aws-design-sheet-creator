@@ -1,0 +1,712 @@
+{
+  "schema_version": "1",
+  "state_words": {},
+  "entries": [
+    {
+      "id": "ec2-securitygroup-groupdescription-885d6c5e",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "説明"
+      ],
+      "paths": [
+        "/GroupDescription"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.group-description",
+        "label_cells": [
+          "s3-C3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupegress-cidrip-853e3b35",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "送信元／宛先"
+      ],
+      "paths": [
+        "/SecurityGroupEgress/*/CidrIp"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "アウトバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.egress-0.cidr",
+        "label_cells": [
+          "s3-G3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupegress-fromport-503e386c",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "ポート"
+      ],
+      "paths": [
+        "/SecurityGroupEgress/*/FromPort",
+        "/SecurityGroupEgress/*/ToPort"
+      ],
+      "convert": "integer",
+      "value_map": {},
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "アウトバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.egress-0.port",
+        "label_cells": [
+          "s3-F3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupegress-ipprotocol-5d89659b",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "プロトコル"
+      ],
+      "paths": [
+        "/SecurityGroupEgress/*/IpProtocol"
+      ],
+      "convert": "string",
+      "value_map": {
+        "tcp": "tcp",
+        "udp": "udp",
+        "icmp": "icmp",
+        "all": "-1"
+      },
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "アウトバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.egress-0.protocol",
+        "label_cells": [
+          "s3-E3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupingress-cidrip-4d45f82d",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "送信元／宛先"
+      ],
+      "paths": [
+        "/SecurityGroupIngress/*/CidrIp"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "インバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.ingress-0.cidr",
+        "label_cells": [
+          "s3-G3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupingress-fromport-2d3f88ee",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "ポート"
+      ],
+      "paths": [
+        "/SecurityGroupIngress/*/FromPort",
+        "/SecurityGroupIngress/*/ToPort"
+      ],
+      "convert": "integer",
+      "value_map": {},
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "インバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.ingress-0.port",
+        "label_cells": [
+          "s3-F3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupingress-ipprotocol-baa73da4",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "プロトコル"
+      ],
+      "paths": [
+        "/SecurityGroupIngress/*/IpProtocol"
+      ],
+      "convert": "string",
+      "value_map": {
+        "tcp": "tcp",
+        "udp": "udp",
+        "icmp": "icmp",
+        "all": "-1"
+      },
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "インバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "web-sg.ingress-0.protocol",
+        "label_cells": [
+          "s3-E3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-securitygroup-securitygroupingress-sourcesecuritygroupid-493a43da",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "labels": [
+        "送信元／宛先"
+      ],
+      "paths": [
+        "/SecurityGroupIngress/*/SourceSecurityGroupId"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [
+        {
+          "label": "方向",
+          "values": [
+            "インバウンド"
+          ]
+        }
+      ],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db-sg.ingress-0.source",
+        "label_cells": [
+          "s3-G3"
+        ]
+      }
+    },
+    {
+      "id": "ec2-subnet-availabilityzone-cc48b245",
+      "resource_type": "AWS::EC2::Subnet",
+      "labels": [
+        "AZ"
+      ],
+      "paths": [
+        "/AvailabilityZone"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "subnet-public-a.availability-zone",
+        "label_cells": [
+          "s2-D13"
+        ]
+      }
+    },
+    {
+      "id": "ec2-subnet-cidrblock-a0faa38e",
+      "resource_type": "AWS::EC2::Subnet",
+      "labels": [
+        "CIDR"
+      ],
+      "paths": [
+        "/CidrBlock"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "subnet-public-a.cidr-block",
+        "label_cells": [
+          "s2-E13"
+        ]
+      }
+    },
+    {
+      "id": "ec2-vpc-cidrblock-5a7ca73e",
+      "resource_type": "AWS::EC2::VPC",
+      "labels": [
+        "CIDR"
+      ],
+      "paths": [
+        "/CidrBlock"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "vpc.cidr-block",
+        "label_cells": [
+          "s2-B5"
+        ]
+      }
+    },
+    {
+      "id": "ec2-vpc-enablednshostnames-fa96ed60",
+      "resource_type": "AWS::EC2::VPC",
+      "labels": [
+        "DNSホスト名"
+      ],
+      "paths": [
+        "/EnableDnsHostnames"
+      ],
+      "convert": "boolean",
+      "value_map": {
+        "有効": true,
+        "無効": false
+      },
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "vpc.enable-dns-hostnames",
+        "label_cells": [
+          "s2-B6"
+        ]
+      }
+    },
+    {
+      "id": "ec2-vpc-enablednssupport-73eb1656",
+      "resource_type": "AWS::EC2::VPC",
+      "labels": [
+        "DNS解決"
+      ],
+      "paths": [
+        "/EnableDnsSupport"
+      ],
+      "convert": "boolean",
+      "value_map": {
+        "有効": true,
+        "無効": false
+      },
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "vpc.enable-dns-support",
+        "label_cells": [
+          "s2-B7"
+        ]
+      }
+    },
+    {
+      "id": "ec2-vpc-instancetenancy-03d72974",
+      "resource_type": "AWS::EC2::VPC",
+      "labels": [
+        "テナンシー"
+      ],
+      "paths": [
+        "/InstanceTenancy"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "vpc.instance-tenancy",
+        "label_cells": [
+          "s2-B8"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-allocatedstorage-3823b0c8",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Allocated Storage"
+      ],
+      "paths": [
+        "/AllocatedStorage"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [
+        "gb",
+        "gib"
+      ],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.allocated-storage",
+        "label_cells": [
+          "s4-B8"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-backupretentionperiod-15cc49ef",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Backup Retention"
+      ],
+      "paths": [
+        "/BackupRetentionPeriod"
+      ],
+      "convert": "integer",
+      "value_map": {},
+      "units": [
+        "days",
+        "日"
+      ],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.backup-retention",
+        "label_cells": [
+          "s4-B12"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-dbinstanceclass-c87b179d",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Instance Class"
+      ],
+      "paths": [
+        "/DBInstanceClass"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.instance-class",
+        "label_cells": [
+          "s4-B7"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-dbinstanceidentifier-ca603d9c",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "DB Instance Identifier"
+      ],
+      "paths": [
+        "/DBInstanceIdentifier"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.identifier",
+        "label_cells": [
+          "s4-B4"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-engine-c7386db5",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Engine"
+      ],
+      "paths": [
+        "/Engine"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.engine",
+        "label_cells": [
+          "s4-B5"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-engineversion-40d49724",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Engine Version"
+      ],
+      "paths": [
+        "/EngineVersion"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.engine-version",
+        "label_cells": [
+          "s4-B6"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-masterusername-2c0f4801",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Master Username"
+      ],
+      "paths": [
+        "/MasterUsername"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.master-username",
+        "label_cells": [
+          "s4-B10"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-masteruserpassword-9cf24775",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Master Password"
+      ],
+      "paths": [
+        "/MasterUserPassword"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.master-password",
+        "label_cells": [
+          "s4-B11"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-maxallocatedstorage-d4898888",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Max Allocated Storage"
+      ],
+      "paths": [
+        "/MaxAllocatedStorage"
+      ],
+      "convert": "integer",
+      "value_map": {},
+      "units": [
+        "gb",
+        "gib"
+      ],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.max-allocated-storage",
+        "label_cells": [
+          "s4-B15"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-multiaz-d8cce81c",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Multi-AZ"
+      ],
+      "paths": [
+        "/MultiAZ"
+      ],
+      "convert": "boolean",
+      "value_map": {
+        "yes": true,
+        "no": false
+      },
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.multi-az",
+        "label_cells": [
+          "s4-B9"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-preferredmaintenancewindow-d6a5a98d",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Preferred Maintenance Window"
+      ],
+      "paths": [
+        "/PreferredMaintenanceWindow"
+      ],
+      "convert": "string",
+      "value_map": {},
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.maintenance-window",
+        "label_cells": [
+          "s4-B13"
+        ]
+      }
+    },
+    {
+      "id": "rds-dbinstance-storageencrypted-374d0c84",
+      "resource_type": "AWS::RDS::DBInstance",
+      "labels": [
+        "Storage Encrypted"
+      ],
+      "paths": [
+        "/StorageEncrypted"
+      ],
+      "convert": "boolean",
+      "value_map": {
+        "yes": true,
+        "no": false
+      },
+      "units": [],
+      "when": [],
+      "approved_by": "example-approver",
+      "approved_at": "2026-10-19T11:18:44Z",
+      "evidence": {
+        "document": "sample-design.xlsx",
+        "extraction_sha256": "dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d",
+        "item_id": "db.storage-encrypted",
+        "label_cells": [
+          "s4-B14"
+        ]
+      }
+    }
+  ]
+}

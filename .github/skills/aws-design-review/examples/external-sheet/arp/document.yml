@@ -1,0 +1,6 @@
+document_id: sample-design.xlsx
+extraction: dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d
+schema_version: "1"
+source:
+  path: docs/sample-design.xlsx
+  sha256: 92675cdc40f386c8d2af089587064aea5ad7ea7b0f53fada95bba06d374a9ef9

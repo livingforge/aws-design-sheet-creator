@@ -4,6 +4,7 @@ from ..registry import resource_check
 from ..common.context_values import _Context, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import expand, known_scope, literal
+from ..common.index import relations_from
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -13,7 +14,7 @@ SOURCES = {
 
 def artifact_region(ctx,resource,path,store_region=None):
     name = read(ctx,resource,path)
-    refs = [r for r in ctx.design.relations if r.source_resource_id==resource.id and r.source_path==path]
+    refs = [r for r in relations_from(ctx.design, resource.id) if r.source_path==path]
     base=path.rsplit('/',1)[0]
     mapped=base.startswith('/properties/ArtifactStores/')
     if value(ctx,resource,base+'/Type')!='S3':return 'NEEDS_REVIEW'

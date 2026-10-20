@@ -3,6 +3,7 @@ import re
 import ipaddress
 from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT
+from ..common.index import memo, resources_of_types
 
 PREFIX = 'AWS::ElasticLoadBalancingV2::'
 SOURCES = {
@@ -12,17 +13,14 @@ SOURCES = {
 }
 
 
-def forwarding_balancers(ctx, group):
-    """Return only exact unconditional, same-scope forwarding chains."""
-    found = {}
-    for owner in ctx.design.resources:
-        if owner.type not in (PREFIX + 'Listener', PREFIX + 'ListenerRule'):
-            continue
-        base = '/properties/' + ('DefaultActions' if owner.type == PREFIX + 'Listener' else 'Actions')
-        actions = value(ctx, owner, base)
-        if not isinstance(actions, list):
-            continue
-        matches = False
+def _forwarded_groups(design, owner):
+    """Evidence and dependencies that reading a listener (rule)'s forward actions
+    records, and the IDs of the target groups those actions resolve to."""
+    ctx = _Context(design, owner)
+    groups = set()
+    base = '/properties/' + ('DefaultActions' if owner.type == PREFIX + 'Listener' else 'Actions')
+    actions = value(ctx, owner, base)
+    if isinstance(actions, list):
         for i in range(len(actions)):
             path = base + '/' + str(i)
             if value(ctx, owner, path + '/Type') != 'forward':
@@ -34,8 +32,20 @@ def forwarding_balancers(ctx, group):
                              for j in range(len(weighted)))
             for target_path in paths:
                 target = linked(ctx, owner, target_path, PREFIX + 'TargetGroup')
-                matches |= target is not None and target.id == group.id
-        if not matches:
+                if target is not None:
+                    groups.add(target.id)
+    return ctx.evidence, ctx.dependencies, groups
+
+
+def forwarding_balancers(ctx, group):
+    """Return only exact unconditional, same-scope forwarding chains."""
+    found = {}
+    for owner in resources_of_types(ctx.design, (PREFIX + 'Listener', PREFIX + 'ListenerRule')):
+        evidence, dependencies, groups = memo(ctx.design, ('elbv2-forwarded-groups', owner.id),
+                                              lambda: _forwarded_groups(ctx.design, owner))
+        ctx.evidence.extend(evidence)
+        ctx.dependencies.extend(dependencies)
+        if group.id not in groups:
             continue
         listener = owner if owner.type == PREFIX + 'Listener' else linked(ctx, owner, '/properties/ListenerArn', PREFIX + 'Listener')
         lb = linked(ctx, listener, '/properties/LoadBalancerArn', PREFIX + 'LoadBalancer') if listener else None

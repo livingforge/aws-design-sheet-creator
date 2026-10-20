@@ -1,7 +1,7 @@
 {
   "format_version": 3,
   "acquisition": "OFFICIAL_LATEST_WITH_REVIEW_DRIFT",
-  "tool_version": "0.3.0",
+  "tool_version": "0.4.0",
   "region": "us-east-1",
   "baseline_region": "ap-northeast-1",
   "source": "https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip",

@@ -5,6 +5,7 @@ from ..common.context_values import _Context, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={rule:[CF+'aws-properties-entityresolution-idmappingworkflow-idmappingrulebasedproperties.html',CF+'aws-properties-entityresolution-idmappingworkflow-idmappingworkflowinputsource.html',CF+'aws-properties-entityresolution-idnamespace-namespacerulebasedproperties.html','https://docs.aws.amazon.com/entityresolution/latest/apireference/API_NamespaceRuleBasedProperties.html'] for rule in ('ENTITY_MAPPING_RULE_DEFINITION_ALLOWED','ENTITY_NAMESPACE_RULE_DEFINITION_COMPATIBILITY')}
@@ -13,7 +14,7 @@ INPUT='/properties/InputSourceConfig'
 
 def namespace(ctx,r,path):
     if not resolved(r):return None
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if len(refs)!=1 or refs[0].condition:return None
     other=ctx.by_id.get(refs[0].target_resource_id)
     if not resolved(other) or other.type!='AWS::EntityResolution::IdNamespace':return None
@@ -69,7 +70,7 @@ def evaluate_entityresolution_rule_compatibility(design,resource):
         if resolved(resource):
             for workflow in design.resources:
                 if workflow.type!='AWS::EntityResolution::IdMappingWorkflow':continue
-                refs=[ref for ref in design.relations if ref.source_resource_id==workflow.id and ref.target_resource_id==resource.id and re.fullmatch(re.escape(INPUT)+r'/[0-9]+/InputSourceARN',ref.source_path)]
+                refs=[ref for ref in relations_from(design, workflow.id) if ref.target_resource_id==resource.id and re.fullmatch(re.escape(INPUT)+r'/[0-9]+/InputSourceARN',ref.source_path)]
                 if not refs:continue
                 if not any(namespace(ctx,workflow,ref.source_path) is resource for ref in refs):pending=True;continue
                 answer=compatible(ctx,workflow,False)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 
 SOURCES = {
@@ -27,9 +28,8 @@ def _result(rule: str, resource: Resource, path: str, verdict: str, reason: str,
 
 
 def _relations(design: Design, resource: Resource, path: str):
-    return [relation for relation in design.relations
-            if relation.source_resource_id == resource.id and
-            (relation.source_path == path or relation.source_path.startswith(path + "/"))]
+    return [relation for relation in relations_from(design, resource.id)
+            if (relation.source_path == path or relation.source_path.startswith(path + "/"))]
 
 
 @resource_check('AWS::ElasticLoadBalancingV2::Listener')

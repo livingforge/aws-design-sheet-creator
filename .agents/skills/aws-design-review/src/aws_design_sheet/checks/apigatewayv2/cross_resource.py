@@ -8,6 +8,7 @@ from .targets import payload_v2_target
 from ..common.context import Context
 from ..common.context_values import value as read_value, linked as safe_linked
 from ..common.field_reads import ABSENT, UNKNOWN
+from ..common.index import relations_from
 
 PREFIX = "AWS::ApiGatewayV2::"
 
@@ -322,8 +323,8 @@ def evaluate_routing_target_type(design: Design, resource: Resource) -> list[dic
                             "NEEDS_REVIEW", "InvokeApi target is unresolved")]
     results = []
     for path in paths:
-        refs = [ref for ref in design.relations
-                if ref.source_resource_id == resource.id and ref.source_path == path]
+        refs = [ref for ref in relations_from(design, resource.id)
+                if ref.source_path == path]
         ctx.evidence.extend(item for ref in refs for item in ref.evidence_ids)
         if len(refs) != 1 or refs[0].target_resource_id is None:
             verdict, reason = "NEEDS_REVIEW", "InvokeApi target is not explicitly linked"
@@ -378,8 +379,7 @@ def evaluate_openapi_resource_conflict(design: Design, resource: Resource) -> di
     for other in design.resources:
         if other.scope != resource.scope or other.type not in (PREFIX + "Authorizer", PREFIX + "Route"):
             continue
-        refs = [ref for ref in design.relations if ref.source_resource_id == other.id
-                and ref.source_path == "/properties/ApiId"]
+        refs = [ref for ref in relations_from(design, other.id) if ref.source_path == "/properties/ApiId"]
         ctx.evidence.extend(item for ref in refs for item in ref.evidence_ids)
         if len(refs) == 1 and refs[0].target_resource_id == resource.id:
             return ctx.finding("APIGATEWAYV2_OPENAPI_RESOURCE_CONFLICT", path, "FAIL",

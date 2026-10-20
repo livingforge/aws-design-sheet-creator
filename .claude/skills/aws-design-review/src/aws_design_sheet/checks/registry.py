@@ -10,6 +10,8 @@ import pkgutil
 
 _CHECKS = []
 _LOADED = False
+_BY_TYPE = {}  # resource type -> registered entries for it, in registration order
+_INDEXED = 0  # len(_CHECKS) when _BY_TYPE was built
 
 
 def resource_check(*types, when=None):
@@ -36,6 +38,18 @@ def _applies(entry, design, resource):
     return when is None or when(design, resource)
 
 
+def _for_type(type_name):
+    """Entries whose types cover type_name; rebuilt when checks are registered."""
+    global _INDEXED
+    if _INDEXED != len(_CHECKS):
+        _BY_TYPE.clear()
+        _INDEXED = len(_CHECKS)
+    if type_name not in _BY_TYPE:
+        _BY_TYPE[type_name] = [entry for entry in _CHECKS if not entry[2] or type_name in entry[0]
+                               or type_name.startswith(entry[1])]
+    return _BY_TYPE[type_name]
+
+
 def _run(entry, design, resource):
     fn, resource_only = entry[4], entry[5]
     found = fn(resource) if resource_only else fn(design, resource)
@@ -58,8 +72,8 @@ def run_resource_checks(design, resource):
     if not _LOADED:
         check_modules()
     findings = []
-    for entry in _CHECKS:
-        if _applies(entry, design, resource):
+    for entry in _for_type(resource.type):
+        if entry[3] is None or entry[3](design, resource):
             findings.extend(_run(entry, design, resource))
     return findings
 

@@ -3,10 +3,11 @@ import re
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 
 def reference(ctx,r,path,types):
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if len(refs)!=1 or refs[0].condition or not resolved(r):return None
     raw=read(ctx,r,path)
     if raw is not ABSENT and not literal(raw):return None

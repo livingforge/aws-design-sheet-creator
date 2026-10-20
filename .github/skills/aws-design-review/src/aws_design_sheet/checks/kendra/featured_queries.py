@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 SOURCES={'KENDRA_FEATURED_QUERY_COLLISION':['https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-kendra-featuredresultsset.html','https://docs.aws.amazon.com/kendra/latest/dg/featured-results.html','https://docs.aws.amazon.com/kendra/latest/APIReference/API_CreateFeaturedResultsSet.html']}
 TYPE='AWS::Kendra::FeaturedResultsSet'
@@ -13,7 +14,7 @@ TYPE='AWS::Kendra::FeaturedResultsSet'
 def index_identity(ctx,r):
     if not resolved(r):return None
     path='/properties/IndexId';raw=read(ctx,r,path)
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if refs:
         index=linked(ctx,r,path,'AWS::Kendra::Index')
         # A literal ID plus a logical reference cannot be reconciled without

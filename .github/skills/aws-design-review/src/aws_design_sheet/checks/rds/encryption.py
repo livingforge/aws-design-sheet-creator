@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE = "RDS_DBINSTANCE_KMS_REQUIRES_ENCRYPTION"
 TYPE = "AWS::RDS::DBInstance"
@@ -55,8 +56,8 @@ def evaluate_rds_dbinstance_kms_encryption(design: Design, resource: Resource) -
         return _result(resource, "NOT_APPLICABLE", "resource type does not match")
 
     kms_field = resource.field(KMS)
-    kms_refs = [rel for rel in design.relations
-                if rel.source_resource_id == resource.id and rel.source_path == KMS]
+    kms_refs = [rel for rel in relations_from(design, resource.id)
+                if rel.source_path == KMS]
     evidence = _evidence(kms_field)
     evidence.extend(e for ref in kms_refs for e in ref.evidence_ids)
 
@@ -65,8 +66,8 @@ def evaluate_rds_dbinstance_kms_encryption(design: Design, resource: Resource) -
     for path in EXCEPTIONS:
         field = resource.field(path)
         evidence.extend(_evidence(field))
-        refs = [rel for rel in design.relations
-                if rel.source_resource_id == resource.id and rel.source_path == path]
+        refs = [rel for rel in relations_from(design, resource.id)
+                if rel.source_path == path]
         evidence.extend(e for ref in refs for e in ref.evidence_ids)
         if _unresolved(field) or len(refs) > 1:
             pending.append(path)

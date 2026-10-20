@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "LAMBDA_PERMISSION_RESOURCE_POLICY_COLLISION"
 PERMISSION = "AWS::Lambda::Permission"
@@ -48,8 +49,8 @@ def _literal(value: str, resource: Resource) -> tuple[str | None, str, str, str,
 def _target(design: Design, resource: Resource) -> tuple[tuple[Any, ...] | None, list[str], list[str]]:
     path = PATHS[resource.type]
     field = resource.field(path)
-    relations = [relation for relation in design.relations
-                 if relation.source_resource_id == resource.id and relation.source_path == path]
+    relations = [relation for relation in relations_from(design, resource.id)
+                 if relation.source_path == path]
     evidence = _evidence(field) + [item for relation in relations for item in relation.evidence_ids]
     if field and field.state in (ValueState.CONFLICT, ValueState.INFERRED, ValueState.UNRESOLVED):
         return None, [path], evidence

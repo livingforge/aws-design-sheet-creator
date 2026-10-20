@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked
 from ..common.field_reads import read
 from ..common.literals import expand, literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 SOURCES={'LEX_KENDRA_INDEX_SCOPE':['https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-lex-bot-kendraconfiguration.html']}
 
@@ -13,7 +14,7 @@ def scope(ctx,r,path):
     if not resolved(r):return 'NEEDS_REVIEW'
     raw=read(ctx,r,path)
     match=re.fullmatch(r'arn:aws[a-zA-Z-]*:kendra:([a-z]+-(?:[a-z]+-)*[0-9]):([0-9]{12}):index/[a-zA-Z0-9][a-zA-Z0-9_-]*',raw) if literal(raw) and len(raw)<=2048 else None
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if match:
         if refs:
             if len(refs)!=1 or refs[0].condition:return 'NEEDS_REVIEW'

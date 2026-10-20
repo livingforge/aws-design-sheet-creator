@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "IAM_ACCESS_KEY_USER_REFERENCE"
 PATH = "/properties/UserName"
@@ -19,8 +20,8 @@ SOURCES = {
 @resource_check('AWS::IAM::AccessKey')
 def evaluate_iam_access_key_user_reference(design: Design, resource: Resource) -> dict[str, Any]:
     field = resource.field(PATH)
-    relations = [relation for relation in design.relations
-                 if relation.source_resource_id == resource.id and relation.source_path == PATH]
+    relations = [relation for relation in relations_from(design, resource.id)
+                 if relation.source_path == PATH]
     evidence = list(dict.fromkeys([
         *(item for relation in relations for item in relation.evidence_ids),
         *((item for candidate in field.candidates for item in candidate.evidence_ids)

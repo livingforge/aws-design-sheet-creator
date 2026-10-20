@@ -1,6 +1,7 @@
 param(
     [switch]$Llm,
     [switch]$Tests,
+    [switch]$Force,
     [string]$Python = "python"
 )
 
@@ -10,9 +11,14 @@ $venvDirectory = Join-Path $packageRoot ".venv"
 $venvPython = Join-Path $venvDirectory "Scripts\python.exe"
 & $Python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) and sys.version_info[:3] != (3, 14, 1) else 1)"
 if ($LASTEXITCODE -ne 0) { throw "The locked release requires Python >=3.12, excluding 3.14.1." }
-if (Test-Path -LiteralPath $venvDirectory) {
-    throw "An environment already exists. Use a fresh skill copy; this installer does not delete environments."
-}
+# Earlier installations are listed and, once confirmed (or with -Force), removed.
+. (Join-Path $PSScriptRoot "old-versions.ps1")
+$version = Get-PackageVersion $packageRoot
+if ($null -eq $version) { throw "No aws-design-sheet version found in $packageRoot\pyproject.toml." }
+$earlier = Find-EarlierInstallations -PackageRoot $packageRoot -Version $version -Python $Python
+Confirm-EarlierInstallationRemoval -Items $earlier -Force:$Force
+Remove-EarlierInstallations -Items $earlier -Python $Python
+if (Test-Path -LiteralPath $venvDirectory) { throw "An environment still exists at $venvDirectory." }
 & $Python -m venv $venvDirectory
 if ($LASTEXITCODE -ne 0) { throw "Python virtual environment creation failed." }
 $packageSpec = if ($Llm) { "${packageRoot}[llm]" } else { $packageRoot }

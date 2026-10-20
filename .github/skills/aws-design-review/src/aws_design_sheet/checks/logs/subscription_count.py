@@ -2,6 +2,7 @@
 import re
 from ..registry import resource_check
 from ..common.context_values import _Context, linked, value
+from ..common.index import resources_of_type
 
 SOURCES = {'LOGS_SUBSCRIPTION_FILTER_COUNT': [
     'https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutSubscriptionFilter.html']}
@@ -26,7 +27,7 @@ def subscription_count(design, resource):
     known_scope = (re.fullmatch(r'[0-9]{12}', resource.scope.account)
                    and re.fullmatch(r'[a-z]+(?:-[a-z]+)+-[0-9]+', resource.scope.region))
     if identity and known_scope:
-        for other in design.resources:
+        for other in resources_of_type(design, resource.type):
             if other.type != resource.type or other.scope != resource.scope:
                 continue
             if group_identity(ctx, other) != identity:

@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.1",
+  "system": {"id": "sample-network", "name": "架空ネットワーク・DB基盤", "description": "外部デザインシート取込みの架空サンプル。デプロイ可能な構成ではありません。"},
+  "environments": [
+    {"id": "verification", "name": "検証環境", "region": "ap-northeast-1"}
+  ]
+}

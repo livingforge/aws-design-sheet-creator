@@ -5,6 +5,7 @@ from ..common.context_values import _Context, value
 from ..common.field_reads import ABSENT, read
 from ..common.json_verdict import json_verdict
 from ..common.literals import known_scope, literal
+from ..common.index import relations_from
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -15,7 +16,7 @@ SOURCES = {
 
 def build_bucket_scope(ctx,resource,path):
     name=read(ctx,resource,path)
-    refs=[r for r in ctx.design.relations if r.source_resource_id==resource.id and r.source_path==path]
+    refs=[r for r in relations_from(ctx.design, resource.id) if r.source_path==path]
     if not known_scope(resource) or not literal(name) or not re.fullmatch(r'[a-z0-9.-]{3,63}',name) or len(refs)!=1 or refs[0].condition:
         return 'NEEDS_REVIEW'
     bucket=ctx.by_id.get(refs[0].target_resource_id)

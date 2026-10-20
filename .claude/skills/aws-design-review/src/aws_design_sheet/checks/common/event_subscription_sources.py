@@ -3,6 +3,7 @@ from .context_values import _Context, linked, value
 from .field_reads import ABSENT, read
 from .literals import literal
 from .scoped_resolution import resolved
+from .index import relations_from
 
 MAPPING={
     'Redshift':{'cluster':'AWS::Redshift::Cluster','cluster-parameter-group':'AWS::Redshift::ClusterParameterGroup','cluster-security-group':'AWS::Redshift::ClusterSecurityGroup','scheduled-action':'AWS::Redshift::ScheduledAction'},
@@ -21,7 +22,7 @@ def source_types(ctx,r,service):
     for i in range(len(rows)):
         path=f'/properties/SourceIds/{i}';raw=read(ctx,r,path)
         if raw is not ABSENT and not literal(raw):pending=True;continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+        refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
         if len(refs)!=1 or refs[0].condition:pending=True;continue
         matches=[other for other in ctx.design.resources if other.id==refs[0].target_resource_id]
         if len(matches)!=1 or not resolved(matches[0]):pending=True;continue

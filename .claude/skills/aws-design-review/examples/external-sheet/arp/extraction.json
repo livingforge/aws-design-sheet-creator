@@ -1,0 +1,463 @@
+{
+  "parser": "arp4-rust/1.0.0-alpha.1;cells/1;ocr=auto-images",
+  "print_settings": [
+    {
+      "component": "pageSetUpPr",
+      "parts": [
+        "xl/worksheets/sheet1.xml",
+        "xl/worksheets/sheet2.xml",
+        "xl/worksheets/sheet3.xml",
+        "xl/worksheets/sheet4.xml",
+        "xl/worksheets/sheet5.xml",
+        "xl/worksheets/sheet6.xml"
+      ],
+      "xml": "<pageSetUpPr/>"
+    },
+    {
+      "component": "pageMargins",
+      "parts": [
+        "xl/worksheets/sheet1.xml",
+        "xl/worksheets/sheet2.xml",
+        "xl/worksheets/sheet3.xml",
+        "xl/worksheets/sheet4.xml",
+        "xl/worksheets/sheet5.xml",
+        "xl/worksheets/sheet6.xml"
+      ],
+      "xml": "<pageMargins bottom=\"1\" footer=\"0.5\" header=\"0.5\" left=\"0.75\" right=\"0.75\" top=\"1\"/>"
+    }
+  ],
+  "schema_version": "2",
+  "sheets": [
+    {
+      "cells": [
+        {"address": "B2", "font": 0, "style": 0, "type": "string", "value": "ネットワーク・データベース設計書（架空サンプル）"},
+        {"address": "B4", "font": 1, "style": 1, "type": "string", "value": "版数"},
+        {"address": "C4", "font": 1, "style": 2, "type": "string", "value": "1.2"},
+        {"address": "B5", "font": 1, "style": 1, "type": "string", "value": "対象環境"},
+        {"address": "C5", "font": 1, "style": 2, "type": "string", "value": "検証環境"},
+        {"address": "B7", "font": 1, "style": 3, "type": "string", "value": "■改版履歴"},
+        {"address": "B8", "font": 2, "style": 4, "type": "string", "value": "版数"},
+        {"address": "C8", "font": 2, "style": 4, "type": "string", "value": "日付"},
+        {"address": "D8", "font": 2, "style": 4, "type": "string", "value": "変更内容"},
+        {"address": "E8", "font": 2, "style": 4, "type": "string", "value": "作成者"},
+        {"address": "B9", "font": 1, "style": 2, "type": "string", "value": "1.0"},
+        {"address": "C9", "font": 1, "style": 2, "type": "string", "value": "2026/04/01"},
+        {"address": "D9", "font": 1, "style": 2, "type": "string", "value": "初版"},
+        {"address": "E9", "font": 1, "style": 2, "type": "string", "value": "設計担当A"},
+        {"address": "B10", "font": 1, "style": 2, "type": "string", "value": "1.1"},
+        {"address": "C10", "font": 1, "style": 2, "type": "string", "value": "2026/05/10"},
+        {"address": "D10", "font": 1, "style": 2, "type": "string", "value": "サブネット追加"},
+        {"address": "E10", "font": 1, "style": 2, "type": "string", "value": "設計担当A"},
+        {"address": "B11", "font": 1, "style": 2, "type": "string", "value": "1.2"},
+        {"address": "C11", "font": 1, "style": 2, "type": "string", "value": "2026/06/02"},
+        {"address": "D11", "font": 1, "style": 2, "type": "string", "value": "RDS設定を追記"},
+        {"address": "E11", "font": 1, "style": 2, "type": "string", "value": "設計担当B"}
+      ],
+      "fonts": [
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 14
+        },
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        },
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [],
+      "name": "表紙",
+      "part": "xl/worksheets/sheet1.xml",
+      "state": "visible",
+      "styles": [
+        {
+          "bold": true,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": true,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        }
+      ]
+    },
+    {
+      "bordered_blanks": [
+        "G14:G15"
+      ],
+      "cells": [
+        {"address": "B2", "font": 0, "style": 0, "type": "string", "value": "■VPC"},
+        {"address": "B3", "font": 1, "style": 1, "type": "string", "value": "項目"},
+        {"address": "C3", "font": 1, "style": 1, "type": "string", "value": "設定値"},
+        {"address": "D3", "font": 1, "style": 1, "type": "string", "value": "備考"},
+        {"address": "B4", "font": 0, "style": 2, "type": "string", "value": "VPC名"},
+        {"address": "C4", "font": 0, "style": 2, "type": "string", "value": "sample-vpc"},
+        {"address": "D4", "font": 0, "style": 2, "type": "string", "value": ""},
+        {"address": "B5", "font": 0, "style": 2, "type": "string", "value": "CIDR"},
+        {"address": "C5", "font": 0, "style": 2, "type": "string", "value": "10.20.0.0/16"},
+        {"address": "D5", "font": 0, "style": 2, "type": "string", "value": ""},
+        {"address": "B6", "font": 0, "style": 2, "type": "string", "value": "DNSホスト名"},
+        {"address": "C6", "font": 0, "style": 2, "type": "string", "value": "有効"},
+        {"address": "D6", "font": 0, "style": 2, "type": "string", "value": ""},
+        {"address": "B7", "font": 0, "style": 2, "type": "string", "value": "DNS解決"},
+        {"address": "C7", "font": 0, "style": 2, "type": "string", "value": "有効"},
+        {"address": "D7", "font": 0, "style": 2, "type": "string", "value": ""},
+        {"address": "B8", "font": 0, "style": 2, "type": "string", "value": "テナンシー"},
+        {"address": "C8", "font": 0, "style": 2, "type": "string", "value": "デフォルト"},
+        {"address": "D8", "font": 0, "style": 2, "type": "string", "value": "※AWS既定値を使用"},
+        {"address": "B9", "font": 0, "style": 2, "type": "string", "value": "IPv6 CIDR"},
+        {"address": "C9", "font": 0, "style": 2, "type": "string", "value": "未定"},
+        {"address": "D9", "font": 0, "style": 2, "type": "string", "value": "次版で決定"},
+        {"address": "B10", "font": 0, "style": 2, "type": "string", "value": "Nameタグ"},
+        {"address": "C10", "font": 0, "formula": "C4", "style": 2, "type": "formula", "value": "sample-vpc"},
+        {"address": "D10", "font": 0, "style": 2, "type": "string", "value": "VPC名と同じ"},
+        {"address": "B12", "font": 0, "style": 0, "type": "string", "value": "■サブネット"},
+        {"address": "B13", "font": 1, "style": 1, "type": "string", "value": "No"},
+        {"address": "C13", "font": 1, "style": 1, "type": "string", "value": "サブネット名"},
+        {"address": "D13", "font": 1, "style": 1, "type": "string", "value": "AZ"},
+        {"address": "E13", "font": 1, "style": 1, "type": "string", "value": "CIDR"},
+        {"address": "F13", "font": 1, "style": 1, "type": "string", "value": "種別"},
+        {"address": "G13", "font": 1, "style": 1, "type": "string", "value": "備考"},
+        {"address": "B14", "font": 0, "style": 2, "type": "number", "value": 1},
+        {"address": "C14", "font": 0, "style": 2, "type": "string", "value": "public-a"},
+        {"address": "D14", "font": 0, "style": 2, "type": "string", "value": "ap-northeast-1a"},
+        {"address": "E14", "font": 0, "style": 2, "type": "string", "value": "10.20.0.0/24"},
+        {"address": "F14", "font": 0, "style": 2, "type": "string", "value": "パブリック"},
+        {"address": "B15", "font": 0, "style": 2, "type": "number", "value": 2},
+        {"address": "C15", "font": 0, "style": 2, "type": "string", "value": "private-a"},
+        {"address": "D15", "font": 0, "style": 2, "type": "string", "value": "ap-northeast-1a"},
+        {"address": "E15", "font": 0, "style": 2, "type": "string", "value": "10.20.10.0/24"},
+        {"address": "F15", "font": 0, "style": 2, "type": "string", "value": "プライベート"},
+        {"address": "B16", "font": 0, "style": 2, "type": "number", "value": 3},
+        {"address": "C16", "font": 0, "style": 2, "type": "string", "value": "private-c"},
+        {"address": "D16", "font": 0, "style": 2, "type": "string", "value": "未定"},
+        {"address": "E16", "font": 0, "style": 2, "type": "string", "value": "10.20.11.0/24"},
+        {"address": "F16", "font": 0, "style": 2, "type": "string", "value": "プライベート"},
+        {"address": "G16", "font": 0, "style": 2, "type": "string", "value": "AZは要調整"},
+        {"address": "B18", "font": 0, "style": 0, "type": "string", "value": "※空欄は記載なし。"}
+      ],
+      "fonts": [
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        },
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [],
+      "name": "VPC",
+      "part": "xl/worksheets/sheet2.xml",
+      "state": "visible",
+      "styles": [
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": true,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 0,
+          "strike": false
+        }
+      ]
+    },
+    {
+      "bordered_blanks": [
+        "H6:H6"
+      ],
+      "cells": [
+        {"address": "B2", "font": 0, "style": 0, "type": "string", "value": "■セキュリティグループ"},
+        {"address": "B3", "font": 1, "style": 1, "type": "string", "value": "SG名"},
+        {"address": "C3", "font": 1, "style": 1, "type": "string", "value": "説明"},
+        {"address": "D3", "font": 1, "style": 1, "type": "string", "value": "方向"},
+        {"address": "E3", "font": 1, "style": 1, "type": "string", "value": "プロトコル"},
+        {"address": "F3", "font": 1, "style": 1, "type": "string", "value": "ポート"},
+        {"address": "G3", "font": 1, "style": 1, "type": "string", "value": "送信元／宛先"},
+        {"address": "H3", "font": 1, "style": 1, "type": "string", "value": "備考"},
+        {"address": "B4", "font": 0, "style": 2, "type": "string", "value": "web-sg"},
+        {"address": "C4", "font": 0, "style": 2, "type": "string", "value": "Webサーバー用"},
+        {"address": "D4", "font": 0, "style": 2, "type": "string", "value": "インバウンド"},
+        {"address": "E4", "font": 0, "style": 2, "type": "string", "value": "TCP"},
+        {"address": "F4", "font": 0, "style": 2, "type": "string", "value": "443"},
+        {"address": "G4", "font": 0, "style": 2, "type": "string", "value": "0.0.0.0/0"},
+        {"address": "H4", "font": 0, "style": 2, "type": "string", "value": "HTTPS"},
+        {"address": "D5", "font": 0, "style": 2, "type": "string", "value": "インバウンド"},
+        {"address": "E5", "font": 0, "style": 2, "type": "string", "value": "TCP"},
+        {"address": "F5", "font": 0, "style": 2, "type": "string", "value": "80"},
+        {"address": "G5", "font": 0, "style": 2, "type": "string", "value": "0.0.0.0/0"},
+        {"address": "H5", "font": 0, "style": 2, "type": "string", "value": "リダイレクト用"},
+        {"address": "D6", "font": 0, "style": 2, "type": "string", "value": "アウトバウンド"},
+        {"address": "E6", "font": 0, "style": 2, "type": "string", "value": "ALL"},
+        {"address": "F6", "font": 0, "style": 2, "type": "string", "value": "－"},
+        {"address": "G6", "font": 0, "style": 2, "type": "string", "value": "0.0.0.0/0"},
+        {"address": "B7", "font": 0, "style": 2, "type": "string", "value": "db-sg"},
+        {"address": "C7", "font": 0, "style": 2, "type": "string", "value": "DB用"},
+        {"address": "D7", "font": 0, "style": 2, "type": "string", "value": "インバウンド"},
+        {"address": "E7", "font": 0, "style": 2, "type": "string", "value": "TCP"},
+        {"address": "F7", "font": 0, "style": 2, "type": "string", "value": "3306"},
+        {"address": "G7", "font": 0, "style": 2, "type": "string", "value": "web-sg"},
+        {"address": "H7", "font": 0, "style": 2, "type": "string", "value": "SG参照"},
+        {"address": "D8", "font": 0, "style": 2, "type": "string", "value": "アウトバウンド"},
+        {"address": "E8", "font": 0, "style": 2, "type": "string", "value": "－"},
+        {"address": "F8", "font": 0, "style": 2, "type": "string", "value": "－"},
+        {"address": "G8", "font": 0, "style": 2, "type": "string", "value": "－"},
+        {"address": "H8", "font": 0, "style": 2, "type": "string", "value": "既定ルールを削除"}
+      ],
+      "fonts": [
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        },
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [
+        "B4:B6",
+        "C4:C6",
+        "B7:B8",
+        "C7:C8"
+      ],
+      "name": "セキュリティグループ",
+      "part": "xl/worksheets/sheet3.xml",
+      "state": "visible",
+      "styles": [
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": true,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 0,
+          "strike": false
+        }
+      ]
+    },
+    {
+      "bordered_blanks": [
+        "D4:E7",
+        "E8:E8",
+        "D9:E10",
+        "D11:D11",
+        "E12:E12",
+        "C13:D13",
+        "D14:D14"
+      ],
+      "cells": [
+        {"address": "B2", "font": 0, "style": 0, "type": "string", "value": "RDS Database Instance"},
+        {"address": "B3", "font": 1, "style": 1, "type": "string", "value": "Item"},
+        {"address": "C3", "font": 1, "style": 1, "type": "string", "value": "Value"},
+        {"address": "D3", "font": 1, "style": 1, "type": "string", "value": "Unit"},
+        {"address": "E3", "font": 1, "style": 1, "type": "string", "value": "Note"},
+        {"address": "B4", "font": 0, "style": 2, "type": "string", "value": "DB Instance Identifier"},
+        {"address": "C4", "font": 0, "style": 2, "type": "string", "value": "sample-db"},
+        {"address": "B5", "font": 0, "style": 2, "type": "string", "value": "Engine"},
+        {"address": "C5", "font": 0, "style": 2, "type": "string", "value": "mysql"},
+        {"address": "B6", "font": 0, "style": 2, "type": "string", "value": "Engine Version"},
+        {"address": "C6", "font": 0, "style": 2, "type": "string", "value": "8.0.35"},
+        {"address": "B7", "font": 0, "style": 2, "type": "string", "value": "Instance Class"},
+        {"address": "C7", "font": 0, "style": 2, "type": "string", "value": "db.t3.medium"},
+        {"address": "B8", "font": 0, "style": 2, "type": "string", "value": "Allocated Storage"},
+        {"address": "C8", "font": 0, "style": 2, "type": "number", "value": 100},
+        {"address": "D8", "font": 0, "style": 2, "type": "string", "value": "GB"},
+        {"address": "B9", "font": 0, "style": 2, "type": "string", "value": "Multi-AZ"},
+        {"address": "C9", "font": 0, "style": 2, "type": "string", "value": "Yes"},
+        {"address": "B10", "font": 0, "style": 2, "type": "string", "value": "Master Username"},
+        {"address": "C10", "font": 0, "style": 2, "type": "string", "value": "admin_user"},
+        {"address": "B11", "font": 0, "style": 2, "type": "string", "value": "Master Password"},
+        {"address": "C11", "font": 0, "style": 2, "type": "string", "value": "Canary-Pa55w0rd-7f3e9b"},
+        {"address": "E11", "font": 0, "style": 2, "type": "string", "value": "Move to Secrets Manager before release"},
+        {"address": "B12", "font": 0, "style": 2, "type": "string", "value": "Backup Retention"},
+        {"address": "C12", "font": 0, "style": 2, "type": "number", "value": 7},
+        {"address": "D12", "font": 0, "style": 2, "type": "string", "value": "days"},
+        {"address": "B13", "font": 0, "style": 2, "type": "string", "value": "Preferred Maintenance Window"},
+        {"address": "E13", "font": 0, "style": 2, "type": "string", "value": "TBD with operations"},
+        {"address": "B14", "font": 0, "style": 2, "type": "string", "value": "Storage Encrypted"},
+        {"address": "C14", "font": 0, "style": 2, "type": "string", "value": "N/A"},
+        {"address": "E14", "font": 0, "style": 2, "type": "string", "value": "Decided at account level"},
+        {"address": "B15", "font": 0, "style": 2, "type": "string", "value": "Max Allocated Storage"},
+        {"address": "C15", "font": 0, "formula": "C8*2", "style": 2, "type": "formula", "value": 200},
+        {"address": "D15", "font": 0, "style": 2, "type": "string", "value": "GB"},
+        {"address": "E15", "font": 0, "style": 2, "type": "string", "value": "Twice the allocated storage"}
+      ],
+      "fonts": [
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        },
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [],
+      "name": "RDS",
+      "part": "xl/worksheets/sheet4.xml",
+      "state": "visible",
+      "styles": [
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": true,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 0,
+          "strike": false
+        }
+      ]
+    },
+    {
+      "cells": [
+        {"address": "B2", "font": 0, "style": 0, "type": "string", "value": "■運用"},
+        {"address": "B3", "font": 1, "style": 1, "type": "string", "value": "項目"},
+        {"address": "C3", "font": 1, "style": 1, "type": "string", "value": "内容"},
+        {"address": "B4", "font": 0, "style": 2, "type": "string", "value": "監視担当"},
+        {"address": "C4", "font": 0, "style": 2, "type": "string", "value": "運用チームA"},
+        {"address": "B5", "font": 0, "style": 2, "type": "string", "value": "障害連絡先"},
+        {"address": "C5", "font": 0, "style": 2, "type": "string", "value": "運用窓口（架空）"},
+        {"address": "B6", "font": 0, "style": 2, "type": "string", "value": "バックアップ確認"},
+        {"address": "C6", "font": 0, "style": 2, "type": "string", "value": "毎週月曜に取得結果を確認"}
+      ],
+      "fonts": [
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        },
+        {
+          "color": "auto",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [],
+      "name": "運用",
+      "part": "xl/worksheets/sheet5.xml",
+      "state": "visible",
+      "styles": [
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        },
+        {
+          "bold": true,
+          "border": 1,
+          "fill": 2,
+          "strike": false
+        },
+        {
+          "bold": false,
+          "border": 1,
+          "fill": 0,
+          "strike": false
+        }
+      ]
+    },
+    {
+      "cells": [
+        {"address": "A1", "font": 0, "style": 0, "type": "string", "value": "Yes"},
+        {"address": "A2", "font": 0, "style": 0, "type": "string", "value": "No"}
+      ],
+      "fonts": [
+        {
+          "color": "000000",
+          "color_theme": "dk1",
+          "east_asian": "ＭＳ Ｐゴシック",
+          "latin": "Calibri",
+          "size": 11
+        }
+      ],
+      "merges": [],
+      "name": "選択肢",
+      "part": "xl/worksheets/sheet6.xml",
+      "state": "hidden",
+      "styles": [
+        {
+          "bold": false,
+          "border": 0,
+          "fill": 0,
+          "strike": false
+        }
+      ]
+    }
+  ]
+}

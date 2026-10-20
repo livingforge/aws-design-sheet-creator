@@ -5,6 +5,7 @@ from ...models import ValueState
 from ..registry import resource_check
 from ..common.design_uniqueness import _Context, unique_in_design
 from ..common.field_reads import read
+from ..common.index import relations_from
 
 
 SOURCES = {
@@ -21,7 +22,7 @@ SOURCES = {
 def secret_attachment_type(design, resource):
     ctx = _Context(design, resource)
     kind = read(ctx, resource, '/properties/TargetType')
-    refs = [r for r in design.relations if r.source_resource_id == resource.id and r.source_path == '/properties/TargetId']
+    refs = [r for r in relations_from(design, resource.id) if r.source_path == '/properties/TargetId']
     target = ctx.by_id.get(refs[0].target_resource_id) if len(refs) == 1 else None
     field = resource.field('/properties/TargetId')
     read(ctx, resource, '/properties/TargetId')

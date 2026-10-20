@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "SQS_QUEUE_ENCRYPTION_OPTION_EXCLUSIVE"
 KMS_PATH = "/properties/KmsMasterKeyId"
@@ -45,8 +46,8 @@ def evaluate_sqs_queue_encryption_option(design: Design, resource: Resource) -> 
 
     key = resource.field(KMS_PATH)
     enabled = resource.field(SQS_PATH)
-    key_refs = [relation for relation in design.relations
-                if relation.source_resource_id == resource.id and relation.source_path == KMS_PATH]
+    key_refs = [relation for relation in relations_from(design, resource.id)
+                if relation.source_path == KMS_PATH]
     evidence = list(dict.fromkeys(_evidence(key) + _evidence(enabled) +
                                   [e for relation in key_refs for e in relation.evidence_ids]))
 

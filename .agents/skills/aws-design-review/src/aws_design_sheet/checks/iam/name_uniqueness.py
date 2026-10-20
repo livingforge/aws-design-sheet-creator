@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import resources_of_type
 
 RULE_ID = "IAM_EXPLICIT_NAME_ACCOUNT_UNIQUE"
 NAME_PATHS = {
@@ -57,7 +58,7 @@ def evaluate_iam_explicit_name_uniqueness(design: Design, resource: Resource) ->
                       evidence=evidence, dependencies=[path])
 
     duplicates = []
-    for other in design.resources:
+    for other in resources_of_type(design, resource.type):
         if other.id == resource.id or other.type != resource.type:
             continue
         if other.scope.account != resource.scope.account:

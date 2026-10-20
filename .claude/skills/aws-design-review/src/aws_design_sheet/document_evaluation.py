@@ -18,6 +18,9 @@ VERSION = '1.0'
 ROOT = Path(__file__).resolve().parents[2]
 UNKNOWN = {'$state': 'UNRESOLVED'}
 OMIT = object()
+# cfn-lint rules whose findings hold even when other values of the resource are unknown.
+INDEPENDENT_LINT_RULES = {'CFN_LINT.E3030', 'CFN_LINT.E3031', 'CFN_LINT.E3012', 'CFN_LINT.E3033',
+                          'CFN_LINT.E3034', 'CFN_LINT.E9001'}
 LIMITATIONS = [
     '評価対象は選択環境の明示された設計設定。比較用CFNから値・条件・パラメータを補わない。',
     'AWS実環境、性能、権限の実効性、疎通、業務要件・APP・Q01–06の合否は検査しない。',
@@ -196,7 +199,7 @@ def run_linter(design):
         resource.template = TemplateContext(id='synthetic-' + resource.id, depends_on=None,
                                             evidence_ids=['resource-' + resource.id])
     exported = export_templates(isolated)
-    results, coverage = lint_design(isolated)
+    results, coverage = lint_design(isolated, exported)
     templates = [{'synthetic': True, 'deployable': False, 'resource_ids': e.resource_ids,
                   'placeholders': e.placeholders, 'template': e.template} for e in exported]
     return {'status': 'COMPLETE', 'results': results, 'coverage': coverage,
@@ -245,11 +248,9 @@ def evaluate(document):
             for row in result['results']:
                 row = {**row, 'stage': name}
                 # Conditions on opaque values and account/stack-wide conclusions are not proofs.
-                independent = {'CFN_LINT.E3030', 'CFN_LINT.E3031', 'CFN_LINT.E3012', 'CFN_LINT.E3033',
-                               'CFN_LINT.E3034', 'CFN_LINT.E9001'}
                 uncertain = (row.get('resource_id') in unknown_resources and
                              (not row.get('path') or row['path'] == '/properties' or
-                              name == 'cfn_lint' and row['rule_id'] not in independent))
+                              name == 'cfn_lint' and row['rule_id'] not in INDEPENDENT_LINT_RULES))
                 scope_rule = any(word in row['rule_id'] for word in ('TEMPLATE_', 'REGION_UNIQUE', 'UNIQUENESS', 'SCOPE'))
                 if row['verdict'] in ('PASS', 'FAIL') and (uncertain or scope_rule):
                     row['evaluator_verdict'] = row['verdict']; row['verdict'] = 'NEEDS_REVIEW'
@@ -272,6 +273,17 @@ def evaluate(document):
 
 
 def _trace(evaluation, document):
+    # Index once by resource; each row then only looks at its own resource's entries.
+    mappings, positions, notes, inputs = {}, {}, {}, {}
+    for mapping in evaluation.mappings:
+        mappings.setdefault(mapping['resource_id'], []).append(mapping)
+    for index, resource in enumerate(document.design.resources):
+        positions.setdefault(resource.id, index)
+    for note in document.design.requirements:
+        for resource_id in note.resources:
+            notes.setdefault(resource_id, set()).add(note.id)
+    for required in document.design.required_inputs:
+        inputs.setdefault(required.resource_id, []).append(required)
     for rows, prefix in [(evaluation.results, 'evaluation-'), (evaluation.coverage, 'coverage-')]:
         seen = Counter()
         for row in rows:
@@ -280,17 +292,17 @@ def _trace(evaluation, document):
             key = encoded(identity); seen[key] += 1
             row['evaluation_id'] = stable(prefix, [*identity, seen[key]])
             resource_id, path = row.get('resource_id'), row.get('path')
-            related = [m for m in evaluation.mappings if m['resource_id'] == resource_id and
+            related = [m for m in mappings.get(resource_id, ()) if
                        (not path or path == '/properties' or m['path'] == path or m['path'].startswith(path + '/') or path.startswith(m['path'] + '/'))]
             row['trace'] = related
             if resource_id and not related:
-                resource_index = next(i for i, r in enumerate(document.design.resources) if r.id == resource_id)
+                resource_index = positions[resource_id]
                 resource = document.design.resources[resource_index]
                 row['resource_input_pointer'] = f'/resources/{resource_index}'
                 row['resource_source_ids'] = resource.sources
                 row['missing_setting_not_invented'] = True
             row['environment_id'] = document.environment_id
-            row['requirement_ids'] = sorted({n.id for n in document.design.requirements if resource_id in n.resources} |
-                {n.requirement_id for n in document.design.required_inputs if n.resource_id == resource_id and
+            row['requirement_ids'] = sorted(notes.get(resource_id, set()) |
+                {n.requirement_id for n in inputs.get(resource_id, ()) if
                  (not path or path == '/properties' or n.path == path or path.startswith(n.path + '/'))})
             row['requirement_link_semantics'] = 'resource association only; business requirement was not evaluated'

@@ -26,6 +26,7 @@ from .cfn_static_review import refine_static_review
 from .rds_local_zone import guard_local_zone
 from .checks.batch.platform_guard import guard_batch_findings
 from .rule_review import load_reference_catalog
+from .checks.common.index import indexed
 
 
 RULE_VERSION = "1.0"
@@ -270,9 +271,20 @@ class Checker:
                 self.reference_types[key] = target
             self.references_version = json.loads(raw_references)["catalog_version"]
             self.references_hash = hashlib.sha256(raw_references).hexdigest()
+        # The catalog has thousands of entries; lookups only need those of one source type.
+        self.references_by_type: dict[str, list[tuple[str, str]]] = defaultdict(list)
+        for (source_type, pattern), target in self.reference_types.items():
+            self.references_by_type[source_type].append((pattern, target))
         self.results: list[dict] = []
         self.coverage: list[dict] = []
         self.relations_by_source: dict[str, list] = {}
+
+    def reference_type(self, type_name: str, path: str) -> str | None:
+        """`reference_type` over this checker's catalog, looking only at entries for the type."""
+        for pattern, target_type in self.references_by_type.get(type_name, ()):
+            if _pointer_matches(pattern, path):
+                return target_type
+        return None
 
     def add(self, rule: str, resource: Resource | None, path: str | None, verdict: str,
             reason: str, *, severity: str = "ERROR", expected: Any = None,
@@ -289,6 +301,10 @@ class Checker:
                               "path": path, "reason": reason})
 
     def check(self, design: Design) -> dict:
+        with indexed(design):
+            return self._check(design)
+
+    def _check(self, design: Design) -> dict:
         if design.region != self.manifest["region"]:
             raise ValueError(f"schema region {self.manifest['region']} does not match design region {design.region}")
         self.results, self.coverage = [], []
@@ -350,10 +366,12 @@ class Checker:
             self.results += lint_results
             self.coverage += lint_coverage
             cfn_lint_version = CFN_LINT_VERSION
+        evaluated = defaultdict(set)  # rule ID -> resource IDs with a result
+        for r in self.results:
+            evaluated[r["rule_id"]].add(r.get("resource_id"))
         for req in design.requirements:
-            if not req.rule_id or not any(r["rule_id"] == req.rule_id and
-                    (req.target_resource_id is None or r["resource_id"] == req.target_resource_id)
-                    for r in self.results):
+            if not req.rule_id or req.rule_id not in evaluated or (
+                    req.target_resource_id is not None and req.target_resource_id not in evaluated[req.rule_id]):
                 self.uncovered("REQUIREMENT", None, None,
                                f"requirement {req.id} has no evaluated rule")
         for document in design.documents:
@@ -511,9 +529,8 @@ class Checker:
                 if conditional.selected().value != condition["equals"]:
                     continue
             field = resource.field(path)
-            if any(reference_type(resource.type, path if not p.endswith("/*") else p[:-1] + "0",
-                                  self.reference_types)
-                   for (t, p) in self.reference_types if t == resource.type and
+            if any(self.reference_type(resource.type, path if not p.endswith("/*") else p[:-1] + "0")
+                   for p, _ in self.references_by_type.get(resource.type, ()) if
                    (path == p or path == p[:-2])):
                 references = [r for r in self.relations_by_source[resource.id]
                               if r.source_path == path or r.source_path.startswith(path + "/")]
@@ -583,9 +600,12 @@ class Checker:
     def _relations(self, design: Design):
         by_id = {r.id: r for r in design.resources}
         by_name = defaultdict(list)
+        by_account_name = defaultdict(list)  # IAM users are global: any Region of the account
         for resource in design.resources:
             by_name[(resource.type, resource.name, resource.scope.environment,
                      resource.scope.account, resource.scope.region)].append(resource)
+            by_account_name[(resource.type, resource.name, resource.scope.environment,
+                             resource.scope.account)].append(resource)
         relations = defaultdict(list)
         by_source = defaultdict(list)
         for rel in design.relations:
@@ -596,7 +616,7 @@ class Checker:
             if not source:
                 self.uncovered("ORPHAN_RELATION", None, rel.source_path, f"source {rel.source_resource_id} missing")
                 continue
-            configured_type = reference_type(source.type, rel.source_path, self.reference_types)
+            configured_type = self.reference_type(source.type, rel.source_path)
             expected_type = configured_type or rel.expected_target_type
             if not expected_type:
                 self.uncovered("RELATION_TYPE", source, rel.source_path, "reference rule not implemented")
@@ -612,10 +632,8 @@ class Checker:
             target = by_id.get(rel.target_resource_id) if rel.target_resource_id else None
             if not target and rel.unresolved_name:
                 if source.type == "AWS::IAM::AccessKey" and rel.source_path == "/properties/UserName":
-                    matches = [item for item in design.resources if item.type == expected_type
-                               and item.name == rel.unresolved_name
-                               and item.scope.environment == source.scope.environment
-                               and item.scope.account == source.scope.account]
+                    matches = by_account_name[(expected_type, rel.unresolved_name,
+                                               source.scope.environment, source.scope.account)]
                 else:
                     matches = by_name[(expected_type, rel.unresolved_name, source.scope.environment,
                                        source.scope.account, source.scope.region)]
@@ -648,9 +666,8 @@ class Checker:
                 self.add("REFERENCE", source, rel.source_path, "PASS", "resource reference resolved",
                          actual=target.id, evidence=rel.evidence_ids)
         for r in design.resources:
-            for (source_type, pattern), _ in self.reference_types.items():
-                if r.type != source_type:
-                    continue
+            source_type = r.type
+            for pattern, _ in self.references_by_type.get(source_type, ()):
                 path = pattern[:-2] if pattern.endswith("/*") else pattern
                 matching = [rel for rel in by_source[r.id]
                             if rel.source_path == path or rel.source_path.startswith(path + "/")]
@@ -685,6 +702,11 @@ class Checker:
         reference_counts = Counter(r.source_resource_id for r in design.relations
                                    if r.source_path == "/properties/VpcId")
         reported_conflicts = set()
+        vpcs_by_name = defaultdict(list)
+        for resource in design.resources:
+            if resource.type == "AWS::EC2::VPC":
+                vpcs_by_name[(resource.name, resource.scope.environment, resource.scope.account,
+                              resource.scope.region)].append(resource)
         for resource in design.resources:
             if resource.type == "AWS::EC2::Subnet" and reference_counts[resource.id] == 0:
                 self.add("CIDR_CONTAINMENT", resource, "/properties/CidrBlock", "NEEDS_REVIEW",
@@ -701,8 +723,8 @@ class Checker:
                 continue
             vpc = by_id.get(relation.target_resource_id)
             if not vpc and relation.unresolved_name and subnet:
-                matches = [r for r in design.resources if r.name == relation.unresolved_name
-                           and r.scope == subnet.scope and r.type == "AWS::EC2::VPC"]
+                matches = vpcs_by_name[(relation.unresolved_name, subnet.scope.environment,
+                                        subnet.scope.account, subnet.scope.region)]
                 vpc = matches[0] if len(matches) == 1 else None
             if not subnet or subnet.type != "AWS::EC2::Subnet" or not vpc or vpc.type != "AWS::EC2::VPC" or subnet.scope != vpc.scope:
                 if subnet and subnet.type == "AWS::EC2::Subnet":

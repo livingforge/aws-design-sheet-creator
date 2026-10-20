@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={rule:[CF+'aws-properties-imagebuilder-distributionconfiguration-distribution.html',CF+'aws-resource-imagebuilder-imagerecipe.html',CF+'aws-resource-imagebuilder-image.html',CF+'aws-resource-imagebuilder-imagepipeline.html'] for rule in ('IMAGEBUILDER_DISTRIBUTION_RECIPE_TYPE','IMAGEBUILDER_WATERMARK_PUBLIC_DISTRIBUTION')}
@@ -76,7 +77,7 @@ def evaluate_imagebuilder_distribution_links(design,resource):
     for consumer in design.resources:
         if consumer.type not in CONSUMERS:continue
         path='/properties/DistributionConfigurationArn' if resource.type==DIST else '/properties/ImageRecipeArn'
-        refs=[ref for ref in design.relations if ref.source_resource_id==consumer.id and ref.source_path==path and ref.target_resource_id==resource.id]
+        refs=[ref for ref in relations_from(design, consumer.id) if ref.source_path==path and ref.target_resource_id==resource.id]
         if not refs:continue
         dist=reference(ctx,consumer,'/properties/DistributionConfigurationArn',DIST);rec=recipe(ctx,consumer)
         if dist is None or rec is None or (dist if resource.type==DIST else rec) is not resource:pending=True;continue

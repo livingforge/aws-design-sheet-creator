@@ -2,6 +2,7 @@
 from __future__ import annotations
 from collections import Counter
 from .models import Design, ValueState
+from .checks.common.index import relations_from, resources_by_id
 
 NOTE = "COMPLETEは処理完了。設計合格・承認・デプロイ可能性を示さない。項目への判定の存在も要件全体の評価完了ではない。"
 
@@ -17,7 +18,7 @@ def has_unknown(value):
 
 
 def binding_state(design, binding):
-    resource = next(r for r in design.resources if r.id == binding.resource_id)
+    resource = resources_by_id(design)[binding.resource_id]
     states = []
     for f in resource.fields:
         if within(f.path, binding.path) or within(binding.path, f.path):
@@ -35,8 +36,8 @@ def binding_state(design, binding):
                     states.append("UNKNOWN")
                     continue
             states.append("UNRESOLVED" if has_unknown(value) else "KNOWN_LITERAL")
-    for rel in design.relations:
-        if rel.source_resource_id == resource.id and within(rel.source_path, binding.path):
+    for rel in relations_from(design, resource.id):
+        if within(rel.source_path, binding.path):
             states.append("RESOURCE_REFERENCE" if rel.target_resource_id else "UNRESOLVED_REFERENCE")
     return sorted(set(states)) or ["UNKNOWN"]
 
@@ -53,6 +54,9 @@ def build_input_scope(design: Design, results: list[dict]) -> dict:
     output.update(total_items=inventory.total_items, inventory_complete=inventory.complete,
                   source_document_ids=inventory.source_document_ids,
                   scope_notes=[s.model_dump(mode="json") for s in inventory.scope_notes])
+    by_resource: dict = {}  # resource ID -> indexes of its results, in result order
+    for i, f in enumerate(results):
+        by_resource.setdefault(f.get("resource_id"), []).append(i)
     for item in inventory.items:
         row = item.model_dump(mode="json")
         row["value_states"] = ["EXPLICIT_OMISSION"] if item.presence == "EXPLICIT_OMISSION" else (
@@ -60,9 +64,8 @@ def build_input_scope(design: Design, results: list[dict]) -> dict:
             sorted({s for b in item.bindings for s in binding_state(design, b)}) or ["UNKNOWN"])
         # Descendant findings may inspect part of the item. Parent resource findings
         # are not proof that this individual setting was evaluated.
-        indexes = [i for i, f in enumerate(results) if any(
-            f.get("resource_id") == b.resource_id and within(f.get("path"), b.path)
-            for b in item.bindings)]
+        indexes = sorted({i for b in item.bindings for i in by_resource.get(b.resource_id, ())
+                          if within(results[i].get("path"), b.path)})
         row["observed_result_indexes"] = indexes
         row["observed_rule_ids"] = sorted({results[i]["rule_id"] for i in indexes})
         requested = item.check_rule_ids

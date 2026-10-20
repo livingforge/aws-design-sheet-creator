@@ -4,12 +4,13 @@ from ..common.context_values import linked, value
 from ..common.field_reads import read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 
 def bucket_region(ctx,r):
     bucket=linked(ctx,r,'/properties/S3BucketName','AWS::S3::Bucket')
     if resolved(bucket):return bucket.scope.region
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path=='/properties/S3BucketName']
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path=='/properties/S3BucketName']
     if len(refs)!=1 or refs[0].condition:return None
     bucket=ctx.by_id.get(refs[0].target_resource_id)
     name=read(ctx,r,'/properties/S3BucketName')

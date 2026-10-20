@@ -12,6 +12,7 @@ import ipaddress
 from dataclasses import dataclass, field as dataclass_field
 
 from .models import Design, FieldValue, Resource, ValueState
+from .checks.common.index import resources_of_type
 
 
 SOURCE = "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html"
@@ -110,7 +111,7 @@ def vpc_ipv4_addresses(design: Design) -> tuple[dict[str, VpcAddresses], list[di
             return None
         target = by_id.get(found[0].target_resource_id)
         if target is None and found[0].unresolved_name:
-            matches = [item for item in design.resources if item.type == "AWS::EC2::VPC"
+            matches = [item for item in resources_of_type(design, "AWS::EC2::VPC") if item.type == "AWS::EC2::VPC"
                        and item.name == found[0].unresolved_name and item.scope == resource.scope]
             target = matches[0] if len(matches) == 1 else None
         return target if target and target.type == "AWS::EC2::VPC" and target.scope == resource.scope else None
@@ -142,7 +143,7 @@ def vpc_ipv4_addresses(design: Design) -> tuple[dict[str, VpcAddresses], list[di
             continue
         vpc = vpc_for(association)
         if vpc is None:
-            for item in design.resources:
+            for item in resources_of_type(design, "AWS::EC2::VPC"):
                 if item.type == "AWS::EC2::VPC" and item.scope == association.scope:
                     addresses[item.id].incomplete = True
             if kind == "known":

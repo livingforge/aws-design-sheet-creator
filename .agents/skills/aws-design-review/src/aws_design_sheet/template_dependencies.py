@@ -7,6 +7,7 @@ a CloudFormation template. Missing metadata never proves missing DependsOn.
 from .models import ValueState
 from .checks.common.context_values import _Context, linked, value, CFN
 from .checks.common.field_reads import ABSENT, UNKNOWN
+from .checks.common.index import active, memo, relations_from, template_key
 
 
 SOURCES = {
@@ -27,13 +28,26 @@ def members(design, resource):
     template = resource.template
     if not template or template.state != ValueState.KNOWN:
         return []
+    if (index := active(design)) is not None:
+        return list(index.templates.get(template_key(resource), ()))
     return [r for r in design.resources if r.template and r.template.state == ValueState.KNOWN
             and r.template.id == template.id and r.scope == resource.scope]
 
 
+def _pool(design, resource):
+    """Template members by name, and their IDs (resource IDs are unique in a design)."""
+    if (index := active(design)) is not None and (key := template_key(resource)) is not None:
+        return index.template_names.get(key, {}), index.template_ids.get(key, set())
+    pool = members(design, resource)
+    names = {}
+    for r in pool:
+        names.setdefault(r.name, []).append(r)
+    return names, {r.id for r in pool}
+
+
 def explicit_dependencies(ctx, resource):
     """Return reachable explicit/known property-reference dependencies."""
-    pool = members(ctx.design, resource)
+    names, ids = _pool(ctx.design, resource)
     visited, active, reached = set(), set(), set()
     uncertain = False
     invalid = False
@@ -55,7 +69,7 @@ def explicit_dependencies(ctx, resource):
             ctx.dependencies.append(node.id + '/template/depends_on')
         else:
             for name in meta.depends_on:
-                matches = [r for r in pool if r.name == name]
+                matches = names.get(name, ())
                 if len(matches) != 1:
                     # The design can be an excerpt of a template.
                     uncertain = True
@@ -64,14 +78,13 @@ def explicit_dependencies(ctx, resource):
                 target = matches[0]
                 reached.add(target.id)
                 walk(target)
-        for ref in ctx.design.relations:
-            if ref.source_resource_id != node.id or not ref.source_path.startswith('/properties/'):
+        for ref in relations_from(ctx.design, node.id):
+            if not ref.source_path.startswith('/properties/'):
                 continue
-            matches = [r for r in pool if r.id == ref.target_resource_id]
-            if len(matches) != 1 or ref.condition:
+            if ref.target_resource_id not in ids or ref.condition:
                 uncertain = True
                 continue
-            target = linked(ctx, node, ref.source_path, matches[0].type)
+            target = linked(ctx, node, ref.source_path, ctx.by_id[ref.target_resource_id].type)
             if target is None:
                 uncertain = True
                 continue
@@ -83,8 +96,10 @@ def explicit_dependencies(ctx, resource):
     return reached, uncertain, invalid
 
 
-def ordering(ctx, rule, targets, *, any_target=False):
-    reached, uncertain, invalid = explicit_dependencies(ctx, ctx.resource)
+def ordering(ctx, rule, targets, *, any_target=False, dependencies=None):
+    """`dependencies` may pass this context's earlier explicit_dependencies result:
+    walking again would only repeat evidence and dependencies the finding deduplicates."""
+    reached, uncertain, invalid = dependencies or explicit_dependencies(ctx, ctx.resource)
     if invalid:
         verdict = 'FAIL'
     elif not targets:
@@ -158,6 +173,19 @@ def instance_subnet(ctx, instance):
     return linked(ctx, interface, '/properties/SubnetId', 'AWS::EC2::Subnet') if interface else None
 
 
+def _policy_roles(design, policy):
+    """Evidence and dependencies that resolving a policy's role links records, and
+    the linked role ID (or None) of each link, in relation order."""
+    ctx = _Context(design, policy)
+    roles = []
+    for ref in relations_from(design, policy.id):
+        if not ref.source_path.startswith('/properties/Roles/'):
+            continue
+        role = linked(ctx, policy, ref.source_path, 'AWS::IAM::Role')
+        roles.append(role.id if role else None)
+    return ctx.evidence, ctx.dependencies, roles
+
+
 def evaluate_template_dependencies(design, resource):
     # Older designs have no template membership. Their ledger coverage continues
     # to report this unchecked scope, without inventing a template boundary.
@@ -165,8 +193,10 @@ def evaluate_template_dependencies(design, resource):
         return []
     ctx = _Context(design, resource)
     pool = members(design, resource)
+    _, pool_ids = _pool(design, resource)
     results = []
-    reached, uncertain, invalid = explicit_dependencies(ctx, resource)
+    walked = explicit_dependencies(ctx, resource)
+    reached, uncertain, invalid = walked
     results.append(ctx.finding('TEMPLATE_DEPENDENCY_GRAPH', '/template/depends_on',
         'FAIL' if invalid else 'NEEDS_REVIEW' if uncertain else 'PASS',
         'template dependency graph must be acyclic; known property references also establish ordering; unresolved logical names remain reviewable'))
@@ -175,18 +205,19 @@ def evaluate_template_dependencies(design, resource):
         targets = [r for r in pool if r.type == 'AWS::EC2::ClientVpnTargetNetworkAssociation'
                    and same_target(ctx, resource, 'ClientVpnEndpointId', r, 'ClientVpnEndpointId', 'AWS::EC2::ClientVpnEndpoint')
                    and (local or same_target(ctx, resource, 'TargetVpcSubnetId', r, 'SubnetId', 'AWS::EC2::Subnet'))]
-        results.append(ordering(ctx, 'EC2_CLIENT_VPN_ROUTE_DEPENDENCY', targets, any_target=local))
+        results.append(ordering(ctx, 'EC2_CLIENT_VPN_ROUTE_DEPENDENCY', targets, any_target=local,
+                                dependencies=walked))
     elif resource.type == 'AWS::EC2::VPNGatewayRoutePropagation':
         targets = [r for r in pool if r.type == 'AWS::EC2::VPCGatewayAttachment'
                    and same_target(ctx, resource, 'VpnGatewayId', r, 'VpnGatewayId', 'AWS::EC2::VPNGateway')]
-        results.append(ordering(ctx, 'EC2_VPN_PROPAGATION_DEPENDENCY', targets))
+        results.append(ordering(ctx, 'EC2_VPN_PROPAGATION_DEPENDENCY', targets, dependencies=walked))
     elif resource.type == 'AWS::EC2::Route':
         # Routes that include the internet gateway depend on its VPC attachment.
         gateway = linked(ctx, resource, '/properties/GatewayId', 'AWS::EC2::InternetGateway')
-        if gateway is not None and gateway in pool:
+        if gateway is not None and gateway.id in pool_ids:
             targets = [r for r in pool if r.type == 'AWS::EC2::VPCGatewayAttachment'
                        and same_target(ctx, resource, 'GatewayId', r, 'InternetGatewayId', 'AWS::EC2::InternetGateway')]
-            results.append(ordering(ctx, 'EC2_ROUTE_GATEWAY_DEPENDENCY', targets))
+            results.append(ordering(ctx, 'EC2_ROUTE_GATEWAY_DEPENDENCY', targets, dependencies=walked))
     elif resource.type == 'AWS::EC2::EIP':
         instance = linked(ctx, resource, '/properties/InstanceId', 'AWS::EC2::Instance')
         subnet = instance_subnet(ctx, instance)
@@ -194,8 +225,8 @@ def evaluate_template_dependencies(design, resource):
         for consumer in pool:
             if consumer.type not in ('AWS::EC2::EIPAssociation', 'AWS::EC2::NatGateway'):
                 continue
-            paths = [ref.source_path for ref in design.relations if ref.source_resource_id == consumer.id
-                     and (ref.source_path in ('/properties/AllocationId', '/properties/EIP')
+            paths = [ref.source_path for ref in relations_from(design, consumer.id)
+                     if (ref.source_path in ('/properties/AllocationId', '/properties/EIP')
                           or ref.source_path.startswith('/properties/SecondaryAllocationIds/'))]
             if not any((dest := linked(ctx, consumer, p, 'AWS::EC2::EIP')) and dest.id == resource.id for p in paths):
                 continue
@@ -207,7 +238,7 @@ def evaluate_template_dependencies(design, resource):
                      linked(ctx, node, '/properties/SubnetId', 'AWS::EC2::Subnet') if node else None)
             if found:
                 subnets.append(found)
-        vpcs = [vpc for subnet in subnets if (vpc := linked(ctx, subnet, '/properties/VpcId', 'AWS::EC2::VPC')) and vpc in pool]
+        vpcs = [vpc for subnet in subnets if (vpc := linked(ctx, subnet, '/properties/VpcId', 'AWS::EC2::VPC')) and vpc.id in pool_ids]
         targets = []
         for vpc in vpcs:
             for r in pool:
@@ -217,7 +248,8 @@ def evaluate_template_dependencies(design, resource):
                 gateway = linked(ctx, r, '/properties/InternetGatewayId', 'AWS::EC2::InternetGateway')
                 if attached and attached.id == vpc.id and gateway:
                     targets.append(r)
-        results.append({**ordering(ctx, 'EC2_EIP_GATEWAY_DEPENDENCY', targets), 'rule_version': '1.1'})
+        results.append({**ordering(ctx, 'EC2_EIP_GATEWAY_DEPENDENCY', targets, dependencies=walked),
+                        'rule_version': '1.1'})
     elif resource.type == 'AWS::Lambda::Function':
         configs = value(ctx, resource, '/properties/FileSystemConfigs')
         if configs is not ABSENT and configs != []:
@@ -232,27 +264,27 @@ def evaluate_template_dependencies(design, resource):
                         mounted = linked(ctx, r, '/properties/FileSystemId', 'AWS::EFS::FileSystem')
                         if mounted and mounted.id == fs.id:
                             targets.append(r)
-            results.append(ordering(ctx, 'LAMBDA_MOUNT_TARGET_DEPENDENCY', targets))
+            results.append(ordering(ctx, 'LAMBDA_MOUNT_TARGET_DEPENDENCY', targets, dependencies=walked))
 
     # Only explicit, unconditional property references establish role consumers.
     if resource.type not in ('AWS::IAM::Policy', 'AWS::IAM::ManagedPolicy', 'AWS::IAM::Role'):
         roles = set()
-        for ref in design.relations:
-            if ref.source_resource_id != resource.id or not ref.source_path.startswith('/properties/'):
+        for ref in relations_from(design, resource.id):
+            if not ref.source_path.startswith('/properties/'):
                 continue
             role = linked(ctx, resource, ref.source_path, 'AWS::IAM::Role')
-            if role and role in pool:
+            if role and role.id in pool_ids:
                 roles.add(role.id)
         policies = []
-        for policy in pool:
+        # Without a role no policy matches, and no finding keeps this context's records.
+        for policy in pool if roles else ():
             if policy.type not in ('AWS::IAM::Policy', 'AWS::IAM::ManagedPolicy'):
                 continue
-            for ref in design.relations:
-                if ref.source_resource_id != policy.id or not ref.source_path.startswith('/properties/Roles/'):
-                    continue
-                role = linked(ctx, policy, ref.source_path, 'AWS::IAM::Role')
-                if role and role.id in roles:
-                    policies.append(policy)
+            evidence, dependencies, linked_roles = memo(design, ('iam-policy-roles', policy.id),
+                                                        lambda: _policy_roles(design, policy))
+            ctx.evidence.extend(evidence)
+            ctx.dependencies.extend(dependencies)
+            policies.extend(policy for role in linked_roles if role in roles)
         if policies:
-            results.append(ordering(ctx, 'IAM_ROLE_POLICY_DEPENDENCY', policies))
+            results.append(ordering(ctx, 'IAM_ROLE_POLICY_DEPENDENCY', policies, dependencies=walked))
     return results

@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'NETWORK_FIREWALL_STATEFUL_ORDER_COMPATIBILITY':[CF+'aws-properties-networkfirewall-rulegroup-rulegroup.html',CF+'aws-properties-networkfirewall-rulegroup-statefulruleoptions.html',CF+'aws-properties-networkfirewall-firewallpolicy-statefulengineoptions.html','https://docs.aws.amazon.com/network-firewall/latest/developerguide/suricata-rule-evaluation-order.html']}
@@ -37,7 +38,7 @@ def compatibility(ctx,r):
     seen=False;pending=False
     for policy in ctx.design.resources:
         if policy.type!='AWS::NetworkFirewall::FirewallPolicy':continue
-        refs=[ref for ref in ctx.design.relations if ref.source_resource_id==policy.id and ref.target_resource_id==r.id and re.fullmatch(r'/properties/FirewallPolicy/StatefulRuleGroupReferences/[0-9]+/ResourceArn',ref.source_path)]
+        refs=[ref for ref in relations_from(ctx.design, policy.id) if ref.target_resource_id==r.id and re.fullmatch(r'/properties/FirewallPolicy/StatefulRuleGroupReferences/[0-9]+/ResourceArn',ref.source_path)]
         for ref in refs:
             if reference(ctx,policy,ref.source_path) is not r:pending=True;continue
             other=mode(ctx,policy,'/properties/FirewallPolicy/StatefulEngineOptions/RuleOrder')

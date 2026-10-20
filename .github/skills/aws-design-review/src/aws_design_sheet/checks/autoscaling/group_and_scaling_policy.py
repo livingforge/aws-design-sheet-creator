@@ -6,6 +6,7 @@ from decimal import Decimal
 from ..registry import resource_check
 from .group_nested_constraints import _Context
 from ..common.field_reads import ABSENT, UNKNOWN, linked, read
+from ..common.index import relations_from
 
 
 SOURCES = {
@@ -182,8 +183,7 @@ def traffic_sources(design: Design, resource: Resource) -> list[dict]:
         if not isinstance(kind, str) or kind not in types:
             verdict, reason = 'NEEDS_REVIEW', 'traffic source type is unresolved or unsupported'
         else:
-            refs = [r for r in design.relations if r.source_resource_id == resource.id
-                    and r.source_path == item_path + '/Identifier']
+            refs = [r for r in relations_from(design, resource.id) if r.source_path == item_path + '/Identifier']
             if len(refs) == 1:
                 target = ctx.by_id.get(refs[0].target_resource_id)
                 ctx.evidence.extend(refs[0].evidence_ids)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from ...models import ValueState
 from ..registry import resource_check
+from ..common.index import relations_from
 
 RULE_ID = "EC2_ROUTE_DESTINATION_AND_TARGET"
 DESTINATIONS = (
@@ -41,8 +42,8 @@ def _selection(design: Design, resource: Resource, names: tuple[str, ...]):
     for name in names:
         path = f"/properties/{name}"
         field = resource.field(path)
-        relations = [relation for relation in design.relations
-                     if relation.source_resource_id == resource.id and relation.source_path == path]
+        relations = [relation for relation in relations_from(design, resource.id)
+                     if relation.source_path == path]
         if field:
             evidence.extend(field.intent_evidence_ids)
             evidence.extend(e for candidate in field.candidates for e in candidate.evidence_ids)

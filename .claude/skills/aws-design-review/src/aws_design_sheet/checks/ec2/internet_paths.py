@@ -19,6 +19,7 @@ from ipaddress import IPv4Network
 from ...models import ValueState
 from ..registry import resource_check
 from ..common.context import Context
+from ..common.index import relations_at, relations_from, resources_by_id, resources_of_types
 
 
 VPC = "https://docs.aws.amazon.com/vpc/latest/userguide/"
@@ -40,10 +41,10 @@ ROUTE_TARGETS = frozenset("/properties/" + name for name in (
 def _sources(design, resource, types: tuple[str, ...], path: str) -> list:
     """Resources of the given types in the same scope whose `path` relation targets `resource`."""
     found = []
-    for item in design.resources:
+    for item in resources_of_types(design, types):
         if item.type not in types or item.scope != resource.scope:
             continue
-        refs = [ref for ref in design.relations if ref.source_resource_id == item.id and ref.source_path == path]
+        refs = relations_at(design, item.id, path)
         if any(ref.target_resource_id == resource.id for ref in refs):
             found.append(item)
     return found
@@ -51,11 +52,11 @@ def _sources(design, resource, types: tuple[str, ...], path: str) -> list:
 
 def _unresolved_link(design, resource, types: tuple[str, ...], path: str) -> bool:
     """Some resource of the given types could point at `resource` but its link is not resolved."""
-    by_id = {item.id: item for item in design.resources}
-    for item in design.resources:
+    by_id = resources_by_id(design)
+    for item in resources_of_types(design, types):
         if item.type not in types or item.scope != resource.scope:
             continue
-        refs = [ref for ref in design.relations if ref.source_resource_id == item.id and ref.source_path == path]
+        refs = relations_at(design, item.id, path)
         field = item.field(path)
         if (refs and len(refs) != 1) or any(
                 ref.condition or ref.target_resource_id not in by_id or
@@ -79,7 +80,7 @@ def _route_target(ctx: Context, route) -> str:
     if len(paths) != 1:
         return UNKNOWN
     path = next(iter(paths))
-    refs = [ref for ref in ctx.design.relations if ref.source_resource_id == route.id and ref.source_path == path]
+    refs = [ref for ref in relations_from(ctx.design, route.id) if ref.source_path == path]
     ctx.evidence.extend(e for ref in refs for e in ref.evidence_ids)
     field = route.field(path)
     if (field is not None and field.state not in (ValueState.KNOWN, ValueState.MISSING)) or any(ref.condition for ref in refs):
@@ -156,8 +157,7 @@ def subnet_reach(ctx: Context, subnet) -> tuple[str, str]:
             continue
         target = _route_target(ctx, route)
         if target == PUBLIC:
-            refs = [ref for ref in design.relations if ref.source_resource_id == route.id
-                    and ref.source_path == "/properties/GatewayId"]
+            refs = [ref for ref in relations_from(design, route.id) if ref.source_path == "/properties/GatewayId"]
             gateways.add(refs[0].target_resource_id if refs else ctx.value(route, "/properties/GatewayId"))
         routes.append((network, target))
     # Multiple IGW identities need attachment/VPC reconciliation beyond this check.
@@ -219,7 +219,7 @@ def evaluate_internet_facing_subnets(design, resource) -> dict:
         return ctx.finding(rule, "/properties/Scheme", "NOT_APPLICABLE", "load balancer is not internet-facing")
     if kind is None or scheme != "internet-facing":
         return ctx.finding(rule, "/properties/Scheme", "NEEDS_REVIEW", "load balancer type or scheme is unresolved")
-    refs = [ref for ref in design.relations if ref.source_resource_id == resource.id and (
+    refs = [ref for ref in relations_from(design, resource.id) if (
         ref.source_path.startswith("/properties/Subnets/") or
         ref.source_path.startswith("/properties/SubnetMappings/") and ref.source_path.endswith("/SubnetId"))]
     if not refs and not resource.field("/properties/Subnets") and not resource.field("/properties/SubnetMappings"):

@@ -5,6 +5,7 @@ from ..common.context_values import _Context, linked, value
 from ..common.field_reads import ABSENT, read
 from ..common.literals import expand, literal
 from ..common.scoped_resolution import resolved
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={rule:[CF+'aws-properties-gameliftstreams-streamgroup-vpctransitconfiguration.html',CF+'aws-resource-ec2-vpc.html',CF+'aws-resource-ec2-vpccidrblock.html'] for rule in ('GAMELIFT_STREAMS_VPC_ACCOUNT','GAMELIFT_STREAMS_VPC_CIDR_SUBSET')}
@@ -12,7 +13,7 @@ SOURCES={rule:[CF+'aws-properties-gameliftstreams-streamgroup-vpctransitconfigur
 
 def explicit_vpc(ctx,r,path):
     if not resolved(r) or read(ctx,r,path) is not ABSENT:return None
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path]
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path]
     if len(refs)!=1 or refs[0].condition:return None
     targets=[node for node in ctx.design.resources if node.id==refs[0].target_resource_id and node.type=='AWS::EC2::VPC']
     if len(targets)!=1 or not resolved(targets[0]) or targets[0].scope.environment!=r.scope.environment:return None

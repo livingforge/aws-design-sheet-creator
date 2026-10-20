@@ -5,6 +5,7 @@ from ..common.context_values import _Context, value
 from ..common.field_reads import read
 from ..common.scoped_resolution import resolved
 from .cluster_mode import enabled
+from ..common.index import relations_from
 
 CF='https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES={'GLOBALREPLICATIONGROUP_INFERRED_FAILOVER':[CF+'aws-resource-elasticache-globalreplicationgroup.html',CF+'aws-properties-elasticache-globalreplicationgroup-globalreplicationgroupmember.html',CF+'aws-resource-elasticache-replicationgroup.html']}
@@ -13,7 +14,7 @@ SOURCES['GLOBALREPLICATIONGROUP_INFERRED_FAILOVER'].append(CF+'aws-properties-el
 
 def member(ctx,r,path):
     name=read(ctx,r,path+'/ReplicationGroupId');region=value(ctx,r,path+'/ReplicationGroupRegion')
-    refs=[ref for ref in ctx.design.relations if ref.source_resource_id==r.id and ref.source_path==path+'/ReplicationGroupId']
+    refs=[ref for ref in relations_from(ctx.design, r.id) if ref.source_path==path+'/ReplicationGroupId']
     if not isinstance(name,str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,39}',name) or len(refs)!=1 or refs[0].condition:return None
     group=ctx.by_id.get(refs[0].target_resource_id)
     if not resolved(group) or group.type!='AWS::ElastiCache::ReplicationGroup':return None

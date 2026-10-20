@@ -1,0 +1,1115 @@
+document: sample-design.xlsx
+elements:
+- cells:
+  - address: B4
+    headers: []
+    id: s1-B4
+    role: row_header
+    text_state: read
+  - address: C4
+    headers:
+    - s1-B4
+    id: s1-C4
+    role: data
+    text_state: read
+  - address: B5
+    headers: []
+    id: s1-B5
+    role: row_header
+    text_state: read
+  - address: C5
+    headers:
+    - s1-B5
+    id: s1-C5
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-1-table-1
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: 表紙
+- cells:
+  - address: B8
+    headers: []
+    id: s1-B8
+    role: column_header
+    text_state: read
+  - address: C8
+    headers: []
+    id: s1-C8
+    role: column_header
+    text_state: read
+  - address: D8
+    headers: []
+    id: s1-D8
+    role: column_header
+    text_state: read
+  - address: E8
+    headers: []
+    id: s1-E8
+    role: column_header
+    text_state: read
+  - address: B9
+    headers:
+    - s1-B8
+    id: s1-B9
+    role: row_header
+    text_state: read
+  - address: C9
+    headers:
+    - s1-C8
+    - s1-B9
+    id: s1-C9
+    role: data
+    text_state: read
+  - address: D9
+    headers:
+    - s1-D8
+    - s1-B9
+    id: s1-D9
+    role: data
+    text_state: read
+  - address: E9
+    headers:
+    - s1-E8
+    - s1-B9
+    id: s1-E9
+    role: data
+    text_state: read
+  - address: B10
+    headers:
+    - s1-B8
+    id: s1-B10
+    role: row_header
+    text_state: read
+  - address: C10
+    headers:
+    - s1-C8
+    - s1-B10
+    id: s1-C10
+    role: data
+    text_state: read
+  - address: D10
+    headers:
+    - s1-D8
+    - s1-B10
+    id: s1-D10
+    role: data
+    text_state: read
+  - address: E10
+    headers:
+    - s1-E8
+    - s1-B10
+    id: s1-E10
+    role: data
+    text_state: read
+  - address: B11
+    headers:
+    - s1-B8
+    id: s1-B11
+    role: row_header
+    text_state: read
+  - address: C11
+    headers:
+    - s1-C8
+    - s1-B11
+    id: s1-C11
+    role: data
+    text_state: read
+  - address: D11
+    headers:
+    - s1-D8
+    - s1-B11
+    id: s1-D11
+    role: data
+    text_state: read
+  - address: E11
+    headers:
+    - s1-E8
+    - s1-B11
+    id: s1-E11
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-1-table-2
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: 表紙
+- cells:
+  - address: B2
+    headers: []
+    id: s1-B2
+    role: text
+    text_state: read
+  - address: B7
+    headers: []
+    id: s1-B7
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-1
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: 表紙
+- cells:
+  - address: B3
+    headers: []
+    id: s2-B3
+    role: column_header
+    text_state: read
+  - address: C3
+    headers: []
+    id: s2-C3
+    role: column_header
+    text_state: read
+  - address: D3
+    headers: []
+    id: s2-D3
+    role: column_header
+    text_state: read
+  - address: B4
+    headers:
+    - s2-B3
+    id: s2-B4
+    role: row_header
+    text_state: read
+  - address: C4
+    headers:
+    - s2-C3
+    - s2-B4
+    id: s2-C4
+    role: data
+    text_state: read
+  - address: D4
+    headers:
+    - s2-D3
+    - s2-B4
+    id: s2-D4
+    role: data
+    text_state: empty
+  - address: B5
+    headers:
+    - s2-B3
+    id: s2-B5
+    role: row_header
+    text_state: read
+  - address: C5
+    headers:
+    - s2-C3
+    - s2-B5
+    id: s2-C5
+    role: data
+    text_state: read
+  - address: D5
+    headers:
+    - s2-D3
+    - s2-B5
+    id: s2-D5
+    role: data
+    text_state: empty
+  - address: B6
+    headers:
+    - s2-B3
+    id: s2-B6
+    role: row_header
+    text_state: read
+  - address: C6
+    headers:
+    - s2-C3
+    - s2-B6
+    id: s2-C6
+    role: data
+    text_state: read
+  - address: D6
+    headers:
+    - s2-D3
+    - s2-B6
+    id: s2-D6
+    role: data
+    text_state: empty
+  - address: B7
+    headers:
+    - s2-B3
+    id: s2-B7
+    role: row_header
+    text_state: read
+  - address: C7
+    headers:
+    - s2-C3
+    - s2-B7
+    id: s2-C7
+    role: data
+    text_state: read
+  - address: D7
+    headers:
+    - s2-D3
+    - s2-B7
+    id: s2-D7
+    role: data
+    text_state: empty
+  - address: B8
+    headers:
+    - s2-B3
+    id: s2-B8
+    role: row_header
+    text_state: read
+  - address: C8
+    headers:
+    - s2-C3
+    - s2-B8
+    id: s2-C8
+    role: data
+    text_state: read
+  - address: D8
+    headers:
+    - s2-D3
+    - s2-B8
+    id: s2-D8
+    role: data
+    text_state: read
+  - address: B9
+    headers:
+    - s2-B3
+    id: s2-B9
+    role: row_header
+    text_state: read
+  - address: C9
+    headers:
+    - s2-C3
+    - s2-B9
+    id: s2-C9
+    role: data
+    text_state: read
+  - address: D9
+    headers:
+    - s2-D3
+    - s2-B9
+    id: s2-D9
+    role: data
+    text_state: read
+  - address: B10
+    headers:
+    - s2-B3
+    id: s2-B10
+    role: row_header
+    text_state: read
+  - address: C10
+    headers:
+    - s2-C3
+    - s2-B10
+    id: s2-C10
+    role: data
+    text_state: read
+  - address: D10
+    headers:
+    - s2-D3
+    - s2-B10
+    id: s2-D10
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-2-table-4
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: VPC
+- cells:
+  - address: B13
+    headers: []
+    id: s2-B13
+    role: column_header
+    text_state: read
+  - address: C13
+    headers: []
+    id: s2-C13
+    role: column_header
+    text_state: read
+  - address: D13
+    headers: []
+    id: s2-D13
+    role: column_header
+    text_state: read
+  - address: E13
+    headers: []
+    id: s2-E13
+    role: column_header
+    text_state: read
+  - address: F13
+    headers: []
+    id: s2-F13
+    role: column_header
+    text_state: read
+  - address: G13
+    headers: []
+    id: s2-G13
+    role: column_header
+    text_state: read
+  - address: B14
+    headers:
+    - s2-B13
+    - s2-C14
+    id: s2-B14
+    role: data
+    text_state: read
+  - address: C14
+    headers:
+    - s2-C13
+    id: s2-C14
+    role: row_header
+    text_state: read
+  - address: D14
+    headers:
+    - s2-D13
+    - s2-C14
+    id: s2-D14
+    role: data
+    text_state: read
+  - address: E14
+    headers:
+    - s2-E13
+    - s2-C14
+    id: s2-E14
+    role: data
+    text_state: read
+  - address: F14
+    headers:
+    - s2-F13
+    - s2-C14
+    id: s2-F14
+    role: data
+    text_state: read
+  - address: B15
+    headers:
+    - s2-B13
+    - s2-C15
+    id: s2-B15
+    role: data
+    text_state: read
+  - address: C15
+    headers:
+    - s2-C13
+    id: s2-C15
+    role: row_header
+    text_state: read
+  - address: D15
+    headers:
+    - s2-D13
+    - s2-C15
+    id: s2-D15
+    role: data
+    text_state: read
+  - address: E15
+    headers:
+    - s2-E13
+    - s2-C15
+    id: s2-E15
+    role: data
+    text_state: read
+  - address: F15
+    headers:
+    - s2-F13
+    - s2-C15
+    id: s2-F15
+    role: data
+    text_state: read
+  - address: B16
+    headers:
+    - s2-B13
+    - s2-C16
+    id: s2-B16
+    role: data
+    text_state: read
+  - address: C16
+    headers:
+    - s2-C13
+    id: s2-C16
+    role: row_header
+    text_state: read
+  - address: D16
+    headers:
+    - s2-D13
+    - s2-C16
+    id: s2-D16
+    role: data
+    text_state: read
+  - address: E16
+    headers:
+    - s2-E13
+    - s2-C16
+    id: s2-E16
+    role: data
+    text_state: read
+  - address: F16
+    headers:
+    - s2-F13
+    - s2-C16
+    id: s2-F16
+    role: data
+    text_state: read
+  - address: G16
+    headers:
+    - s2-G13
+    - s2-C16
+    id: s2-G16
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-2-table-5
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: VPC
+- cells:
+  - address: B2
+    headers: []
+    id: s2-B2
+    role: text
+    text_state: read
+  - address: B12
+    headers: []
+    id: s2-B12
+    role: text
+    text_state: read
+  - address: B18
+    headers: []
+    id: s2-B18
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-2
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: VPC
+- cells:
+  - address: B3
+    headers: []
+    id: s3-B3
+    role: column_header
+    text_state: read
+  - address: C3
+    headers: []
+    id: s3-C3
+    role: column_header
+    text_state: read
+  - address: D3
+    headers: []
+    id: s3-D3
+    role: column_header
+    text_state: read
+  - address: E3
+    headers: []
+    id: s3-E3
+    role: column_header
+    text_state: read
+  - address: F3
+    headers: []
+    id: s3-F3
+    role: column_header
+    text_state: read
+  - address: G3
+    headers: []
+    id: s3-G3
+    role: column_header
+    text_state: read
+  - address: H3
+    headers: []
+    id: s3-H3
+    role: column_header
+    text_state: read
+  - address: B4
+    headers:
+    - s3-B3
+    id: s3-B4
+    role: row_header
+    text_state: read
+  - address: C4
+    headers:
+    - s3-C3
+    - s3-B4
+    id: s3-C4
+    role: data
+    text_state: read
+  - address: D4
+    headers:
+    - s3-D3
+    - s3-B4
+    id: s3-D4
+    role: data
+    text_state: read
+  - address: E4
+    headers:
+    - s3-E3
+    - s3-B4
+    id: s3-E4
+    role: data
+    text_state: read
+  - address: F4
+    headers:
+    - s3-F3
+    - s3-B4
+    id: s3-F4
+    role: data
+    text_state: read
+  - address: G4
+    headers:
+    - s3-G3
+    - s3-B4
+    id: s3-G4
+    role: data
+    text_state: read
+  - address: H4
+    headers:
+    - s3-H3
+    - s3-B4
+    id: s3-H4
+    role: data
+    text_state: read
+  - address: D5
+    headers:
+    - s3-D3
+    - s3-B4
+    id: s3-D5
+    role: data
+    text_state: read
+  - address: E5
+    headers:
+    - s3-E3
+    - s3-B4
+    id: s3-E5
+    role: data
+    text_state: read
+  - address: F5
+    headers:
+    - s3-F3
+    - s3-B4
+    id: s3-F5
+    role: data
+    text_state: read
+  - address: G5
+    headers:
+    - s3-G3
+    - s3-B4
+    id: s3-G5
+    role: data
+    text_state: read
+  - address: H5
+    headers:
+    - s3-H3
+    - s3-B4
+    id: s3-H5
+    role: data
+    text_state: read
+  - address: D6
+    headers:
+    - s3-D3
+    - s3-B4
+    id: s3-D6
+    role: data
+    text_state: read
+  - address: E6
+    headers:
+    - s3-E3
+    - s3-B4
+    id: s3-E6
+    role: data
+    text_state: read
+  - address: F6
+    headers:
+    - s3-F3
+    - s3-B4
+    id: s3-F6
+    role: data
+    text_state: read
+  - address: G6
+    headers:
+    - s3-G3
+    - s3-B4
+    id: s3-G6
+    role: data
+    text_state: read
+  - address: B7
+    headers:
+    - s3-B3
+    id: s3-B7
+    role: row_header
+    text_state: read
+  - address: C7
+    headers:
+    - s3-C3
+    - s3-B7
+    id: s3-C7
+    role: data
+    text_state: read
+  - address: D7
+    headers:
+    - s3-D3
+    - s3-B7
+    id: s3-D7
+    role: data
+    text_state: read
+  - address: E7
+    headers:
+    - s3-E3
+    - s3-B7
+    id: s3-E7
+    role: data
+    text_state: read
+  - address: F7
+    headers:
+    - s3-F3
+    - s3-B7
+    id: s3-F7
+    role: data
+    text_state: read
+  - address: G7
+    headers:
+    - s3-G3
+    - s3-B7
+    id: s3-G7
+    role: data
+    text_state: read
+  - address: H7
+    headers:
+    - s3-H3
+    - s3-B7
+    id: s3-H7
+    role: data
+    text_state: read
+  - address: D8
+    headers:
+    - s3-D3
+    - s3-B7
+    id: s3-D8
+    role: data
+    text_state: read
+  - address: E8
+    headers:
+    - s3-E3
+    - s3-B7
+    id: s3-E8
+    role: data
+    text_state: read
+  - address: F8
+    headers:
+    - s3-F3
+    - s3-B7
+    id: s3-F8
+    role: data
+    text_state: read
+  - address: G8
+    headers:
+    - s3-G3
+    - s3-B7
+    id: s3-G8
+    role: data
+    text_state: read
+  - address: H8
+    headers:
+    - s3-H3
+    - s3-B7
+    id: s3-H8
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-3-table-7
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: セキュリティグループ
+- cells:
+  - address: B2
+    headers: []
+    id: s3-B2
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-3
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: セキュリティグループ
+- cells:
+  - address: B3
+    headers: []
+    id: s4-B3
+    role: column_header
+    text_state: read
+  - address: C3
+    headers: []
+    id: s4-C3
+    role: column_header
+    text_state: read
+  - address: D3
+    headers: []
+    id: s4-D3
+    role: column_header
+    text_state: read
+  - address: E3
+    headers: []
+    id: s4-E3
+    role: column_header
+    text_state: read
+  - address: B4
+    headers:
+    - s4-B3
+    id: s4-B4
+    role: row_header
+    text_state: read
+  - address: C4
+    headers:
+    - s4-C3
+    - s4-B4
+    id: s4-C4
+    role: data
+    text_state: read
+  - address: B5
+    headers:
+    - s4-B3
+    id: s4-B5
+    role: row_header
+    text_state: read
+  - address: C5
+    headers:
+    - s4-C3
+    - s4-B5
+    id: s4-C5
+    role: data
+    text_state: read
+  - address: B6
+    headers:
+    - s4-B3
+    id: s4-B6
+    role: row_header
+    text_state: read
+  - address: C6
+    headers:
+    - s4-C3
+    - s4-B6
+    id: s4-C6
+    role: data
+    text_state: read
+  - address: B7
+    headers:
+    - s4-B3
+    id: s4-B7
+    role: row_header
+    text_state: read
+  - address: C7
+    headers:
+    - s4-C3
+    - s4-B7
+    id: s4-C7
+    role: data
+    text_state: read
+  - address: B8
+    headers:
+    - s4-B3
+    id: s4-B8
+    role: row_header
+    text_state: read
+  - address: C8
+    headers:
+    - s4-C3
+    - s4-B8
+    id: s4-C8
+    role: data
+    text_state: read
+  - address: D8
+    headers:
+    - s4-D3
+    - s4-B8
+    id: s4-D8
+    role: data
+    text_state: read
+  - address: B9
+    headers:
+    - s4-B3
+    id: s4-B9
+    role: row_header
+    text_state: read
+  - address: C9
+    headers:
+    - s4-C3
+    - s4-B9
+    id: s4-C9
+    role: data
+    text_state: read
+  - address: B10
+    headers:
+    - s4-B3
+    id: s4-B10
+    role: row_header
+    text_state: read
+  - address: C10
+    headers:
+    - s4-C3
+    - s4-B10
+    id: s4-C10
+    role: data
+    text_state: read
+  - address: B11
+    headers:
+    - s4-B3
+    id: s4-B11
+    role: row_header
+    text_state: read
+  - address: C11
+    headers:
+    - s4-C3
+    - s4-B11
+    id: s4-C11
+    role: data
+    text_state: read
+  - address: E11
+    headers:
+    - s4-E3
+    - s4-B11
+    id: s4-E11
+    role: data
+    text_state: read
+  - address: B12
+    headers:
+    - s4-B3
+    id: s4-B12
+    role: row_header
+    text_state: read
+  - address: C12
+    headers:
+    - s4-C3
+    - s4-B12
+    id: s4-C12
+    role: data
+    text_state: read
+  - address: D12
+    headers:
+    - s4-D3
+    - s4-B12
+    id: s4-D12
+    role: data
+    text_state: read
+  - address: B13
+    headers:
+    - s4-B3
+    id: s4-B13
+    role: row_header
+    text_state: read
+  - address: E13
+    headers:
+    - s4-E3
+    - s4-B13
+    id: s4-E13
+    role: data
+    text_state: read
+  - address: B14
+    headers:
+    - s4-B3
+    id: s4-B14
+    role: row_header
+    text_state: read
+  - address: C14
+    headers:
+    - s4-C3
+    - s4-B14
+    id: s4-C14
+    role: data
+    text_state: read
+  - address: E14
+    headers:
+    - s4-E3
+    - s4-B14
+    id: s4-E14
+    role: data
+    text_state: read
+  - address: B15
+    headers:
+    - s4-B3
+    id: s4-B15
+    role: row_header
+    text_state: read
+  - address: C15
+    headers:
+    - s4-C3
+    - s4-B15
+    id: s4-C15
+    role: data
+    text_state: read
+  - address: D15
+    headers:
+    - s4-D3
+    - s4-B15
+    id: s4-D15
+    role: data
+    text_state: read
+  - address: E15
+    headers:
+    - s4-E3
+    - s4-B15
+    id: s4-E15
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-4-table-9
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: RDS
+- cells:
+  - address: B2
+    headers: []
+    id: s4-B2
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-4
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: RDS
+- cells:
+  - address: B3
+    headers: []
+    id: s5-B3
+    role: column_header
+    text_state: read
+  - address: C3
+    headers: []
+    id: s5-C3
+    role: column_header
+    text_state: read
+  - address: B4
+    headers:
+    - s5-B3
+    id: s5-B4
+    role: row_header
+    text_state: read
+  - address: C4
+    headers:
+    - s5-C3
+    - s5-B4
+    id: s5-C4
+    role: data
+    text_state: read
+  - address: B5
+    headers:
+    - s5-B3
+    id: s5-B5
+    role: row_header
+    text_state: read
+  - address: C5
+    headers:
+    - s5-C3
+    - s5-B5
+    id: s5-C5
+    role: data
+    text_state: read
+  - address: B6
+    headers:
+    - s5-B3
+    id: s5-B6
+    role: row_header
+    text_state: read
+  - address: C6
+    headers:
+    - s5-C3
+    - s5-B6
+    id: s5-C6
+    role: data
+    text_state: read
+  evidence: []
+  id: sheet-5-table-11
+  kind: table
+  reading:
+    actor: arp4
+    method: parser
+    reason: >-
+      Adjacent cell regions with repeated row fields; headers set apart by bold text
+      or fill, and aligned row labels. Header links are layout hypotheses requiring
+      review.
+  sheet: 運用
+- cells:
+  - address: B2
+    headers: []
+    id: s5-B2
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-5
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: 運用
+- cells:
+  - address: A1
+    headers: []
+    id: s6-A1
+    role: text
+    text_state: read
+  - address: A2
+    headers: []
+    id: s6-A2
+    role: text
+    text_state: read
+  evidence: []
+  id: sheet-6
+  kind: text
+  reading:
+    actor: arp4
+    method: parser
+    reason: Captured cells outside confident table candidates; roles remain unassigned.
+  sheet: 選択肢
+extraction_hash: dbf821dd7fae46ca08143fdfba1c9686d6f922ac2a1214d6e36d92e1027f596d
+regions: []
+review:
+  actor: fixture-author-claude
+  content_hash: cb086a9b375021f72a8788162511b82126548ca62d4bb1411f63551bc2dad560
+  reason: "Fictional fixture: compared each table, header link and text cell with the generator script that wrote the workbook"
+  status: accepted
+schema_version: 1
+source:
+  path: docs/sample-design.xlsx
+  sha256: 92675cdc40f386c8d2af089587064aea5ad7ea7b0f53fada95bba06d374a9ef9
+visuals: []
