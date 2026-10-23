@@ -1,6 +1,6 @@
 # AWS Design Review — Agent / Skill distribution
 
-AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.4.0。生成成功と設計の承認は別の結果です。
+AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.5.1。生成成功と設計の承認は別の結果です。
 
 ## 導入
 
@@ -42,19 +42,20 @@ Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated i
 
 ## 地域別スキーマの取得
 
-初回はネット接続が必要です。東京とus-east-1のCloudFormationスキーマを、それぞれAWS公式の公開URLから取得します。AWS資格情報やアカウント操作は不要です。ZIPと生成カタログは配布に含めません。
+初回はネット接続が必要です。東京・大阪・us-east-1のCloudFormationスキーマを、それぞれAWS公式の公開URLから取得します。AWS資格情報やアカウント操作は不要です。ZIPと生成カタログは配布に含めません。
 
 |地域|ロック|レビュー済み公式ZIPのSHA-256|生成カタログ（レビュー時）|
 |---|---|---|---|
-|ap-northeast-1|`schemas/schema-lock.json`|`9c9c1cfdc6dc0ff549e67f029191746398a63a00147065b5afe56c58771cfe46`|51サービス・608型・4058上位プロパティ|
-|us-east-1|`schemas/schema-lock.us-east-1.json`|`6083e23a0701c379f90ec2c6bd382ee79e99cb472018460d0645c35aeee98553`|51サービス・640型・4197上位プロパティ|
+|ap-northeast-1|`schemas/schema-lock.json`|`7b9cb45a40a8d508d60bfa09247d334307dcbb705f620a860d6ea0a04cfcbc62`|52サービス・618型・4125上位プロパティ|
+|ap-northeast-3|`schemas/schema-lock.ap-northeast-3.json`|`160a73341ff37926f2dfc96262f7ced8d6939d13c625844dcaab8795a4fc6c7b`|52サービス・596型・4003上位プロパティ|
+|us-east-1|`schemas/schema-lock.us-east-1.json`|`6083e23a0701c379f90ec2c6bd382ee79e99cb472018460d0645c35aeee98553`|52サービス・648型・4250上位プロパティ|
 
-従来の50サービスを維持してCognitoを追加しました。件数は生成対象であり、AWS全条件の評価完了を表しません。us-east-1では東京の調査済み判定を流用せず、地域適用性の再確認を残します。
+従来の50サービスを維持してCognitoとFSx（ファイルシステム・SVM・ボリュームなど）を追加しました。件数は生成対象であり、AWS全条件の評価完了を表しません。東京の調査済み判定は、他地域ではそのまま流用しません。大阪では、型スキーマが調査時の東京と同一で、ルール・参照・検査・未解決事項に地域の記述がない687型だけを、`rules/schema-reviews.json` のレビュー記録により引き継ぎます。それ以外の型とus-east-1では、地域適用性の再確認を残します。FSxの共有（SMB共有など）はCloudFormationのリソース型がないため、拡張項目として扱います。
 
 インストーラーは`--all-regions`を実行します。キャッシュは`schemas/.cache/<region>/<ZIP SHA-256>/<lock SHA-256>/`に分離し、取得記録、manifest、カタログ、ルール、変更記録を検証します。
 
 ```powershell
-# ネット接続なしで両地域を検証
+# ネット接続なしで全地域を検証
 & .\.venv\Scripts\aws-design-bootstrap.exe --check --all-regions
 # 初回取得の再試行
 & .\.venv\Scripts\aws-design-bootstrap.exe --all-regions
@@ -81,6 +82,14 @@ Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated i
 ARP4で解析済みの外部Excelデザインシート（`extraction.json`・`document.yml`・承認済みの構造解釈）から、`aws-design-external`で1.1入力と`source-trace.json`を作ります。ARP4は同梱しません。このツール自身もOfficeファイルを直接読みません。
 
 作成担当のエージェントがセルIDを引用した抽出ファイルを書き、別のレビュー担当が照合して受理を記録します。対応付けの提案は利用者が指名した承認者だけが辞書へ承認します。`build`は値を抽出結果から取得し、対応表・未対応一覧・対応範囲も出力します。`import_status: COMPLETE`は変換が終わったことだけを表し、設計の承認ではありません。CodexにはAgent定義を同梱しないため、2つの役割を別セッション・別の担当名で実行します。手順は`references/usage.md`の「External design sheets parsed by ARP4」を参照してください。
+
+## 大阪・再レビュー記録・原本の承認・外部参照値（0.5.0）
+
+大阪リージョン（ap-northeast-3）のロックとFSxの設計書カタログを追加しました。東京で調査した型は、`rules/schema-reviews.json`にその地域の型スキーマ指紋付きのレビュー記録がある場合だけ、地域の再確認なしで引き継ぎます。`review-report.json`の`rule_review_causes`は、要確認ルールを地域適用性・スキーマ変更・既存の未解決事項に分けて数えます。
+
+外部シートの承認欄と項目ごとのレビュー列を引用すると、その記載を`source-trace.json`と`review-report.json`の`source_review`へ転記します。本ツールの承認ではなく、空欄を承認済みと扱いません。`--external-bindings FILE`で外部参照に既知の非秘密値を与えると、型の合う値だけをローカル評価に使います。AWSには接続せず、実在や所有は確認しません。詳細は`references/usage.md`を参照してください。
+
+0.5.1では、ARNの地域検査を加えました。バインディング値のARNがリソースと別の地域・パーティションなら評価に使いません。設計入力に直接書いたARNも`--evaluate`で`DOCUMENT_ARN_REGION`として検査します（CloudFrontの証明書・WebACLはus-east-1、バックアップの地域間コピー先などは別地域を許容）。
 
 ## 範囲とデータ
 

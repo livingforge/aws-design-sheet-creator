@@ -13,7 +13,7 @@ SERVICES={name:(name,) for name in (
     'KMS','Logs','SecretsManager','SNS','SQS','SSM','Config','CloudTrail','Backup','CertificateManager',
     'ACMPCA','WAFv2','Shield','GuardDuty','SecurityHub','InspectorV2','Macie','AccessAnalyzer','Organizations',
     'ControlTower','CloudFormation','ResourceGroups','RAM','ServiceCatalog','StepFunctions','Kinesis',
-    'KinesisFirehose','Glue','Athena','Redshift','ElastiCache','MSK','SES','Cognito')}
+    'KinesisFirehose','Glue','Athena','Redshift','ElastiCache','MSK','SES','Cognito','FSx')}
 SERVICES.update(APIGateway=('ApiGateway','ApiGatewayV2'),ELB=('ElasticLoadBalancing','ElasticLoadBalancingV2'),
     EventBridge=('Events','EventSchemas','Scheduler','Pipes'),Route53=('Route53','Route53Resolver'),
     OpenSearch=('OpenSearchService','Elasticsearch'))

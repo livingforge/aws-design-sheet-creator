@@ -26,7 +26,7 @@ LIMITATIONS = [
     'AWS実環境、性能、権限の実効性、疎通、業務要件・APP・Q01–06の合否は検査しない。',
     'アカウントとスタック所属は未宣言。CFNは資源ごとに分離した検査用合成物で、デプロイ用ではない。',
     '内部参照は宣言先との関係だけを検査。実値・Ref/GetAtt属性・依存順序は補完しない。',
-    '式・既定値・外部参照・秘密参照は解決せず、未知値用パラメータにDefaultを設定しない。',
+    '式・既定値・秘密参照は解決せず、未知値用パラメータにDefaultを設定しない。外部参照は利用者のバインディングファイルで型の合う値だけを使い、AWS上の実在・所有・現在の状態は確認しない。',
     '既存検査器と固定スキーマの範囲に限定。検出なし・生成成功・比較一致は設計全体の合格を意味しない。',
 ]
 
@@ -59,9 +59,15 @@ def token(value):
 def adapt(document):
     """Return a valid legacy Design and explicit pointer/source/unknown mappings."""
     from .document_v11 import SchemaSetting
+    from .document_bindings import NOTE as BOUND_NOTE, applied
     env = next(e for e in document.design.environments if e.id == document.environment_id)
     resources = {r.id: r for r in document.design.resources}
     lines, evidence, mappings, relations, coverage = [], [], [], [], []
+    binding_report = getattr(document, 'external_bindings', None) or {}
+    bound = applied(binding_report)
+    refused = {(r['resource_id'], r['path']): 'EXTERNAL_REF_BINDING_' + r['status'] for r in binding_report.get('uses', [])
+               if r['status'] in ('SHAPE_MISMATCH', 'REGION_MISMATCH')}
+    crossing = {(r['resource_id'], r['path']) for r in binding_report.get('uses', []) if r.get('cross_region')}
     fields = {r: [] for r in resources}
 
     def record(resource_id, path, setting, item, pointer):
@@ -86,8 +92,15 @@ def adapt(document):
         eid = record(resource_id, path, setting, item, pointer)
         if setting.status == 'NOT_APPLICABLE' or setting.mode == 'OMITTED':
             return OMIT, eid
+        if setting.status == 'DECIDED' and setting.mode == 'EXTERNAL_REF' and (resource_id, path) in bound:
+            note = BOUND_NOTE + (' The ARN is in another region by design of this property.'
+                                 if (resource_id, path) in crossing else '')
+            coverage.append({'kind': 'EXTERNAL_VALUE_BOUND', 'resource_id': resource_id, 'path': path,
+                             'reason': note, 'evidence_ids': [eid]})
+            return bound[(resource_id, path)], eid
         if setting.status != 'DECIDED' or setting.mode in ('DEFAULT', 'EXTERNAL_REF', 'SECRET_REF', 'EXPRESSION'):
-            return unknown(resource_id, path, setting.mode or setting.status, eid), eid
+            reason = refused.get((resource_id, path)) or setting.mode or setting.status
+            return unknown(resource_id, path, reason, eid), eid
         if setting.mode == 'RESOURCE_REF':
             values = []
             for i, target in enumerate(setting.ref if isinstance(setting.ref, list) else [setting.ref]):
@@ -211,6 +224,9 @@ def evaluate(document):
     evaluation.provenance = {'input_sha256': document.input_sha256, 'environment_id': document.environment_id,
                              'cfn_used_for_evaluation': False, 'account': 'UNDECLARED',
                              'comparison_cfn_sha256': document.cfn_sha256}
+    bindings = getattr(document, 'external_bindings', None) or {}
+    if bindings.get('status') == 'PROVIDED':
+        evaluation.provenance['external_bindings_sha256'] = bindings['sha256']
     try:
         design, evaluation.mappings, evaluation.coverage = adapt(document)
     except Exception:
@@ -237,7 +253,7 @@ def evaluate(document):
     evaluation.stages['declared_dependencies']={'status':'COMPLETE','scope':'explicit logical graph only; no CFN stack inference'}
     from .document_regions import inspect_placement
     evaluation.results.extend({**r,'stage':'declared_regions'} for r in inspect_placement(document))
-    evaluation.stages['declared_regions']={'status':'COMPLETE','scope':'explicit regional placement only'}
+    evaluation.stages['declared_regions']={'status':'COMPLETE','scope':'explicit regional placement and decided literal ARN regions only'}
     unknown_resources = {r['resource_id'] for r in evaluation.coverage if r['kind'] == 'BRIDGE_UNKNOWN_VALUE'}
     for name, runner in [('checker', run_checker), ('cfn_lint', run_linter)]:
         try:

@@ -82,3 +82,34 @@ def test_failed_evaluator_is_reported_as_failure_not_host_success(tmp_path,monke
     assert report['execution']['evaluation_status']=='FAILED' and report['execution']['aws_assessment']=='ERROR'
     assert report['execution']['host_acceptance']=='NOT_VERIFIED_BY_CLI'
     assert report['evaluation_stages']['checker']['status']=='FAILED'
+
+
+def test_manual_trace_approval_and_reviews_are_counted_apart(tmp_path):
+    inp,src,trace=inputs(tmp_path)
+    trace[0]['item_review']={'status':'ACCEPTED','text':'OK','pointer':'review.xlsx#Sheet1!E4'}
+    trace[1]['item_review']={'status':'CHANGES_REQUESTED','text':'NG'}
+    approval={'status':'IN_REVIEW','status_text':'レビュー中','approvers':[]}
+    src.write_text(json.dumps({'rows':trace,'document_approval':approval}),encoding='utf-8')
+    out=tmp_path/'generated';generate(inp,'prod',out,source_trace=src)
+    report=json.loads((out/'review-report.json').read_text(encoding='utf-8'))['source_review']
+    assert report['document_approval']=='IN_REVIEW' and report['document_approval_detail']==approval
+    assert report['item_review_counts']=={'ACCEPTED':1,'CHANGES_REQUESTED':1} and report['rows_without_item_review']==2
+    assert report['generated_items_by_item_review']=={'ACCEPTED':1,'CHANGES_REQUESTED':1,'NOT_PROVIDED':1}
+    assert json.loads((out/'source-trace.json').read_text(encoding='utf-8'))=={'rows':trace,'document_approval':approval}
+
+
+def test_trace_without_approval_is_not_cited_not_approved(tmp_path):
+    inp,src,_=inputs(tmp_path);out=tmp_path/'generated';generate(inp,'prod',out,source_trace=src)
+    report=json.loads((out/'review-report.json').read_text(encoding='utf-8'))['source_review']
+    assert report['document_approval']=='NOT_CITED' and report['item_review_counts']=={}
+
+
+@pytest.mark.parametrize('where,value',[('approval',{'status':'OK'}),('approval',{'status':'APPROVED','approvers':[1]}),
+                                        ('review',{'status':'APPROVED'}),('review','ACCEPTED')])
+def test_unknown_approval_or_review_states_fail(tmp_path,where,value):
+    inp,src,trace=inputs(tmp_path)
+    if where=='review':trace[0]['item_review']=value;src.write_text(json.dumps(trace))
+    else:src.write_text(json.dumps({'rows':trace,'document_approval':value}))
+    out=tmp_path/'failed'
+    assert main([str(inp),'--environment','prod','--output',str(out),'--source-trace',str(src)])==2
+    assert not out.exists()

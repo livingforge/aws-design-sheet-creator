@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from .document_bindings import BindingError
 from .document_model import DocumentInput, Document
 from .document_normalize import InputError, normalize
 from .document_workbook import workbook
@@ -12,12 +13,16 @@ from .document_policy_model import PolicyConfigurationError
 from .schema_bootstrap import SchemaSetupError, resolve_schema_dir
 
 
-def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evaluate_design=False,source_trace=None):
+def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evaluate_design=False,source_trace=None,external_bindings=None):
     resolve_schema_dir(Path(__file__).resolve().parents[2] / 'schemas')
     if output.exists():raise InputError('output directory already exists; use a fresh destination')
     raw=input_path.read_bytes();cfn_raw=cfn_path.read_bytes() if cfn_path else None
     document=normalize(raw,environment,cfn_raw)
     if not 1<=volume_size<=50:raise InputError('volume size must be 1..50')
+    if external_bindings is not None:
+        if document.model_version!='1.1':raise InputError('external bindings require schema version 1.1')
+        from .document_bindings import read_bindings
+        document.external_bindings=read_bindings(external_bindings,document)
     if evaluate_design:
         from .document_evaluation import evaluate
         document.evaluation=evaluate(document)
@@ -25,8 +30,8 @@ def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evalua
     report_rows=[]
     if document.model_version=='1.1':
         from .document_report import read_trace,build_report
-        report_rows,trace_hash=read_trace(source_trace,document)
-        document.review_report=build_report(document,report_rows,trace_hash)
+        report_rows,trace_hash,approval=read_trace(source_trace,document)
+        document.review_report=build_report(document,report_rows,trace_hash,approval)
     elif source_trace is not None:raise InputError('source trace requires schema version 1.1')
     book=workbook(document,services=set()) if document.model_version=='1.1' else workbook(document)
     output.mkdir(parents=True)
@@ -76,7 +81,8 @@ def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evalua
         review_report_file='review-report.json',regional_catalogs=document.regional_catalog_provenance,
         literal_matches=sum(x.comparison=='MATCH' for x in document.items),
         expression_matches=sum(x.comparison=='EXPRESSION_MATCH' for x in document.items),
-        unresolved_values=sum(x.expected_resolution in ('UNRESOLVED','PARTIAL') for x in document.items))
+        unresolved_values=sum(x.expected_resolution in ('UNRESOLVED','PARTIAL') for x in document.items),
+        external_bindings=document.external_bindings.get('counts',{}) if document.external_bindings else {})
     (output/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf8')
     if document.model_version=='1.1':
         from .document_report import render_report
@@ -86,7 +92,9 @@ def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evalua
         (output/'basic-design.md').write_text(render_basic_design(document),encoding='utf-8')
         if document.decision_trace['status']!='NOT_CHECKED':
             (output/'decision-trace.json').write_text(json.dumps(document.decision_trace,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-        if source_trace is not None:(output/'source-trace.json').write_text(json.dumps(report_rows,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        if source_trace is not None:
+            saved=report_rows if approval is None else {'rows':report_rows,'document_approval':approval}
+            (output/'source-trace.json').write_text(json.dumps(saved,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     return summary
 
 
@@ -97,6 +105,7 @@ def main(argv=None):
     p.add_argument('--schema-version',choices=['1.0','1.1'],default='1.0');p.add_argument('--volume-size',type=int,default=10)
     p.add_argument('--evaluate',action='store_true',help='run the local checker and cfn-lint on effective design inputs')
     p.add_argument('--source-trace',type=Path,help='optional original source states and bindings; never implies source fidelity or host acceptance')
+    p.add_argument('--external-bindings',type=Path,help='optional local non-secret values for EXTERNAL_REF settings; nothing is fetched from AWS')
     a=p.parse_args(argv)
     if a.schema:
         if a.schema_version=='1.1':
@@ -106,9 +115,13 @@ def main(argv=None):
         print(json.dumps(model.model_json_schema(),ensure_ascii=False,indent=2));return 0
     if not a.input or not a.environment or not a.output:p.error('input, --environment and --output are required')
     try:
-        result=generate(a.input,a.environment,a.output,a.cfn,a.volume_size,evaluate_design=a.evaluate,source_trace=a.source_trace)
+        result=generate(a.input,a.environment,a.output,a.cfn,a.volume_size,evaluate_design=a.evaluate,source_trace=a.source_trace,
+                        external_bindings=a.external_bindings)
     except SchemaSetupError as exc:
         print(json.dumps({'generation_status':'SCHEMA_SETUP_REQUIRED','message':str(exc)}));return 2
+    except BindingError as exc:
+        # Codes and reference names only; bound values are never echoed.
+        print(json.dumps({'generation_status':'BINDING_ERROR','error_code':str(exc)},ensure_ascii=False));return 2
     except PolicyConfigurationError as exc:
         print(json.dumps({'generation_status':'POLICY_CONFIGURATION_ERROR','error_code':exc.code}));return 2
     except ValidationError as exc:

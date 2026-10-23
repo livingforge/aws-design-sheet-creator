@@ -1,11 +1,11 @@
 {
   "format_version": 3,
   "acquisition": "OFFICIAL_LATEST_WITH_REVIEW_DRIFT",
-  "tool_version": "0.4.0",
+  "tool_version": "0.5.1",
   "region": "us-east-1",
   "baseline_region": "ap-northeast-1",
   "source": "https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip",
-  "reviewed_at": "2026-10-19T00:08:40.309292+00:00",
+  "reviewed_at": "2026-10-21T13:24:50.363661+00:00",
   "zip_sha256": "6083e23a0701c379f90ec2c6bd382ee79e99cb472018460d0645c35aeee98553",
   "previous_zip_sha256": "70c0dd203208595c033800f3046e6e9513176089a3f903f486b6360bb79235d8",
   "previous_type_sha256": {
@@ -3475,9 +3475,10 @@
     "rds-event-categories.json": "652ff02c9c8bf7265cc6e7146355f98e28cb6666b05651824c9bd81ccab4dc99",
     "references.json": "8d729ac964ec0863e51bb7640b4e1b9bba3dc869a9e8ae333d9a351ebbb94d3d",
     "ruleset.json": "13f3668d3a8777c3db252672553c3571883cfef90c51fc03002bea38a7a9d49b",
+    "schema-reviews.json": "0b835355c096fbc47e2876a6099af09630130d673bc95511923ad2f27ef76583",
     "service-tiers.json": "d225cebdbc0bd0555106d489e6dcf8cef7ad6a57be1b3066d60859814d15fce3"
   },
-  "catalog_sha256": "003d27703b00ff815b095998ef9fa4f274d4a410cdd2b31c74f13558f3ea106b",
+  "catalog_sha256": "ff19660a2e858e2126f2422ab941e28b2771ba4c3325292b074b1cf75d4b78f4",
   "catalog_types": [
     "AWS::ACMPCA::Certificate",
     "AWS::ACMPCA::CertificateAuthority",
@@ -3825,6 +3826,14 @@
     "AWS::Events::EventBus",
     "AWS::Events::EventBusPolicy",
     "AWS::Events::Rule",
+    "AWS::FSx::Backup",
+    "AWS::FSx::DataRepositoryAssociation",
+    "AWS::FSx::FileCache",
+    "AWS::FSx::FileSystem",
+    "AWS::FSx::S3AccessPointAttachment",
+    "AWS::FSx::Snapshot",
+    "AWS::FSx::StorageVirtualMachine",
+    "AWS::FSx::Volume",
     "AWS::Glue::Blueprint",
     "AWS::Glue::Catalog",
     "AWS::Glue::Classifier",
@@ -4121,10 +4130,11 @@
     "AWS::WAFv2::WebACLAssociation"
   ],
   "generated_rule_sha256": {
-    "ledger.json": "e15305772a9c42e085606ab3bdd1b3ecd5d5f4c2d4c3a886c925c4ef9b38e5fa",
+    "ledger.json": "259dfc9e545af1b2dfc22d9770cc07fb895271fc6da2768296c4f0dcb1631d5e",
     "rds-event-categories.json": "652ff02c9c8bf7265cc6e7146355f98e28cb6666b05651824c9bd81ccab4dc99",
     "references.json": "fa727bcb6a293fe0c680c3fd0e4a368a1ec42ebff49e54319e066d58f38e7934",
     "ruleset.json": "a8dec66ac9312e94ae872d0233ee2f0d5e6fc20f0a66fad557413efb576c8f24",
+    "schema-reviews.json": "0b835355c096fbc47e2876a6099af09630130d673bc95511923ad2f27ef76583",
     "service-tiers.json": "d225cebdbc0bd0555106d489e6dcf8cef7ad6a57be1b3066d60859814d15fce3"
   },
   "reconciliation_sha256": "b91c148a7bdacfa6055206851ced00046b0d02e739ebe268376404baf05f1e26"

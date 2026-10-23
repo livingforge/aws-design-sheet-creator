@@ -32,6 +32,19 @@ STATE_WORDS = {
     'NOT_APPLICABLE': ['-', '－', 'ー', '―', 'N/A', 'NA', '対象外', '不要', '該当なし'],
     'DEFAULT': ['デフォルト', '既定', '既定値', 'Default', 'AWS既定', 'AWS既定値'],
 }
+# Approval and review words of the source itself, compared after normalization. They are
+# transcribed, never inferred: blanks stay NOT_RECORDED and other words UNRECOGNIZED.
+APPROVAL_WORDS = {
+    'APPROVED': ['承認済', '承認済み', '承認', 'Approved'],
+    'IN_REVIEW': ['レビュー中', '確認中', '査読中', '承認待ち', '承認依頼中', 'In Review', 'Under Review'],
+    'DRAFT': ['ドラフト', '草案', '作成中', '下書き', 'Draft', 'WIP'],
+    'REJECTED': ['差戻し', '差し戻し', '却下', '否認', 'Rejected'],
+}
+REVIEW_WORDS = {
+    'ACCEPTED': ['OK', '済', '確認済', '確認済み', 'レビュー済', 'レビュー済み', '承認', '承認済', 'Accepted', 'Approved', 'LGTM'],
+    'CHANGES_REQUESTED': ['NG', '要修正', '指摘あり', '差戻し', '差し戻し', 'Rejected', 'Changes Requested'],
+    'NOT_REVIEWED': ['未', '未確認', '未レビュー', '未実施', 'Not Reviewed', 'Pending'],
+}
 NOT_WRITTEN = {'BLANK': 'BLANK_NOT_CONVERTED', 'FORMULA': 'FORMULA_RESULT_NOT_ADOPTED', 'SECRET_VALUE': 'SECRET_VALUE_NOT_COPIED'}
 # The ARP4 extraction contract has no field for these; their absence is reported, never assumed.
 UNEXTRACTED = ['data_validations', 'defined_names', 'sheet_protection', 'workbook_protection', 'external_links']
@@ -103,10 +116,25 @@ class Item(StrictModel):
     ref: ID | None = None
     mapping: Mapping
     reason: str = ''
+    review_cell: CellRef | None = None
 
     @model_validator(mode='after')
     def shape(self):
         if (self.state == 'RESOURCE_REF') != (self.ref is not None):raise ValueError('ref is required for RESOURCE_REF only')
+        return self
+
+
+class SourceApproval(StrictModel):
+    """Cells of the source's own approval block (status, approvers, date, notes)."""
+    status_cell: CellRef | None = None
+    approver_cells: list[CellRef] = Field(default_factory=list)
+    date_cell: CellRef | None = None
+    note_cells: list[CellRef] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def anchored(self):
+        if self.status_cell is None and not self.approver_cells and self.date_cell is None and not self.note_cells:
+            raise ValueError('cite at least one approval cell')
         return self
 
 
@@ -143,6 +171,7 @@ class ItemsFile(StrictModel):
     binding: Binding
     author: Author
     sheet_version_cell: CellRef | None = None
+    approval: SourceApproval | None = None
     resources: list[SheetResource] = Field(default_factory=list)
     items: list[Item] = Field(default_factory=list)
     extensions: list[Extension] = Field(default_factory=list)
@@ -179,15 +208,19 @@ class Entry(StrictModel):
 class Dictionary(StrictModel):
     schema_version: Literal['1']
     state_words: dict[Literal['UNDECIDED', 'NOT_APPLICABLE', 'DEFAULT'], list[str]] = Field(default_factory=dict)
+    approval_words: dict[Literal['APPROVED', 'IN_REVIEW', 'DRAFT', 'REJECTED'], list[str]] = Field(default_factory=dict)
+    review_words: dict[Literal['ACCEPTED', 'CHANGES_REQUESTED', 'NOT_REVIEWED'], list[str]] = Field(default_factory=dict)
     entries: list[Entry] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def unique(self):
         if len({e.id for e in self.entries}) != len(self.entries):raise ValueError('duplicate dictionary entry ID')
-        seen = {}
-        for state, words in STATE_WORDS.items():
-            for word in [*words, *self.state_words.get(state, [])]:
-                if seen.setdefault(norm(word), state) != state:raise ValueError('state word assigned to two states')
+        for builtin, extra, what in ((STATE_WORDS, self.state_words, 'state'), (APPROVAL_WORDS, self.approval_words, 'approval'),
+                                     (REVIEW_WORDS, self.review_words, 'review')):
+            seen = {}
+            for state, words in builtin.items():
+                for word in [*words, *extra.get(state, [])]:
+                    if seen.setdefault(norm(word), state) != state:raise ValueError(f'{what} word assigned to two states')
         return self
 
 
@@ -322,6 +355,18 @@ def state_words(dictionary):
     return out
 
 
+def vocabulary(builtin, extra):
+    return {norm(word): state for state, words in builtin.items() for word in [*words, *extra.get(state, [])]}
+
+
+def classify(book, cid, words):
+    """Transcribe one approval/review cell; never infer approval from a blank or unknown word."""
+    cell = book.cells.get(cid)
+    if cell is not None and cell['formula'] is not None:return 'FORMULA_NOT_ADOPTED'
+    if book.empty(cid):return 'NOT_RECORDED'
+    return words.get(norm(book.text(cid)), 'UNRECOGNIZED')
+
+
 def convert_value(book, cid, how, value_map):
     """Explicit conversion of one cell; raises ValueError with a code, never with the value."""
     cell = book.cells[cid];raw = cell['value'];key = norm(book.text(cid))
@@ -443,6 +488,14 @@ def check(book, items_file, dictionary, *, region=None):
         if r.name_cell:cite(r.name_cell, 'resource', r.id)
         for cid in r.evidence_cells:cite(cid, 'resource', r.id)
     if items_file.sheet_version_cell:cite(items_file.sheet_version_cell, 'version', 'sheet_version_cell')
+    approval_words = vocabulary(APPROVAL_WORDS, dictionary.approval_words)
+    review_words = vocabulary(REVIEW_WORDS, dictionary.review_words)
+    if items_file.approval:
+        a = items_file.approval
+        for cid in [*([a.status_cell] if a.status_cell else []), *a.approver_cells, *([a.date_cell] if a.date_cell else []), *a.note_cells]:
+            cite(cid, 'approval', 'approval', may_be_empty=True)
+        if a.status_cell and classify(book, a.status_cell, approval_words) == 'UNRECOGNIZED':
+            result.warn('APPROVAL_WORD_UNKNOWN', 'approval', [a.status_cell])
     value_owner, path_owner = {}, {}
     elements = defaultdict(set)  # array element -> member names some item gives
     for item in items_file.items:
@@ -452,6 +505,10 @@ def check(book, items_file, dictionary, *, region=None):
         value_cited = cite(item.value_cell, 'value', where, may_be_empty=True)
         for cid in [*item.note_cells, *([item.unit_cell] if item.unit_cell else [])]:cite(cid, 'note', where)
         for cond in item.conditions:cite(cond.label_cell, 'label', where);cite(cond.value_cell, 'condition', where)
+        if item.review_cell:
+            if item.review_cell == item.value_cell:result.error('REVIEW_CELL_IS_VALUE', where, [item.review_cell])
+            elif cite(item.review_cell, 'review', where, may_be_empty=True) and classify(book, item.review_cell, review_words) == 'UNRECOGNIZED':
+                result.warn('REVIEW_WORD_UNKNOWN', where, [item.review_cell])
         if item.value_cell in value_owner:result.error('VALUE_CELL_REUSED', where, [item.value_cell])
         value_owner[item.value_cell] = item.id
         if resource is None:result.error('UNKNOWN_RESOURCE', where);continue
@@ -612,6 +669,24 @@ def build(book, items_raw, dictionary_raw, base_raw, *, review_raw=None, source_
         view['sheet_state'] = book.sheet_of(cid)['state']
         return view
 
+    def pointer(cid):return f"{book.document}#{book.sheet_of(cid)['name']}!{book.locate(cid)['address']}"
+    approval_words = vocabulary(APPROVAL_WORDS, dictionary.approval_words)
+    review_words = vocabulary(REVIEW_WORDS, dictionary.review_words)
+    a = items_file.approval
+    approval = {'status': 'NOT_CITED'}
+    if a is not None:
+        approval = {'status': classify(book, a.status_cell, approval_words) if a.status_cell else 'NOT_CITED',
+                    'status_text': shown(a.status_cell) if a.status_cell else None,
+                    'status_cell': pointer(a.status_cell) if a.status_cell else None,
+                    'approvers': [shown(c) for c in a.approver_cells], 'approver_cells': [pointer(c) for c in a.approver_cells],
+                    'date': shown(a.date_cell) if a.date_cell else None, 'date_cell': pointer(a.date_cell) if a.date_cell else None,
+                    'notes': [shown(c) for c in a.note_cells], 'note_cells': [pointer(c) for c in a.note_cells]}
+
+    def item_review(item):
+        if item.review_cell is None:return None
+        return {'status': classify(book, item.review_cell, review_words), 'text': shown(item.review_cell),
+                'pointer': pointer(item.review_cell)}
+
     leaves = defaultdict(list);rows = [];trace = []
     for item in items_file.items:
         resource = resources[item.resource]
@@ -644,14 +719,15 @@ def build(book, items_raw, dictionary_raw, base_raw, *, review_raw=None, source_
                      'value_cell': cell_view(item.value_cell), 'unit_cell': cell_view(item.unit_cell) if item.unit_cell else None,
                      'note_cells': [cell_view(c) for c in item.note_cells],
                      'conditions': [{'label': cell_view(c.label_cell), 'value': cell_view(c.value_cell)} for c in item.conditions],
-                     'reason': item.reason, 'source_id': sid})
+                     'reason': item.reason, 'source_id': sid, 'review': item_review(item)})
         snapshot = {'setting_id': f'ext:{item.id}', 'kind': 'CFN', 'status': item.state,
                     'verification_status': rows[-1]['mapping']['status'], 'label': rows[-1]['label'],
                     'value': rows[-1]['value_cell']['text'], **({'formula': rows[-1]['value_cell']['formula']} if 'formula' in rows[-1]['value_cell'] else {}),
                     'paths': item.paths}
         trace.append({'setting_id': f'ext:{item.id}', 'kind': 'CFN', 'source_snapshot': snapshot, 'item_ids': written_ids,
                       'source_pointer': f"{book.document}#{book.sheet_of(item.value_cell)['name']}!{book.locate(item.value_cell)['address']}",
-                      **({} if written_ids else {'exclusion_reason': reason_code})})
+                      **({} if written_ids else {'exclusion_reason': reason_code}),
+                      **({'item_review': rows[-1]['review']} if rows[-1]['review'] else {})})
     retained = []
     for kind, collection in (('EXTENSION', items_file.extensions), ('UNMAPPED', items_file.unmapped)):
         for kept in collection:
@@ -776,6 +852,9 @@ def build(book, items_raw, dictionary_raw, base_raw, *, review_raw=None, source_
         'by_service': {str(k): dict(sorted(v.items())) for k, v in sorted(by_service.items(), key=lambda kv: str(kv[0]))},
         'by_state': {k: dict(sorted(v.items())) for k, v in sorted(by_state.items())},
         'resources': resource_status,
+        'source_review': {'document_approval': approval,
+                          'item_review_counts': dict(sorted(Counter(r['review']['status'] for r in rows if r['review']).items())),
+                          'items_without_review_cell': sum(not r['review'] for r in rows)},
         'cells': {'nonempty': len(book.nonempty()), 'covered_by': dict(sorted(covered.items()))},
         'sheets': book.sheets,
         'follow_ups': [{'item_id': r['item_id'], 'reason_code': r['reason_code'], 'cell': r['value_cell']['cell']} for r in rows if r['outcome'] != 'WRITTEN']
@@ -784,10 +863,11 @@ def build(book, items_raw, dictionary_raw, base_raw, *, review_raw=None, source_
         'warnings': result.warnings,
         'versions': versions,
         'notes': ['import_status は抽出項目の変換状態だけを表します。設計の承認・網羅・AWS上の妥当性は表しません。',
-                  'unchecked_scope の情報は原本から読み取っていません。入力規則の選択肢などは別途確認してください。'],
+                  'unchecked_scope の情報は原本から読み取っていません。入力規則の選択肢などは別途確認してください。',
+                  'source_review は原本の承認欄・レビュー列の転記です。本ツールの承認ではなく、空欄や未知の語を承認済みと扱いません。'],
     }
     mapping = {'contract_version': CONTRACT_VERSION, 'document': book.document, 'rows': rows, 'retained': retained, 'excluded': excluded}
-    files = {'input.json': dump(design), 'source-trace.json': dump({'rows': trace}),
+    files = {'input.json': dump(design), 'source-trace.json': dump({'rows': trace, 'document_approval': approval}),
              'external-mapping.json': dump(mapping), 'external-coverage.json': dump(coverage)}
     files['external-trace.xlsx'] = trace_workbook(mapping, coverage)
     summary = {'import_status': import_status, 'reasons': reasons, 'outcome_counts': coverage['outcome_counts'],
@@ -820,12 +900,13 @@ def trace_workbook(mapping, coverage):
         ws.freeze_panes = 'A2';ws.auto_filter.ref = ws.dimensions
     loc = lambda v: f"{v['sheet']}!{v['address']}" if v else ''
     sheet('対応表', ['項目ID', '原本位置', 'ラベル', '原本の値', '式', '状態', 'リソース', 'リソース型', 'プロパティパス',
-                  '対応状態', '辞書ID', '変換後の値', '出力', '理由コード', '単位', '備考', '条件', '根拠'],
+                  '対応状態', '辞書ID', '変換後の値', '出力', '理由コード', '単位', '備考', '条件', '根拠', '原本のレビュー結果'],
           [[r['item_id'], loc(r['value_cell']), r['label'], r['value_cell']['text'], r['value_cell'].get('formula', ''), r['state'],
             r['resource_id'], r['resource_type'], '\n'.join(r['paths']), r['mapping']['status'], r['mapping']['entry_id'] or '',
             '' if r['converted_value'] is None else json.dumps(r['converted_value'], ensure_ascii=False), r['outcome'], r['reason_code'] or '',
             r['unit_cell']['text'] if r['unit_cell'] else '', '\n'.join(n['text'] for n in r['note_cells']),
-            '\n'.join(f"{c['label']['text']}={c['value']['text']}" for c in r['conditions']), r['reason']] for r in mapping['rows']])
+            '\n'.join(f"{c['label']['text']}={c['value']['text']}" for c in r['conditions']), r['reason'],
+            f"{r['review']['status']} ({r['review']['text']})" if r['review'] else ''] for r in mapping['rows']])
     sheet('未対応・要確認', ['ID', '区分', '分類', '原本位置', '原文', 'リソース', '理由', '後続確認'],
           [[r['item_id'], '変換保留', r['reason_code'], loc(r['value_cell']), r['value_cell']['text'], r['resource_id'], r['reason'], '']
            for r in mapping['rows'] if r['outcome'] != 'WRITTEN'] +
@@ -844,6 +925,8 @@ def trace_workbook(mapping, coverage):
            *[['サービス', k, json.dumps(v, ensure_ascii=False)] for k, v in coverage['by_service'].items()],
            *[['状態', k, json.dumps(v, ensure_ascii=False)] for k, v in coverage['by_state'].items()],
            *[['リソース', k, v] for k, v in coverage['resources'].items()],
+           ['原本の承認', coverage['source_review']['document_approval']['status'], json.dumps(coverage['source_review']['document_approval'], ensure_ascii=False)],
+           ['原本のレビュー結果', '', json.dumps(coverage['source_review']['item_review_counts'], ensure_ascii=False)],
            *[['未検査', u['feature'], u['state']] for u in coverage['unchecked_scope']],
            *[['注記', n, ''] for n in coverage['notes']]])
     sheet('版情報', ['対象', '値'], [[k, json.dumps(v, ensure_ascii=False)] for k, v in coverage['versions'].items()])

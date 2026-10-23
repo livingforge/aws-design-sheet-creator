@@ -270,3 +270,75 @@ def test_original_workbook_is_only_hashed():
     run(source_raw_before=source.read_bytes(), source_raw_after=source.read_bytes())
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
     assert before == sheetbook().source['sha256']
+
+
+def with_review_cells(data):
+    """Fixture variant whose cover sheet has an approval block and whose VPC rows have a review column."""
+    extraction = json.loads((ARP / 'extraction.json').read_text(encoding='utf-8'))
+    added = {0: [('B13', '承認状態'), ('C13', '承認済'), ('B14', '承認者'), ('C14', '承認者X'), ('B15', '承認日'), ('C15', '2026/06/05')],
+             1: [('E5', 'OK'), ('E6', '要再確認')]}
+    for index, cells in added.items():
+        extraction['sheets'][index]['cells'].extend({'address': a, 'font': 0, 'style': 0, 'type': 'string', 'value': v} for a, v in cells)
+    extraction_raw = raw(extraction)
+    digest = hashlib.sha256(extraction_raw).hexdigest()
+    structure = (ARP / 'structure.yml').read_text(encoding='utf-8')
+    structure = structure.replace(hashlib.sha256((ARP / 'extraction.json').read_bytes()).hexdigest(), digest)
+    book = Sheetbook(extraction_raw, structure.encode('utf-8'))
+    data['binding']['extraction_sha256'] = digest
+    data['approval'] = {'status_cell': 's1-C13', 'approver_cells': ['s1-C14'], 'date_cell': 's1-C15'}
+    data['excluded'].append({'cells': ['s1-B13:B15'], 'reason': '承認欄の見出し。'})
+    next(i for i in data['items'] if i['value_cell'] == 's2-C5')['review_cell'] = 's2-E5'
+    next(i for i in data['items'] if i['value_cell'] == 's2-C6')['review_cell'] = 's2-E6'
+    return book, data
+
+
+def test_source_approval_and_item_reviews_are_transcribed_not_inferred(tmp_path):
+    from aws_design_sheet.document_cli import main as document_main
+    book, data = with_review_cells(fixture_items())
+    result = check(book, ItemsFile.model_validate(data), Dictionary(schema_version='1'))
+    assert not result.errors and {w['code'] for w in result.warnings} >= {'REVIEW_WORD_UNKNOWN'}
+    items_raw = raw(data)
+    files, _ = build(book, items_raw, raw(approved(data).model_dump(exclude_none=True)), (ROOT / 'base.json').read_bytes(),
+                     review_raw=review_for(items_raw))
+    trace = json.loads(files['source-trace.json'])
+    approval = trace['document_approval']
+    assert approval['status'] == 'APPROVED' and approval['approvers'] == ['承認者X'] and approval['date'] == '2026/06/05'
+    assert approval['status_cell'].endswith('!C13')
+    reviews = {r['setting_id']: r.get('item_review', {}).get('status') for r in trace['rows']}
+    assert reviews['ext:' + next(i['id'] for i in data['items'] if i['value_cell'] == 's2-C5')] == 'ACCEPTED'
+    assert reviews['ext:' + next(i['id'] for i in data['items'] if i['value_cell'] == 's2-C6')] == 'UNRECOGNIZED'
+    assert sum(v is not None for v in reviews.values()) == 2
+    coverage = json.loads(files['external-coverage.json'])['source_review']
+    assert coverage['item_review_counts'] == {'ACCEPTED': 1, 'UNRECOGNIZED': 1}
+    for name in ('input.json', 'source-trace.json'):(tmp_path / name).write_bytes(files[name])
+    out = tmp_path / 'generated'
+    assert document_main([str(tmp_path / 'input.json'), '--environment', 'verification', '--output', str(out),
+                          '--source-trace', str(tmp_path / 'source-trace.json')]) == 0
+    report = json.loads((out / 'review-report.json').read_text(encoding='utf-8'))['source_review']
+    assert report['document_approval'] == 'APPROVED' and report['item_review_counts'] == {'ACCEPTED': 1, 'UNRECOGNIZED': 1}
+    assert report['generated_items_by_item_review']['NOT_PROVIDED'] > 0
+    assert json.loads((out / 'source-trace.json').read_text(encoding='utf-8'))['document_approval'] == approval
+
+
+def test_absent_or_blank_approval_is_never_approved():
+    files, _ = run()
+    assert json.loads(files['source-trace.json'])['document_approval'] == {'status': 'NOT_CITED'}
+    book, data = with_review_cells(fixture_items())
+    data['approval'] = {'status_cell': 's1-D13', 'approver_cells': ['s1-C14']}
+    data['excluded'].append({'cells': ['s1-C13', 's1-C15'], 'reason': '別の欄。'})
+    items_raw = raw(data)
+    files, _ = build(book, items_raw, raw(approved(data).model_dump(exclude_none=True)), (ROOT / 'base.json').read_bytes(),
+                     review_raw=review_for(items_raw))
+    assert json.loads(files['source-trace.json'])['document_approval']['status'] == 'NOT_RECORDED'
+
+
+def test_review_cell_cannot_be_the_value_and_vocabulary_is_unambiguous():
+    book, data = with_review_cells(fixture_items())
+    target = next(i for i in data['items'] if i['value_cell'] == 's2-C5');target['review_cell'] = 's2-C5'
+    result = check(book, ItemsFile.model_validate(data), Dictionary(schema_version='1'))
+    assert 'REVIEW_CELL_IS_VALUE' in {e['code'] for e in result.errors}
+    with pytest.raises(ValueError, match='review word assigned to two states'):
+        Dictionary(schema_version='1', review_words={'NOT_REVIEWED': ['OK']})
+    accepted = Dictionary(schema_version='1', review_words={'ACCEPTED': ['要再確認']})
+    book, data = with_review_cells(fixture_items())
+    assert all(w['code'] != 'REVIEW_WORD_UNKNOWN' for w in check(book, ItemsFile.model_validate(data), accepted).warnings)

@@ -13,6 +13,7 @@ You check another agent's items file for an ARP4-parsed workbook. You did not wr
    - Nothing is inferred. Missing relations (VPC, subnet group, region) are unmapped follow-ups, not values.
    - `extensions` hold only business or out-of-scope information; open questions are `unmapped`. Exclusions are titles, revision history, layout or validation lists, each with a true reason.
    - No reason, follow-up or ID repeats a secret or another sensitive cell value.
+   - `approval` cites the sheet's own approval block and each `review_cell` is the review column of the item's row, not its value. A warning `APPROVAL_WORD_UNKNOWN` or `REVIEW_WORD_UNKNOWN` is reported to the parent; only the user adds such words to the dictionary.
 3. If anything is wrong, return findings to the parent: item ID, cell IDs, what is wrong and why. Do not include cell values. Record `--decision rejected` only when the parent asks for a rejection record.
 4. If everything holds, record it with `aws-design-external review … --decision accepted --actor <your actor> --reason "<what you compared>" --output <path>`. The CLI refuses the worker's actor name and a failing check.
 

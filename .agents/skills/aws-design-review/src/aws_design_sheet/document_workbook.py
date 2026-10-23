@@ -54,7 +54,7 @@ def workbook(document, *, services=None, service_only=False):
     if document.model_version=='1.1' and not service_only:
         layout['地域別資源']=(['資源ID','リージョン','公式スキーマSHA-256','公式取得元'],[36,24,70,100])
         if document.review_report:
-            layout['原資料状態']=(['原資料設定ID','区分','元の状態','元の検証状態','生成項目ID','原資料位置'],[24,15,36,30,60,55])
+            layout['原資料状態']=(['原資料設定ID','区分','元の状態','元の検証状態','生成項目ID','原資料位置','原本のレビュー結果'],[24,15,36,30,60,55,24])
             layout['実行サマリ根拠']=(['記録ID','区分','JSON'],[32,30,120])
         if getattr(document,'decision_trace',{}).get('status','NOT_CHECKED')!='NOT_CHECKED':
             layout['設計方針']=(['方針ID','章','題名・状態','方針','理由・代替案','要件・検査','適用範囲・具体化','出典'],[30,26,34,65,55,40,48,26])
@@ -120,7 +120,7 @@ def workbook(document, *, services=None, service_only=False):
     if document.model_version=='1.1' and document.review_report and not service_only:
         add('実行サマリ根拠',['@review-report','JSON',document.review_report])
         for row in document.review_report['source_records']:
-            add('原資料状態',[row['setting_id'],row['kind'],row['status'],row['verification_status'],row['item_ids'],row['source_pointer']])
+            add('原資料状態',[row['setting_id'],row['kind'],row['status'],row['verification_status'],row['item_ids'],row['source_pointer'],row.get('item_review','')])
     for key,label,value in [('system','システム',d.system.name),('description','説明',d.system.description),
         ('environment','環境',env.name+' / '+env.id),('region','リージョン',env.region),('environment_note','環境説明',env.description),
         ('version','入力 / 共通モデル / レイアウト版',d.schema_version+' / '+document.model_version+' / '+LAYOUT_VERSION),

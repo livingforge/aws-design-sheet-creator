@@ -1,0 +1,2769 @@
+{
+  "format_version": 1,
+  "reviews": [
+    {
+      "id": "regional-ap-northeast-3-2026-10-21",
+      "kind": "REGIONAL_APPLICABILITY",
+      "region": "ap-northeast-3",
+      "baseline_region": "ap-northeast-1",
+      "reviewed_at": "2026-10-21",
+      "reviewer": "Claude Opus 5.5 (AI; batch record requested by the maintainer on 2026-10-21)",
+      "method": "Mechanical screen with aws-design-review review-queue: the ap-northeast-3 type schema is byte-identical (canonical JSON SHA-256) to the ap-northeast-1 snapshot the ledger was reviewed against, and none of the type's registered rules, references, typed Python checks or open questions mention regions, availability zones, Local Zones, Wavelength, Outposts, partitions or region codes.",
+      "rationale": "The carried rules and references test property values of one template resource; with an identical type schema their conditions do not depend on the region. The type's presence in the official ap-northeast-3 schema shows CloudFormation support there. Feature, quota and instance-type availability per region stay outside the rules, as before; types with any regional wording, or with a different schema, keep the regional question for a person.",
+      "source_urls": [
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/resource-type-schemas.html",
+        "https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/"
+      ],
+      "types": {
+        "AWS::ACMPCA::Certificate": {
+          "type_sha256": "05b884c236dbc96a6131fe2b94b7cf4af8a805323a8fa9a33a7e42b81ee9ab58",
+          "baseline_type_sha256": "05b884c236dbc96a6131fe2b94b7cf4af8a805323a8fa9a33a7e42b81ee9ab58"
+        },
+        "AWS::ACMPCA::CertificateAuthority": {
+          "type_sha256": "7ce11104ab178b1fbfbe14e7e054e80298cbc6d1f1ba7347b09a03f8662e5c66",
+          "baseline_type_sha256": "7ce11104ab178b1fbfbe14e7e054e80298cbc6d1f1ba7347b09a03f8662e5c66"
+        },
+        "AWS::ACMPCA::CertificateAuthorityActivation": {
+          "type_sha256": "e9cacddc01026abfb19ec92badb79852e1857bb29ffecd5a43af069243dd0f18",
+          "baseline_type_sha256": "e9cacddc01026abfb19ec92badb79852e1857bb29ffecd5a43af069243dd0f18"
+        },
+        "AWS::ACMPCA::Permission": {
+          "type_sha256": "63521289e88357581c5baeca4510a45f0a1a0dde6f91b3a062ded01e9a9dc50f",
+          "baseline_type_sha256": "63521289e88357581c5baeca4510a45f0a1a0dde6f91b3a062ded01e9a9dc50f"
+        },
+        "AWS::ARCZonalShift::AutoshiftObserverNotificationStatus": {
+          "type_sha256": "11376fee0279dcb6275cbf6dea9225be75a3e0a1fce0d738a1b0bdae220aa6ac",
+          "baseline_type_sha256": "11376fee0279dcb6275cbf6dea9225be75a3e0a1fce0d738a1b0bdae220aa6ac"
+        },
+        "AWS::AccountAccess::Application": {
+          "type_sha256": "2510dbadbd2100d405b571a934fc74408bd265cd581f68f6d5982f01842db270",
+          "baseline_type_sha256": "2510dbadbd2100d405b571a934fc74408bd265cd581f68f6d5982f01842db270"
+        },
+        "AWS::AccountAccess::Entitlement": {
+          "type_sha256": "c89a03c1e2f76dab4c673d9f5eb70530feda5e12181e952fabf7d5a8039f68a0",
+          "baseline_type_sha256": "c89a03c1e2f76dab4c673d9f5eb70530feda5e12181e952fabf7d5a8039f68a0"
+        },
+        "AWS::AmazonMQ::ConfigurationAssociation": {
+          "type_sha256": "9e585c26796fa58fd412b9a20d2b0b453bb336f92284a4169dfb0aa99445d8d7",
+          "baseline_type_sha256": "9e585c26796fa58fd412b9a20d2b0b453bb336f92284a4169dfb0aa99445d8d7"
+        },
+        "AWS::Amplify::App": {
+          "type_sha256": "99c05833ea556275030c92baeb7f0634e0aeb40643f073d2e64761f3960453a2",
+          "baseline_type_sha256": "99c05833ea556275030c92baeb7f0634e0aeb40643f073d2e64761f3960453a2"
+        },
+        "AWS::Amplify::Branch": {
+          "type_sha256": "bc5728760dc2d8459e48970590bf148fa65d9e80ad7990b892d1826227bece13",
+          "baseline_type_sha256": "bc5728760dc2d8459e48970590bf148fa65d9e80ad7990b892d1826227bece13"
+        },
+        "AWS::AmplifyUIBuilder::Component": {
+          "type_sha256": "ed6f92ee34cf48c33f50da362c9955bad8e72df88053a3332fa9323b755855ac",
+          "baseline_type_sha256": "ed6f92ee34cf48c33f50da362c9955bad8e72df88053a3332fa9323b755855ac"
+        },
+        "AWS::AmplifyUIBuilder::Form": {
+          "type_sha256": "404b136c05e378ecf063b54f2020860d736e944bcc4d8f608abe8257d02024c4",
+          "baseline_type_sha256": "404b136c05e378ecf063b54f2020860d736e944bcc4d8f608abe8257d02024c4"
+        },
+        "AWS::AmplifyUIBuilder::Theme": {
+          "type_sha256": "5d9f9068123e89fb003aef4b641a385526385597d8177f5a59f73525f878716b",
+          "baseline_type_sha256": "5d9f9068123e89fb003aef4b641a385526385597d8177f5a59f73525f878716b"
+        },
+        "AWS::ApiGateway::Account": {
+          "type_sha256": "d5dd7efbe71b6f1e7ff19f2090f027731df0e3015f07376e28de22ad6b3c5015",
+          "baseline_type_sha256": "d5dd7efbe71b6f1e7ff19f2090f027731df0e3015f07376e28de22ad6b3c5015"
+        },
+        "AWS::ApiGateway::ApiKey": {
+          "type_sha256": "b899a0d240b53d9d3ff3521f02e6b75c31c2baf7104dc33d9f22960cf2449a12",
+          "baseline_type_sha256": "b899a0d240b53d9d3ff3521f02e6b75c31c2baf7104dc33d9f22960cf2449a12"
+        },
+        "AWS::ApiGateway::BasePathMappingV2": {
+          "type_sha256": "e061928a0352a8cc3b5030b305c882114ac7bd141ceb1e13f789318b975d3d54",
+          "baseline_type_sha256": "e061928a0352a8cc3b5030b305c882114ac7bd141ceb1e13f789318b975d3d54"
+        },
+        "AWS::ApiGateway::ClientCertificate": {
+          "type_sha256": "9230bcf0b306f207b488515c2147f3f557f94be3b08bbabf610bd4c35b5a0895",
+          "baseline_type_sha256": "9230bcf0b306f207b488515c2147f3f557f94be3b08bbabf610bd4c35b5a0895"
+        },
+        "AWS::ApiGateway::DocumentationPart": {
+          "type_sha256": "e84b0919887ff2fb4c3c57f7c4d04051fb2a40fe100f88eda1b1ff2bd5fa1407",
+          "baseline_type_sha256": "e84b0919887ff2fb4c3c57f7c4d04051fb2a40fe100f88eda1b1ff2bd5fa1407"
+        },
+        "AWS::ApiGateway::DocumentationVersion": {
+          "type_sha256": "def1177843a231e8891c6bb6f1ddd367e6dc3ed356cd255ed2936ea98f2bccf1",
+          "baseline_type_sha256": "def1177843a231e8891c6bb6f1ddd367e6dc3ed356cd255ed2936ea98f2bccf1"
+        },
+        "AWS::ApiGateway::DomainNameAccessAssociation": {
+          "type_sha256": "e780b68ae379f2f804617ce8d49d7591ca5f154befa71ba8c17bfe632628d796",
+          "baseline_type_sha256": "e780b68ae379f2f804617ce8d49d7591ca5f154befa71ba8c17bfe632628d796"
+        },
+        "AWS::ApiGateway::DomainNameV2": {
+          "type_sha256": "e5c993867709272620f1c1900c09f68b5dff2c1753ee5a891d86805f9c6860c1",
+          "baseline_type_sha256": "e5c993867709272620f1c1900c09f68b5dff2c1753ee5a891d86805f9c6860c1"
+        },
+        "AWS::ApiGateway::GatewayResponse": {
+          "type_sha256": "5ee1cff343d46bc0e09e753f181c60211990c7abbd7bc28e0a1cfbf1e8515de5",
+          "baseline_type_sha256": "5ee1cff343d46bc0e09e753f181c60211990c7abbd7bc28e0a1cfbf1e8515de5"
+        },
+        "AWS::ApiGateway::Model": {
+          "type_sha256": "deefbe65b80a54e63b805abb9da014ba12df8f9f51c7c6c6e2ccc4b8e620bd5a",
+          "baseline_type_sha256": "deefbe65b80a54e63b805abb9da014ba12df8f9f51c7c6c6e2ccc4b8e620bd5a"
+        },
+        "AWS::ApiGateway::RequestValidator": {
+          "type_sha256": "5e2382d417d1be5e707993a9dbf8fafaa6eab92105017c447bb6e97a29e6b623",
+          "baseline_type_sha256": "5e2382d417d1be5e707993a9dbf8fafaa6eab92105017c447bb6e97a29e6b623"
+        },
+        "AWS::ApiGateway::Resource": {
+          "type_sha256": "7bc03cb00d6eac2174b62e40b48f7441d714efdcfde8a4eeb53648ed76bb2d00",
+          "baseline_type_sha256": "7bc03cb00d6eac2174b62e40b48f7441d714efdcfde8a4eeb53648ed76bb2d00"
+        },
+        "AWS::ApiGateway::UsagePlan": {
+          "type_sha256": "81ddabbcbe3de8d46bf0d8eac8aaf848a1bcd32a4d885cefa55a2ef803931d3d",
+          "baseline_type_sha256": "81ddabbcbe3de8d46bf0d8eac8aaf848a1bcd32a4d885cefa55a2ef803931d3d"
+        },
+        "AWS::ApiGateway::UsagePlanKey": {
+          "type_sha256": "bfa3add8b26e853032714369230a0c223e77d1cc68e85c12b5372eb663b676b9",
+          "baseline_type_sha256": "bfa3add8b26e853032714369230a0c223e77d1cc68e85c12b5372eb663b676b9"
+        },
+        "AWS::ApiGateway::VpcLink": {
+          "type_sha256": "1f90bc5bee16e7c2dc03a4789d6490ed4fead7053b7e23588810d8e883693551",
+          "baseline_type_sha256": "1f90bc5bee16e7c2dc03a4789d6490ed4fead7053b7e23588810d8e883693551"
+        },
+        "AWS::ApiGatewayV2::ApiGatewayManagedOverrides": {
+          "type_sha256": "43d16be4b0607165d74014a949893c6bd09369a34748c223341ab238d962c3ca",
+          "baseline_type_sha256": "43d16be4b0607165d74014a949893c6bd09369a34748c223341ab238d962c3ca"
+        },
+        "AWS::ApiGatewayV2::ApiMapping": {
+          "type_sha256": "9174be3e50854a59a0bf4423f97250e8cc3573b154bce558bd04676579d6dff6",
+          "baseline_type_sha256": "9174be3e50854a59a0bf4423f97250e8cc3573b154bce558bd04676579d6dff6"
+        },
+        "AWS::ApiGatewayV2::Deployment": {
+          "type_sha256": "b80a583ef6ae88bd7c2c609b530ae203eeb92188c0b1ed5674cdec4593701e51",
+          "baseline_type_sha256": "b80a583ef6ae88bd7c2c609b530ae203eeb92188c0b1ed5674cdec4593701e51"
+        },
+        "AWS::ApiGatewayV2::IntegrationResponse": {
+          "type_sha256": "1ec1fec708e12ba2f389add0335a2aa018873997f2fce4fe0b9d7e845d23c84e",
+          "baseline_type_sha256": "1ec1fec708e12ba2f389add0335a2aa018873997f2fce4fe0b9d7e845d23c84e"
+        },
+        "AWS::ApiGatewayV2::Model": {
+          "type_sha256": "d20ffbb7ba20b07f5c46c92cc5cda039ea765d4688805038c223ecb09fa403a6",
+          "baseline_type_sha256": "d20ffbb7ba20b07f5c46c92cc5cda039ea765d4688805038c223ecb09fa403a6"
+        },
+        "AWS::ApiGatewayV2::Route": {
+          "type_sha256": "f075f5f6e7eecf451c179b4a7aa997daa5dd8273ebf20dfe1a938c73b0eebf99",
+          "baseline_type_sha256": "f075f5f6e7eecf451c179b4a7aa997daa5dd8273ebf20dfe1a938c73b0eebf99"
+        },
+        "AWS::ApiGatewayV2::RouteResponse": {
+          "type_sha256": "924fcbef1f6fa1817eab2b549065f27375111487ebd2a8071cbeaf72a1ea58ee",
+          "baseline_type_sha256": "924fcbef1f6fa1817eab2b549065f27375111487ebd2a8071cbeaf72a1ea58ee"
+        },
+        "AWS::ApiGatewayV2::RoutingRule": {
+          "type_sha256": "ff1a332d2820ede20efc6aa17d62de48d11b057c5a90debb62f447ee40e29d5d",
+          "baseline_type_sha256": "ff1a332d2820ede20efc6aa17d62de48d11b057c5a90debb62f447ee40e29d5d"
+        },
+        "AWS::ApiGatewayV2::VpcLink": {
+          "type_sha256": "304b68ad5bb6dc82dcc3bfc5d927db7152d3009025b23501fd0d23d84f6cb49a",
+          "baseline_type_sha256": "304b68ad5bb6dc82dcc3bfc5d927db7152d3009025b23501fd0d23d84f6cb49a"
+        },
+        "AWS::AppConfig::Application": {
+          "type_sha256": "152a2415fd3c007c1f47b9552722546e526ab4474e8373bba55fab17ff33c75d",
+          "baseline_type_sha256": "152a2415fd3c007c1f47b9552722546e526ab4474e8373bba55fab17ff33c75d"
+        },
+        "AWS::AppConfig::ConfigurationProfile": {
+          "type_sha256": "af7bb928de9e3ffd55bb49f6d2d50f8c6d18f85f30b726d309dc342b5745e336",
+          "baseline_type_sha256": "af7bb928de9e3ffd55bb49f6d2d50f8c6d18f85f30b726d309dc342b5745e336"
+        },
+        "AWS::AppConfig::Deployment": {
+          "type_sha256": "87e472b9947795cb00da725a287281d9d5d59ca30649293bf0c33b58d1860be2",
+          "baseline_type_sha256": "87e472b9947795cb00da725a287281d9d5d59ca30649293bf0c33b58d1860be2"
+        },
+        "AWS::AppConfig::DeploymentStrategy": {
+          "type_sha256": "77a69ff11528ad8d18ccc257b0a7fbae4959bcb9db989675fa91b67fb69af990",
+          "baseline_type_sha256": "77a69ff11528ad8d18ccc257b0a7fbae4959bcb9db989675fa91b67fb69af990"
+        },
+        "AWS::AppConfig::Environment": {
+          "type_sha256": "1bafa36e469fa450502ac68f8c402e34322ca7b2ad52c8085fd34550ffa71e45",
+          "baseline_type_sha256": "1bafa36e469fa450502ac68f8c402e34322ca7b2ad52c8085fd34550ffa71e45"
+        },
+        "AWS::AppConfig::ExperimentDefinition": {
+          "type_sha256": "e508677e42ff414d7f7c538474e5c02a98c5de30b4caaca82cc8a68f9b61b8c8",
+          "baseline_type_sha256": "e508677e42ff414d7f7c538474e5c02a98c5de30b4caaca82cc8a68f9b61b8c8"
+        },
+        "AWS::AppConfig::ExperimentRun": {
+          "type_sha256": "5cae06dacd548632cf8c9f80b394c5efeb3395ca868477c1dab567766f4549a8",
+          "baseline_type_sha256": "5cae06dacd548632cf8c9f80b394c5efeb3395ca868477c1dab567766f4549a8"
+        },
+        "AWS::AppConfig::Extension": {
+          "type_sha256": "70bc3367beab66eae22b69ef6e55ba5603310835e77ff2c0ea8d992ebc244200",
+          "baseline_type_sha256": "70bc3367beab66eae22b69ef6e55ba5603310835e77ff2c0ea8d992ebc244200"
+        },
+        "AWS::AppConfig::ExtensionAssociation": {
+          "type_sha256": "a5551da689134990cedebd0b9c062a61f5e749d0dd9305b4ac26a4fe36454b10",
+          "baseline_type_sha256": "a5551da689134990cedebd0b9c062a61f5e749d0dd9305b4ac26a4fe36454b10"
+        },
+        "AWS::AppConfig::HostedConfigurationVersion": {
+          "type_sha256": "6ccba5b5ed963c134fadcc9e13bb2fe98df76d46643b19b0c38c412586234ae8",
+          "baseline_type_sha256": "6ccba5b5ed963c134fadcc9e13bb2fe98df76d46643b19b0c38c412586234ae8"
+        },
+        "AWS::AppIntegrations::Application": {
+          "type_sha256": "880095b1c265e83096f695b010416df71015fe8872be4b3d196352d1eebd4628",
+          "baseline_type_sha256": "880095b1c265e83096f695b010416df71015fe8872be4b3d196352d1eebd4628"
+        },
+        "AWS::AppMesh::GatewayRoute": {
+          "type_sha256": "faaaff77610fafc2320c0481228f97259e29ab6ede8b23bbd4df7b385d6cb2c1",
+          "baseline_type_sha256": "faaaff77610fafc2320c0481228f97259e29ab6ede8b23bbd4df7b385d6cb2c1"
+        },
+        "AWS::AppMesh::Mesh": {
+          "type_sha256": "351f1a8568be08063f170cee2f240eed1e56172af46211e7f54112c8bb04e6b1",
+          "baseline_type_sha256": "351f1a8568be08063f170cee2f240eed1e56172af46211e7f54112c8bb04e6b1"
+        },
+        "AWS::AppMesh::Route": {
+          "type_sha256": "bb98457f8363f5cba2c748341cc15173a7b19ca6a3a81dfdc523ed94fdfba889",
+          "baseline_type_sha256": "bb98457f8363f5cba2c748341cc15173a7b19ca6a3a81dfdc523ed94fdfba889"
+        },
+        "AWS::AppMesh::VirtualGateway": {
+          "type_sha256": "68a80fd43152a0215cccbc7984c1c1ed60d5545cf04d36f6038a0b0492f36475",
+          "baseline_type_sha256": "68a80fd43152a0215cccbc7984c1c1ed60d5545cf04d36f6038a0b0492f36475"
+        },
+        "AWS::AppMesh::VirtualRouter": {
+          "type_sha256": "5102b56f868c4963dfd3a1a2f140edbe0dd7141418cb2da97504029bef59c449",
+          "baseline_type_sha256": "5102b56f868c4963dfd3a1a2f140edbe0dd7141418cb2da97504029bef59c449"
+        },
+        "AWS::AppMesh::VirtualService": {
+          "type_sha256": "ed50360eebe235f88fe2a4d6ae3828af23d06c07f850880dfaa54c086db729ba",
+          "baseline_type_sha256": "ed50360eebe235f88fe2a4d6ae3828af23d06c07f850880dfaa54c086db729ba"
+        },
+        "AWS::AppStream::AppBlock": {
+          "type_sha256": "7e7420166f3a75c8d0892493a19a0db1982def4ef9ee609f287199c7eca404fa",
+          "baseline_type_sha256": "7e7420166f3a75c8d0892493a19a0db1982def4ef9ee609f287199c7eca404fa"
+        },
+        "AWS::AppStream::ApplicationEntitlementAssociation": {
+          "type_sha256": "667889da02b4ba63cd71ec9883600685f0f0ffa1de5edd452ce41b9135906df3",
+          "baseline_type_sha256": "667889da02b4ba63cd71ec9883600685f0f0ffa1de5edd452ce41b9135906df3"
+        },
+        "AWS::AppStream::ApplicationFleetAssociation": {
+          "type_sha256": "bc623b15f06f37ad69bc6f91684b38acba0fdd64c7e4c668d60b6edd9eb14433",
+          "baseline_type_sha256": "bc623b15f06f37ad69bc6f91684b38acba0fdd64c7e4c668d60b6edd9eb14433"
+        },
+        "AWS::AppStream::Entitlement": {
+          "type_sha256": "457bf5dec65ee2cf57a8ed7832d58eb798e4f651a39ee372bf3546cfa9bedc83",
+          "baseline_type_sha256": "457bf5dec65ee2cf57a8ed7832d58eb798e4f651a39ee372bf3546cfa9bedc83"
+        },
+        "AWS::AppStream::StackUserAssociation": {
+          "type_sha256": "c9900681170ae75147e9a7ce7443076aa496602d60032abe88a500e259398b49",
+          "baseline_type_sha256": "c9900681170ae75147e9a7ce7443076aa496602d60032abe88a500e259398b49"
+        },
+        "AWS::AppStream::User": {
+          "type_sha256": "0843de3f6e075c5741961647a603a00d7595775e1079dd9be0da336a484c3db6",
+          "baseline_type_sha256": "0843de3f6e075c5741961647a603a00d7595775e1079dd9be0da336a484c3db6"
+        },
+        "AWS::AppSync::Api": {
+          "type_sha256": "d8e458568c5b0dfbdb9f8b755b7c83c8bd0a427632eb5bea99fe53effbcde710",
+          "baseline_type_sha256": "d8e458568c5b0dfbdb9f8b755b7c83c8bd0a427632eb5bea99fe53effbcde710"
+        },
+        "AWS::AppSync::ApiKey": {
+          "type_sha256": "83c788859d3c6ab6fefb77c8dfc6dab82865c38743f8f98bdb6921c78601d690",
+          "baseline_type_sha256": "83c788859d3c6ab6fefb77c8dfc6dab82865c38743f8f98bdb6921c78601d690"
+        },
+        "AWS::AppSync::DomainName": {
+          "type_sha256": "ad0840ab75f02be20a26bc6b117425e2eea7515b08180355f5549f9b3195aa74",
+          "baseline_type_sha256": "ad0840ab75f02be20a26bc6b117425e2eea7515b08180355f5549f9b3195aa74"
+        },
+        "AWS::AppSync::DomainNameApiAssociation": {
+          "type_sha256": "e57f97ab2808967bc13fa0e166d3929cc5b1a1cf594bb02021ff8e16db97e449",
+          "baseline_type_sha256": "e57f97ab2808967bc13fa0e166d3929cc5b1a1cf594bb02021ff8e16db97e449"
+        },
+        "AWS::AppSync::FunctionConfiguration": {
+          "type_sha256": "f16e3a6cb1461c2bda9ed2d8e8982634022d3d9de5b748e2dc38dc716597205f",
+          "baseline_type_sha256": "f16e3a6cb1461c2bda9ed2d8e8982634022d3d9de5b748e2dc38dc716597205f"
+        },
+        "AWS::AppSync::Resolver": {
+          "type_sha256": "6d5b091365829cce420f3829784c22348221ef8df1f1a7692209b2cdf169972f",
+          "baseline_type_sha256": "6d5b091365829cce420f3829784c22348221ef8df1f1a7692209b2cdf169972f"
+        },
+        "AWS::AppSync::SourceApiAssociation": {
+          "type_sha256": "5ba668392326746e2b31097c199829b1f7393e725c38716d0e2a705813704405",
+          "baseline_type_sha256": "5ba668392326746e2b31097c199829b1f7393e725c38716d0e2a705813704405"
+        },
+        "AWS::ApplicationAutoScaling::ScalingPolicy": {
+          "type_sha256": "3e4af356bb5a308141433764548178d7eed6976a370a4125840e1a4724db6906",
+          "baseline_type_sha256": "3e4af356bb5a308141433764548178d7eed6976a370a4125840e1a4724db6906"
+        },
+        "AWS::ApplicationInsights::Application": {
+          "type_sha256": "d8a294a25285b37abbe115805532224e91580e7d94623228633a694b0ac91c78",
+          "baseline_type_sha256": "d8a294a25285b37abbe115805532224e91580e7d94623228633a694b0ac91c78"
+        },
+        "AWS::ApplicationSignals::Discovery": {
+          "type_sha256": "3db3108d61067ffa3de789a0735c0d0d10bc2c23e6480f1eaa51c401f1179a3f",
+          "baseline_type_sha256": "3db3108d61067ffa3de789a0735c0d0d10bc2c23e6480f1eaa51c401f1179a3f"
+        },
+        "AWS::ApplicationSignals::GroupingConfiguration": {
+          "type_sha256": "77801147b4c5097c2618b7d03d82faede57790910b1076f7c0c84c408f7c2bf6",
+          "baseline_type_sha256": "77801147b4c5097c2618b7d03d82faede57790910b1076f7c0c84c408f7c2bf6"
+        },
+        "AWS::ApplicationSignals::ServiceLevelObjective": {
+          "type_sha256": "b946e96f4c2887748f8ce56242534d1bd3ca2c00b85ed5d29ad7786d7945a5bb",
+          "baseline_type_sha256": "b946e96f4c2887748f8ce56242534d1bd3ca2c00b85ed5d29ad7786d7945a5bb"
+        },
+        "AWS::Athena::CapacityReservation": {
+          "type_sha256": "0dd7860b8d88036de6f8dfdf1557ce8dce4b48e9c09e6eefe3ca85ed71d2530b",
+          "baseline_type_sha256": "0dd7860b8d88036de6f8dfdf1557ce8dce4b48e9c09e6eefe3ca85ed71d2530b"
+        },
+        "AWS::Athena::NamedQuery": {
+          "type_sha256": "586f15a1ac49351ffee5408f58dae44b960c8b6dc7e6b244d9858e507886d51e",
+          "baseline_type_sha256": "586f15a1ac49351ffee5408f58dae44b960c8b6dc7e6b244d9858e507886d51e"
+        },
+        "AWS::Athena::PreparedStatement": {
+          "type_sha256": "fc34e6b18da4efd8b71d370c2a8a555e477afd1c5983ce4dbd0defe38e5342ce",
+          "baseline_type_sha256": "fc34e6b18da4efd8b71d370c2a8a555e477afd1c5983ce4dbd0defe38e5342ce"
+        },
+        "AWS::Athena::WorkGroup": {
+          "type_sha256": "21dcc4c1cd7fe2c961641b78eb60bf1fdaa6fbb4e6220f57ddd0284a775af1f6",
+          "baseline_type_sha256": "21dcc4c1cd7fe2c961641b78eb60bf1fdaa6fbb4e6220f57ddd0284a775af1f6"
+        },
+        "AWS::AutoScaling::LaunchConfiguration": {
+          "type_sha256": "6ab677c0371534f2683958644a2b6efa2e58b4d83e1d8299535991acc6d29a1c",
+          "baseline_type_sha256": "6ab677c0371534f2683958644a2b6efa2e58b4d83e1d8299535991acc6d29a1c"
+        },
+        "AWS::AutoScaling::LifecycleHook": {
+          "type_sha256": "6ba7dfd5e5533024fffe7a31cf0c7dad93d5c2a129ec94a67205061f73318733",
+          "baseline_type_sha256": "6ba7dfd5e5533024fffe7a31cf0c7dad93d5c2a129ec94a67205061f73318733"
+        },
+        "AWS::AutoScaling::ScheduledAction": {
+          "type_sha256": "06e6e4a07bb213d065e7556790935f1a87cf6587e4fef9420eaf2d032b1a2d0d",
+          "baseline_type_sha256": "06e6e4a07bb213d065e7556790935f1a87cf6587e4fef9420eaf2d032b1a2d0d"
+        },
+        "AWS::AutoScaling::WarmPool": {
+          "type_sha256": "ed5a9a3acb1a7f30c0087c685fbf78393a5ad42cafe74ee742e94737ed2e725d",
+          "baseline_type_sha256": "ed5a9a3acb1a7f30c0087c685fbf78393a5ad42cafe74ee742e94737ed2e725d"
+        },
+        "AWS::BCM::Dashboard": {
+          "type_sha256": "044ed393debcb661aa2b47ef4717301c6090be98c23a72a6a33386288c1e704f",
+          "baseline_type_sha256": "044ed393debcb661aa2b47ef4717301c6090be98c23a72a6a33386288c1e704f"
+        },
+        "AWS::Backup::Framework": {
+          "type_sha256": "3b810b18189a2b958edaab4a3461fe32983732b2fd8f0b34ed609aedb01e2aa5",
+          "baseline_type_sha256": "3b810b18189a2b958edaab4a3461fe32983732b2fd8f0b34ed609aedb01e2aa5"
+        },
+        "AWS::Backup::LogicallyAirGappedBackupVault": {
+          "type_sha256": "aece02423c57101746ca3c27a5fd7c3cb112826190c2bb3f0688da8257dfa34f",
+          "baseline_type_sha256": "aece02423c57101746ca3c27a5fd7c3cb112826190c2bb3f0688da8257dfa34f"
+        },
+        "AWS::Backup::RestoreTestingPlan": {
+          "type_sha256": "607c6b03dfc7763155d9a02e52331e5c2d857c7ee1d6580ccf964f3877431006",
+          "baseline_type_sha256": "607c6b03dfc7763155d9a02e52331e5c2d857c7ee1d6580ccf964f3877431006"
+        },
+        "AWS::Backup::TieringConfiguration": {
+          "type_sha256": "5140fefb404da421283b1084c88f3a5811b8672a4ea86035d2f1ee18c6a258ab",
+          "baseline_type_sha256": "5140fefb404da421283b1084c88f3a5811b8672a4ea86035d2f1ee18c6a258ab"
+        },
+        "AWS::BackupGateway::Hypervisor": {
+          "type_sha256": "a4a0158871706dd8fc31919ca57e49af851ffefc81f9182ee318c4e6573bf234",
+          "baseline_type_sha256": "a4a0158871706dd8fc31919ca57e49af851ffefc81f9182ee318c4e6573bf234"
+        },
+        "AWS::Batch::ConsumableResource": {
+          "type_sha256": "c53d3276caeabdd2fea8185c63c12b4639441d7f186fe77daf16d0756dc0bc10",
+          "baseline_type_sha256": "c53d3276caeabdd2fea8185c63c12b4639441d7f186fe77daf16d0756dc0bc10"
+        },
+        "AWS::Batch::JobDefinition": {
+          "type_sha256": "16690bf2c442aa75a2ae842f8e034f3a26bfe317322904b7f61936a3d49486d0",
+          "baseline_type_sha256": "16690bf2c442aa75a2ae842f8e034f3a26bfe317322904b7f61936a3d49486d0"
+        },
+        "AWS::Batch::QuotaShare": {
+          "type_sha256": "7679e5767a866b76ca00a982eced3a94ed03536d67c3957b365fdbe8bdcc818d",
+          "baseline_type_sha256": "7679e5767a866b76ca00a982eced3a94ed03536d67c3957b365fdbe8bdcc818d"
+        },
+        "AWS::Batch::SchedulingPolicy": {
+          "type_sha256": "3565364d726affbe339c7f6fef07bf1d23452d9f4bccfdcb17b5e31b619faeab",
+          "baseline_type_sha256": "3565364d726affbe339c7f6fef07bf1d23452d9f4bccfdcb17b5e31b619faeab"
+        },
+        "AWS::Batch::ServiceEnvironment": {
+          "type_sha256": "c52a3122358f8e32227c88e088e158c4018edfd760f44da4879cfb6a726ce192",
+          "baseline_type_sha256": "c52a3122358f8e32227c88e088e158c4018edfd760f44da4879cfb6a726ce192"
+        },
+        "AWS::BcmPricingCalculator::BillScenario": {
+          "type_sha256": "1e2e7b0dbb26a9e61aaeefbf289458b0b9152cd26ee342dd7ce97a68325c9fe5",
+          "baseline_type_sha256": "1e2e7b0dbb26a9e61aaeefbf289458b0b9152cd26ee342dd7ce97a68325c9fe5"
+        },
+        "AWS::Bedrock::Agent": {
+          "type_sha256": "25a6da45c0abb116e82a55269510d1a8c85043fcd9cd2d00eb99517b66a685c9",
+          "baseline_type_sha256": "25a6da45c0abb116e82a55269510d1a8c85043fcd9cd2d00eb99517b66a685c9"
+        },
+        "AWS::Bedrock::AgentAlias": {
+          "type_sha256": "c93ed1d3dd73d44c01a5d37470e89b4ec1cb1baee73bb79d921f65cdc5c8c950",
+          "baseline_type_sha256": "c93ed1d3dd73d44c01a5d37470e89b4ec1cb1baee73bb79d921f65cdc5c8c950"
+        },
+        "AWS::Bedrock::ApplicationInferenceProfile": {
+          "type_sha256": "61a88c281d07a14a34e30788f59b742c959619f9a027c394aa6f566b75e03bfb",
+          "baseline_type_sha256": "61a88c281d07a14a34e30788f59b742c959619f9a027c394aa6f566b75e03bfb"
+        },
+        "AWS::Bedrock::EnforcedGuardrailConfiguration": {
+          "type_sha256": "50d30b4fbe9565ed544c18671263bf38f54dcd2fe3bd7d45b0bee25b9ef82334",
+          "baseline_type_sha256": "50d30b4fbe9565ed544c18671263bf38f54dcd2fe3bd7d45b0bee25b9ef82334"
+        },
+        "AWS::Bedrock::FlowAlias": {
+          "type_sha256": "731266b2f8b2adc6c6ee73e804d21d58c2b00cebe005042a4a794dd725aad102",
+          "baseline_type_sha256": "731266b2f8b2adc6c6ee73e804d21d58c2b00cebe005042a4a794dd725aad102"
+        },
+        "AWS::Bedrock::FlowVersion": {
+          "type_sha256": "ff1d7bc9acef51ddcd9d05f4b40d077205f7a63f6a68d7a57ca786641c29352e",
+          "baseline_type_sha256": "ff1d7bc9acef51ddcd9d05f4b40d077205f7a63f6a68d7a57ca786641c29352e"
+        },
+        "AWS::Bedrock::GuardrailVersion": {
+          "type_sha256": "4d735bc668254826f228d11e8c4c133b7c158c803b9c9a100a569e2d7764c016",
+          "baseline_type_sha256": "4d735bc668254826f228d11e8c4c133b7c158c803b9c9a100a569e2d7764c016"
+        },
+        "AWS::Bedrock::Prompt": {
+          "type_sha256": "586fcd75e00aafea54e11155d4fe17e7cf042443f19ebfe3a62ffad0daeebaad",
+          "baseline_type_sha256": "586fcd75e00aafea54e11155d4fe17e7cf042443f19ebfe3a62ffad0daeebaad"
+        },
+        "AWS::Bedrock::PromptVersion": {
+          "type_sha256": "37363e336fed1ed8349e193b9da3a12f33547d7e0d1967589b07a6c558d5ae17",
+          "baseline_type_sha256": "37363e336fed1ed8349e193b9da3a12f33547d7e0d1967589b07a6c558d5ae17"
+        },
+        "AWS::Bedrock::ResourcePolicy": {
+          "type_sha256": "8e858add83cd9963e88e3d6d27dd8b9f135db5f2d644ec8c6400c749a0dbc670",
+          "baseline_type_sha256": "8e858add83cd9963e88e3d6d27dd8b9f135db5f2d644ec8c6400c749a0dbc670"
+        },
+        "AWS::CE::AnomalyMonitor": {
+          "type_sha256": "264689f8c3c0d3dec0f0425f3abceb3a5ca1508ec563623eee707f4dbb7e9b42",
+          "baseline_type_sha256": "264689f8c3c0d3dec0f0425f3abceb3a5ca1508ec563623eee707f4dbb7e9b42"
+        },
+        "AWS::CE::AnomalySubscription": {
+          "type_sha256": "2a42a56c27134b63cdcb3ce0d8f614aaf348b80c4079744d062b105605c9fad8",
+          "baseline_type_sha256": "2a42a56c27134b63cdcb3ce0d8f614aaf348b80c4079744d062b105605c9fad8"
+        },
+        "AWS::CE::CostCategory": {
+          "type_sha256": "a1c49c1a812e5f2e0378c0fabd51691123acf579b27341cf42812164899c5619",
+          "baseline_type_sha256": "a1c49c1a812e5f2e0378c0fabd51691123acf579b27341cf42812164899c5619"
+        },
+        "AWS::Cassandra::Type": {
+          "type_sha256": "f80830e85fc31e7be9792718a3894bc90c6d2d3186074793e2c31a00052dc63a",
+          "baseline_type_sha256": "f80830e85fc31e7be9792718a3894bc90c6d2d3186074793e2c31a00052dc63a"
+        },
+        "AWS::CertificateManager::Account": {
+          "type_sha256": "a3161919c7b9f322bec69a4d97c8688e4e2c1cf13380fe27705f26b3a7097d0f",
+          "baseline_type_sha256": "a3161919c7b9f322bec69a4d97c8688e4e2c1cf13380fe27705f26b3a7097d0f"
+        },
+        "AWS::CertificateManager::AcmeDomainValidation": {
+          "type_sha256": "eef5477906f334aecbc85c96d761cbfb5ff186591e7662b2bfc41ed27a92741f",
+          "baseline_type_sha256": "eef5477906f334aecbc85c96d761cbfb5ff186591e7662b2bfc41ed27a92741f"
+        },
+        "AWS::CertificateManager::AcmeEndpoint": {
+          "type_sha256": "263bf1836b2395c2442e0e236c3f53e33c80eed249ab4f068214ea70142a040d",
+          "baseline_type_sha256": "263bf1836b2395c2442e0e236c3f53e33c80eed249ab4f068214ea70142a040d"
+        },
+        "AWS::CertificateManager::AcmeExternalAccountBinding": {
+          "type_sha256": "475d44c44aae705f12210380294428ad47b3b1437034a5930c4e6e04a5308d48",
+          "baseline_type_sha256": "475d44c44aae705f12210380294428ad47b3b1437034a5930c4e6e04a5308d48"
+        },
+        "AWS::Chatbot::CustomAction": {
+          "type_sha256": "b97eb9e3dd5f142c95919b27c0da10a78067eff0ffcf888ff3a9111321d4a71e",
+          "baseline_type_sha256": "b97eb9e3dd5f142c95919b27c0da10a78067eff0ffcf888ff3a9111321d4a71e"
+        },
+        "AWS::Chatbot::MicrosoftTeamsChannelConfiguration": {
+          "type_sha256": "8ca3eafe847176e6847aeabf4e0e995dba5d68c04efd221791273b0d64695363",
+          "baseline_type_sha256": "8ca3eafe847176e6847aeabf4e0e995dba5d68c04efd221791273b0d64695363"
+        },
+        "AWS::Chatbot::SlackChannelConfiguration": {
+          "type_sha256": "a8050bead637a77b33f80e8f25a655331beeaba8494a85e4621eb4f19dd853a2",
+          "baseline_type_sha256": "a8050bead637a77b33f80e8f25a655331beeaba8494a85e4621eb4f19dd853a2"
+        },
+        "AWS::CloudFormation::HookDefaultVersion": {
+          "type_sha256": "634cc9dcccea92df2be025678f790a079aafeb76c8dc67e97db080aabf684c5b",
+          "baseline_type_sha256": "634cc9dcccea92df2be025678f790a079aafeb76c8dc67e97db080aabf684c5b"
+        },
+        "AWS::CloudFormation::HookTypeConfig": {
+          "type_sha256": "bc081059782cac49c9be02916f24e8af71a758ff743751651dca564480161a25",
+          "baseline_type_sha256": "bc081059782cac49c9be02916f24e8af71a758ff743751651dca564480161a25"
+        },
+        "AWS::CloudFormation::HookVersion": {
+          "type_sha256": "28ca75fa5dd1a41095d0fad32a28219c70605c221f9d32fad19874d26851b81c",
+          "baseline_type_sha256": "28ca75fa5dd1a41095d0fad32a28219c70605c221f9d32fad19874d26851b81c"
+        },
+        "AWS::CloudFormation::Macro": {
+          "type_sha256": "4af17fdf76f2a706a169eb4aa92aab144df480254b8174de587808f93b16da05",
+          "baseline_type_sha256": "4af17fdf76f2a706a169eb4aa92aab144df480254b8174de587808f93b16da05"
+        },
+        "AWS::CloudFormation::ModuleDefaultVersion": {
+          "type_sha256": "4d2e3455d4b6cdded4732403b9ca1528ff5dd188e4de8c9a2c5b8d3b2bbac068",
+          "baseline_type_sha256": "4d2e3455d4b6cdded4732403b9ca1528ff5dd188e4de8c9a2c5b8d3b2bbac068"
+        },
+        "AWS::CloudFormation::ModuleVersion": {
+          "type_sha256": "7c12ed24885e6dcac3288a27118b46c797574b4d65a3e9b3725115a97a87e8ec",
+          "baseline_type_sha256": "7c12ed24885e6dcac3288a27118b46c797574b4d65a3e9b3725115a97a87e8ec"
+        },
+        "AWS::CloudFormation::PublicTypeVersion": {
+          "type_sha256": "6678de3016ea4ae1539770e14c2d432b91ecd896868773e59dd70304deecbc62",
+          "baseline_type_sha256": "6678de3016ea4ae1539770e14c2d432b91ecd896868773e59dd70304deecbc62"
+        },
+        "AWS::CloudFormation::Publisher": {
+          "type_sha256": "74abc994b302174fe18ee1df548478ac3967d07ed0673f1bc313521fae999dd8",
+          "baseline_type_sha256": "74abc994b302174fe18ee1df548478ac3967d07ed0673f1bc313521fae999dd8"
+        },
+        "AWS::CloudFormation::ResourceDefaultVersion": {
+          "type_sha256": "28643d3cd0cffa9f027c60f58057350ee4cb44aba15a111437db32b6ccdbca27",
+          "baseline_type_sha256": "28643d3cd0cffa9f027c60f58057350ee4cb44aba15a111437db32b6ccdbca27"
+        },
+        "AWS::CloudFormation::WaitCondition": {
+          "type_sha256": "9e2203e2204ec600531daffca59768fa5b3f8d97b4a5729000d0778a4b3ec920",
+          "baseline_type_sha256": "9e2203e2204ec600531daffca59768fa5b3f8d97b4a5729000d0778a4b3ec920"
+        },
+        "AWS::CloudFormation::WaitConditionHandle": {
+          "type_sha256": "2c60845d9923c0108a1d69d687289b7ddc5c72336d75620238735d38d6e52209",
+          "baseline_type_sha256": "2c60845d9923c0108a1d69d687289b7ddc5c72336d75620238735d38d6e52209"
+        },
+        "AWS::CloudFront::AnycastIpList": {
+          "type_sha256": "24bfd9c9d1cdb71ab868eb8d83cda06135dd719a7d496bf22e9f2ff6b17b9172",
+          "baseline_type_sha256": "24bfd9c9d1cdb71ab868eb8d83cda06135dd719a7d496bf22e9f2ff6b17b9172"
+        },
+        "AWS::CloudFront::CachePolicy": {
+          "type_sha256": "0e130718563df9b84fa5b58bd46bdf81435012ea2681ad54c58f7b9ba708e9a5",
+          "baseline_type_sha256": "0e130718563df9b84fa5b58bd46bdf81435012ea2681ad54c58f7b9ba708e9a5"
+        },
+        "AWS::CloudFront::CloudFrontOriginAccessIdentity": {
+          "type_sha256": "756f99f3e22e87e5d45819f3176ad14e69cd216815be7a07ffae3db5e92f948e",
+          "baseline_type_sha256": "756f99f3e22e87e5d45819f3176ad14e69cd216815be7a07ffae3db5e92f948e"
+        },
+        "AWS::CloudFront::ConnectionFunction": {
+          "type_sha256": "32762b6ab3d5a124f3b6cd936af9e18c1635bc06f1fc5473f880f53a32296604",
+          "baseline_type_sha256": "32762b6ab3d5a124f3b6cd936af9e18c1635bc06f1fc5473f880f53a32296604"
+        },
+        "AWS::CloudFront::ConnectionGroup": {
+          "type_sha256": "84c664ec037d88cf884068c0afbcfd67a6586825b7081ab577dceaccda910687",
+          "baseline_type_sha256": "84c664ec037d88cf884068c0afbcfd67a6586825b7081ab577dceaccda910687"
+        },
+        "AWS::CloudFront::ContinuousDeploymentPolicy": {
+          "type_sha256": "10368d5ffc4d402c9518f49235ee1a06d5c57744858105080f8c975f89961589",
+          "baseline_type_sha256": "10368d5ffc4d402c9518f49235ee1a06d5c57744858105080f8c975f89961589"
+        },
+        "AWS::CloudFront::DistributionTenant": {
+          "type_sha256": "718d6ffe91b4902b32afa680a1f2426f5dd7e6a89cf6ad4ff2b37d9f0d2718d9",
+          "baseline_type_sha256": "718d6ffe91b4902b32afa680a1f2426f5dd7e6a89cf6ad4ff2b37d9f0d2718d9"
+        },
+        "AWS::CloudFront::Function": {
+          "type_sha256": "e721af04c2cd6db1ec771c10eacb7cb281b23a2e0a1dcf34544814edd1cff79d",
+          "baseline_type_sha256": "e721af04c2cd6db1ec771c10eacb7cb281b23a2e0a1dcf34544814edd1cff79d"
+        },
+        "AWS::CloudFront::KeyGroup": {
+          "type_sha256": "a752f130cdfa97b355b5620c2b8dac2b907fcb99fd809fb7a80d5cfa1239b488",
+          "baseline_type_sha256": "a752f130cdfa97b355b5620c2b8dac2b907fcb99fd809fb7a80d5cfa1239b488"
+        },
+        "AWS::CloudFront::KeyValueStore": {
+          "type_sha256": "02d1316e9c966b205b8138444920272d07cde0cb1e046bc933c6d1ebc138802a",
+          "baseline_type_sha256": "02d1316e9c966b205b8138444920272d07cde0cb1e046bc933c6d1ebc138802a"
+        },
+        "AWS::CloudFront::MonitoringSubscription": {
+          "type_sha256": "dda609ec9f07dcaf6942352767d89382e07c4df87613030868ea22181f7a782b",
+          "baseline_type_sha256": "dda609ec9f07dcaf6942352767d89382e07c4df87613030868ea22181f7a782b"
+        },
+        "AWS::CloudFront::OriginAccessControl": {
+          "type_sha256": "1714ae098b7a5e630f13e8543295d550bb7bdb0b46bfa036aef97b2b8cb576cf",
+          "baseline_type_sha256": "1714ae098b7a5e630f13e8543295d550bb7bdb0b46bfa036aef97b2b8cb576cf"
+        },
+        "AWS::CloudFront::PublicKey": {
+          "type_sha256": "1a68b455ba30f2b8d6837bc35d99e46fc60788e7bb8a5b2f19f1f7624ccaf774",
+          "baseline_type_sha256": "1a68b455ba30f2b8d6837bc35d99e46fc60788e7bb8a5b2f19f1f7624ccaf774"
+        },
+        "AWS::CloudFront::TrustStore": {
+          "type_sha256": "77d3dfa6d122efbfc2f58a6ffd051b57e5358d6119252b90fe6595ba0712d2d3",
+          "baseline_type_sha256": "77d3dfa6d122efbfc2f58a6ffd051b57e5358d6119252b90fe6595ba0712d2d3"
+        },
+        "AWS::CloudFront::VpcOrigin": {
+          "type_sha256": "85cba7838eb5328a6d4183560d35fa11d70ed80e7d625ab852cf6f3a1b4ba54b",
+          "baseline_type_sha256": "85cba7838eb5328a6d4183560d35fa11d70ed80e7d625ab852cf6f3a1b4ba54b"
+        },
+        "AWS::CloudTrail::Channel": {
+          "type_sha256": "65e7fccc31e39c0dcedb6245effa64df18ce619ea0c8a357265a70588599df18",
+          "baseline_type_sha256": "65e7fccc31e39c0dcedb6245effa64df18ce619ea0c8a357265a70588599df18"
+        },
+        "AWS::CloudTrail::Dashboard": {
+          "type_sha256": "48c58cc46bac1537b085c5f5df5413d22d35e1ceb1e0efe37ee934cbe0f2eab4",
+          "baseline_type_sha256": "48c58cc46bac1537b085c5f5df5413d22d35e1ceb1e0efe37ee934cbe0f2eab4"
+        },
+        "AWS::CloudTrail::ResourcePolicy": {
+          "type_sha256": "96dcacb96c0558caf08ad632f2c36d6fbe5ebc08cb7afdef438d72036eeae3bc",
+          "baseline_type_sha256": "96dcacb96c0558caf08ad632f2c36d6fbe5ebc08cb7afdef438d72036eeae3bc"
+        },
+        "AWS::CloudWatch::AnomalyDetector": {
+          "type_sha256": "b6a10795289bbc96349264e9c2e66608433d618e5a260f1233f7cb8a201b8754",
+          "baseline_type_sha256": "b6a10795289bbc96349264e9c2e66608433d618e5a260f1233f7cb8a201b8754"
+        },
+        "AWS::CloudWatch::Dashboard": {
+          "type_sha256": "2bfec87e1eba6a46887622c0e0729345ef872a764b0c9088117f7abadd697130",
+          "baseline_type_sha256": "2bfec87e1eba6a46887622c0e0729345ef872a764b0c9088117f7abadd697130"
+        },
+        "AWS::CloudWatch::InsightRule": {
+          "type_sha256": "edf4d9c688e0140d6268893cbeef9835a1fa802cf403d674152d190f2582f3a4",
+          "baseline_type_sha256": "edf4d9c688e0140d6268893cbeef9835a1fa802cf403d674152d190f2582f3a4"
+        },
+        "AWS::CodeBuild::SourceCredential": {
+          "type_sha256": "b20f9694e8c700ee4feec3e3540c0530c55ceb9af907c8b0401c900196fd19b2",
+          "baseline_type_sha256": "b20f9694e8c700ee4feec3e3540c0530c55ceb9af907c8b0401c900196fd19b2"
+        },
+        "AWS::CodeDeploy::Application": {
+          "type_sha256": "fe855f699b22838484803bd39d04ced7dab61928c5fd2c900ce2f07ee07f9d07",
+          "baseline_type_sha256": "fe855f699b22838484803bd39d04ced7dab61928c5fd2c900ce2f07ee07f9d07"
+        },
+        "AWS::CodeDeploy::DeploymentConfig": {
+          "type_sha256": "446d9a117471cf26573025648d06d00b5bbcf1b6c9d104200cb70388ddecf3b7",
+          "baseline_type_sha256": "446d9a117471cf26573025648d06d00b5bbcf1b6c9d104200cb70388ddecf3b7"
+        },
+        "AWS::CodePipeline::CustomActionType": {
+          "type_sha256": "58c3bd3f7936b18334d7c28308ce677134cd0ddac56b8995921e0f2ff90f80f3",
+          "baseline_type_sha256": "58c3bd3f7936b18334d7c28308ce677134cd0ddac56b8995921e0f2ff90f80f3"
+        },
+        "AWS::CodePipeline::Webhook": {
+          "type_sha256": "d3e561aa2b32c7ea6aa8ae871039c9b46b901ae671b99bee9710162844f04d52",
+          "baseline_type_sha256": "d3e561aa2b32c7ea6aa8ae871039c9b46b901ae671b99bee9710162844f04d52"
+        },
+        "AWS::Cognito::IdentityPoolPrincipalTag": {
+          "type_sha256": "1c709572afd00a3014074543ca1f6b51ee680cf0b3c6c825a6071baab723f57a",
+          "baseline_type_sha256": "1c709572afd00a3014074543ca1f6b51ee680cf0b3c6c825a6071baab723f57a"
+        },
+        "AWS::Cognito::ManagedLoginBranding": {
+          "type_sha256": "706f8a703cacabcd648cb4b52a3d8d2e2a60f3d31b878279f1dbbb8839fa0326",
+          "baseline_type_sha256": "706f8a703cacabcd648cb4b52a3d8d2e2a60f3d31b878279f1dbbb8839fa0326"
+        },
+        "AWS::Cognito::UserPoolDomain": {
+          "type_sha256": "65897ce0336511ff4b6e806f034b58dccca1e11be071844c590e10560bf08327",
+          "baseline_type_sha256": "65897ce0336511ff4b6e806f034b58dccca1e11be071844c590e10560bf08327"
+        },
+        "AWS::Cognito::UserPoolGroup": {
+          "type_sha256": "78837b62711015754a77535c8ab579f889acc6b22c5f7e9c69bd508df70df9bf",
+          "baseline_type_sha256": "78837b62711015754a77535c8ab579f889acc6b22c5f7e9c69bd508df70df9bf"
+        },
+        "AWS::Cognito::UserPoolIdentityProvider": {
+          "type_sha256": "67ece10e95b2f2bd3410d4720235c13ff62af3a8ade66b74256933e8b370ef7a",
+          "baseline_type_sha256": "67ece10e95b2f2bd3410d4720235c13ff62af3a8ade66b74256933e8b370ef7a"
+        },
+        "AWS::Cognito::UserPoolResourceServer": {
+          "type_sha256": "a19432f498f2042622f4206f1680df009bcb2e6ad21eac60ab465ae60297816f",
+          "baseline_type_sha256": "a19432f498f2042622f4206f1680df009bcb2e6ad21eac60ab465ae60297816f"
+        },
+        "AWS::Cognito::UserPoolRiskConfigurationAttachment": {
+          "type_sha256": "bd2a6c5d7882e40d31bae8668958b418e0ed079385ffe9935e760f3a0824ea70",
+          "baseline_type_sha256": "bd2a6c5d7882e40d31bae8668958b418e0ed079385ffe9935e760f3a0824ea70"
+        },
+        "AWS::Cognito::UserPoolUICustomizationAttachment": {
+          "type_sha256": "2072bb8f8b353ea3ffee1fd9e348bd3623a4ea913b24fc5cc8de2c6787939264",
+          "baseline_type_sha256": "2072bb8f8b353ea3ffee1fd9e348bd3623a4ea913b24fc5cc8de2c6787939264"
+        },
+        "AWS::Cognito::UserPoolUser": {
+          "type_sha256": "caf3adb82730b453779ba02ce267ade555d6fd0c164b14df8f527513142284f8",
+          "baseline_type_sha256": "caf3adb82730b453779ba02ce267ade555d6fd0c164b14df8f527513142284f8"
+        },
+        "AWS::Cognito::UserPoolUserToGroupAttachment": {
+          "type_sha256": "cd12ce3880a3bfc91d1eb3046e015e109c4ffd39abd8e1f7bbe70b513a955f76",
+          "baseline_type_sha256": "cd12ce3880a3bfc91d1eb3046e015e109c4ffd39abd8e1f7bbe70b513a955f76"
+        },
+        "AWS::Config::ConformancePack": {
+          "type_sha256": "12b0dc479b7b19b0eed17e5410e8a3b0b0fa5087458741cd8c54cf94d4875a66",
+          "baseline_type_sha256": "12b0dc479b7b19b0eed17e5410e8a3b0b0fa5087458741cd8c54cf94d4875a66"
+        },
+        "AWS::Config::Connector": {
+          "type_sha256": "6dab21bac43129283257da15f2064dbad3a8e93c097a668cb933b20cbbd73dbb",
+          "baseline_type_sha256": "6dab21bac43129283257da15f2064dbad3a8e93c097a668cb933b20cbbd73dbb"
+        },
+        "AWS::Config::OrganizationConformancePack": {
+          "type_sha256": "fbf1223b1fbe20a03136dd998c45996166fbed7e89fe170315de0e543b93b241",
+          "baseline_type_sha256": "fbf1223b1fbe20a03136dd998c45996166fbed7e89fe170315de0e543b93b241"
+        },
+        "AWS::Config::RemediationConfiguration": {
+          "type_sha256": "253c4cef28e411fcbe0a6246481b3fb6702f8399a17da5cf045ca93628789812",
+          "baseline_type_sha256": "253c4cef28e411fcbe0a6246481b3fb6702f8399a17da5cf045ca93628789812"
+        },
+        "AWS::Config::StoredQuery": {
+          "type_sha256": "7734b5600744dc89c48e537ab84cba691933a68c76f0f482ec6974c35f9d3be0",
+          "baseline_type_sha256": "7734b5600744dc89c48e537ab84cba691933a68c76f0f482ec6974c35f9d3be0"
+        },
+        "AWS::Connect::AgentStatus": {
+          "type_sha256": "f9ac38a04da99ccd61a1a1c582f0f934fc3a57fd0915f88dc6b8ae94504594eb",
+          "baseline_type_sha256": "f9ac38a04da99ccd61a1a1c582f0f934fc3a57fd0915f88dc6b8ae94504594eb"
+        },
+        "AWS::Connect::ApprovedOrigin": {
+          "type_sha256": "d8c6b3ee36d310eececf17532844182b3a3e5dd8c12e46299a4f9f7d0ef89080",
+          "baseline_type_sha256": "d8c6b3ee36d310eececf17532844182b3a3e5dd8c12e46299a4f9f7d0ef89080"
+        },
+        "AWS::Connect::ContactFlow": {
+          "type_sha256": "658e1a47b9a2274c223cbcbc776a739b718ab864568a5e8e840d34b5391d9db1",
+          "baseline_type_sha256": "658e1a47b9a2274c223cbcbc776a739b718ab864568a5e8e840d34b5391d9db1"
+        },
+        "AWS::Connect::ContactFlowModule": {
+          "type_sha256": "0453d3142eff566fd983f4a822bf09b32e03701dc652a475230f45a3132771d7",
+          "baseline_type_sha256": "0453d3142eff566fd983f4a822bf09b32e03701dc652a475230f45a3132771d7"
+        },
+        "AWS::Connect::ContactFlowModuleAlias": {
+          "type_sha256": "9fc0384e65a746a4fd3f55f8eabe543a86136cd49ef3aefa5c86c4f40170eb81",
+          "baseline_type_sha256": "9fc0384e65a746a4fd3f55f8eabe543a86136cd49ef3aefa5c86c4f40170eb81"
+        },
+        "AWS::Connect::ContactFlowModuleVersion": {
+          "type_sha256": "b9649362c1ac125d63c8b44445b4eee3ae57fe5094daba2d106a9d0be89ba746",
+          "baseline_type_sha256": "b9649362c1ac125d63c8b44445b4eee3ae57fe5094daba2d106a9d0be89ba746"
+        },
+        "AWS::Connect::DataLakeAssociation": {
+          "type_sha256": "eb07130f63aaf3169d36ef1c22b79b9651465e445f170d75cc660558120b6e88",
+          "baseline_type_sha256": "eb07130f63aaf3169d36ef1c22b79b9651465e445f170d75cc660558120b6e88"
+        },
+        "AWS::Connect::DataTable": {
+          "type_sha256": "f49f9760c9db6961efb99ab0581073cbbe906c1fb0548bb9abbf4dce56a335c1",
+          "baseline_type_sha256": "f49f9760c9db6961efb99ab0581073cbbe906c1fb0548bb9abbf4dce56a335c1"
+        },
+        "AWS::Connect::DataTableAttribute": {
+          "type_sha256": "e3074b77258ddb43372df513c863f05a15d6f0aaa0aa17014064a240a2833664",
+          "baseline_type_sha256": "e3074b77258ddb43372df513c863f05a15d6f0aaa0aa17014064a240a2833664"
+        },
+        "AWS::Connect::DataTableRecord": {
+          "type_sha256": "d994378f96a17ad68f0dd10a7048e4904c8e6b998a7072de93f6880f48f269df",
+          "baseline_type_sha256": "d994378f96a17ad68f0dd10a7048e4904c8e6b998a7072de93f6880f48f269df"
+        },
+        "AWS::Connect::EmailAddress": {
+          "type_sha256": "ded8f9fe8312422e2f90fee177a1d8d5c664979e7ad7137e50f55cf7e5a0246f",
+          "baseline_type_sha256": "ded8f9fe8312422e2f90fee177a1d8d5c664979e7ad7137e50f55cf7e5a0246f"
+        },
+        "AWS::Connect::HoursOfOperation": {
+          "type_sha256": "3ea3e9eca2086f828fd0ff779378111fcd8f9beaeeda3d1a378d3f8e3c09f016",
+          "baseline_type_sha256": "3ea3e9eca2086f828fd0ff779378111fcd8f9beaeeda3d1a378d3f8e3c09f016"
+        },
+        "AWS::Connect::Notification": {
+          "type_sha256": "33d79c1f11108d29d73d3076c21ef8094524e1d2ed59d4651fd6513051a426d0",
+          "baseline_type_sha256": "33d79c1f11108d29d73d3076c21ef8094524e1d2ed59d4651fd6513051a426d0"
+        },
+        "AWS::Connect::PhoneNumber": {
+          "type_sha256": "17e8b435c4f8f405bc2d21230fda167264beafd65c2302635553c9ebd00df826",
+          "baseline_type_sha256": "17e8b435c4f8f405bc2d21230fda167264beafd65c2302635553c9ebd00df826"
+        },
+        "AWS::Connect::PredefinedAttribute": {
+          "type_sha256": "07d0ef414568cf62117a611939f0cc4077f92904ce6c9fbb9a60fbbe01d9b03b",
+          "baseline_type_sha256": "07d0ef414568cf62117a611939f0cc4077f92904ce6c9fbb9a60fbbe01d9b03b"
+        },
+        "AWS::Connect::Prompt": {
+          "type_sha256": "5786931b2c259615c53a9d3403707f58fa96936be6ede8217f72740252a925af",
+          "baseline_type_sha256": "5786931b2c259615c53a9d3403707f58fa96936be6ede8217f72740252a925af"
+        },
+        "AWS::Connect::Queue": {
+          "type_sha256": "b4799cabd4da4085cd1512a521e4ee837cb732e04ab63764312bb6e15e960f49",
+          "baseline_type_sha256": "b4799cabd4da4085cd1512a521e4ee837cb732e04ab63764312bb6e15e960f49"
+        },
+        "AWS::Connect::RoutingProfile": {
+          "type_sha256": "83c9383eab5b0b6d3d72f07cca073bed150c166d65f671b2a9f3785331c51a19",
+          "baseline_type_sha256": "83c9383eab5b0b6d3d72f07cca073bed150c166d65f671b2a9f3785331c51a19"
+        },
+        "AWS::Connect::SecurityKey": {
+          "type_sha256": "c873441e401ff1c260f2a5cb0d3876f84c82d9f8d94d9eefeba1f7009823564c",
+          "baseline_type_sha256": "c873441e401ff1c260f2a5cb0d3876f84c82d9f8d94d9eefeba1f7009823564c"
+        },
+        "AWS::Connect::TaskTemplate": {
+          "type_sha256": "4429f74583f7fc37d5d6008a2a5ad207b7e70f138f464274c8308e0678c71409",
+          "baseline_type_sha256": "4429f74583f7fc37d5d6008a2a5ad207b7e70f138f464274c8308e0678c71409"
+        },
+        "AWS::Connect::TestCase": {
+          "type_sha256": "f60371ec69d24c06cf894aa3f2fc353a789f5fd88d0a042bc58114db93aec90b",
+          "baseline_type_sha256": "f60371ec69d24c06cf894aa3f2fc353a789f5fd88d0a042bc58114db93aec90b"
+        },
+        "AWS::Connect::TrafficDistributionGroup": {
+          "type_sha256": "124458b9f59308f7f2b80392353736ab0f45cc0568952b47b2ee86a018626933",
+          "baseline_type_sha256": "124458b9f59308f7f2b80392353736ab0f45cc0568952b47b2ee86a018626933"
+        },
+        "AWS::Connect::User": {
+          "type_sha256": "8d0af28c191eaf9f51f2c700117fb5744c2e89d0dcabb0e19048da1ec424913e",
+          "baseline_type_sha256": "8d0af28c191eaf9f51f2c700117fb5744c2e89d0dcabb0e19048da1ec424913e"
+        },
+        "AWS::Connect::UserHierarchyGroup": {
+          "type_sha256": "662536791ccf9db29d5776f247f899a027ea088f82d90a27d0cf672fdafcc73f",
+          "baseline_type_sha256": "662536791ccf9db29d5776f247f899a027ea088f82d90a27d0cf672fdafcc73f"
+        },
+        "AWS::Connect::UserHierarchyStructure": {
+          "type_sha256": "0afce443aa31651b82727369e672820bb6ddeef0d79ddea6ce8200eb267d775a",
+          "baseline_type_sha256": "0afce443aa31651b82727369e672820bb6ddeef0d79ddea6ce8200eb267d775a"
+        },
+        "AWS::Connect::Workspace": {
+          "type_sha256": "d01de64c5ada1efb6d15f9512a2ba55de290a1c23a5889405ac9231fad95b829",
+          "baseline_type_sha256": "d01de64c5ada1efb6d15f9512a2ba55de290a1c23a5889405ac9231fad95b829"
+        },
+        "AWS::ControlTower::EnabledBaseline": {
+          "type_sha256": "410b2b4bdc5ce42ec63542a3cdae3788dcd866d2403111be21f7f01d6096c5be",
+          "baseline_type_sha256": "410b2b4bdc5ce42ec63542a3cdae3788dcd866d2403111be21f7f01d6096c5be"
+        },
+        "AWS::ControlTower::LandingZone": {
+          "type_sha256": "e6c55ab283900090d13b1a0aaca0b7a1911072e26c8b8edd8e39b6abb9430f77",
+          "baseline_type_sha256": "e6c55ab283900090d13b1a0aaca0b7a1911072e26c8b8edd8e39b6abb9430f77"
+        },
+        "AWS::DMS::Certificate": {
+          "type_sha256": "5cc36e087430f6bddc921b5e482356d19b69c3d58049f5a4c80031c433c507c8",
+          "baseline_type_sha256": "5cc36e087430f6bddc921b5e482356d19b69c3d58049f5a4c80031c433c507c8"
+        },
+        "AWS::DMS::ReplicationInstance": {
+          "type_sha256": "d412cf944fad691df6cf3a69b220728144b8590828b3ea8819d092462b408348",
+          "baseline_type_sha256": "d412cf944fad691df6cf3a69b220728144b8590828b3ea8819d092462b408348"
+        },
+        "AWS::DMS::ReplicationTask": {
+          "type_sha256": "58a27b99e5319043aaa6436a1d871a59c18a1603f6b620ba4ea467b9dbb12c54",
+          "baseline_type_sha256": "58a27b99e5319043aaa6436a1d871a59c18a1603f6b620ba4ea467b9dbb12c54"
+        },
+        "AWS::DataSync::Agent": {
+          "type_sha256": "e1e03a8ddec3cf4a0868e592097601c5375fef3c15a02b4e929634b02ba1e12c",
+          "baseline_type_sha256": "e1e03a8ddec3cf4a0868e592097601c5375fef3c15a02b4e929634b02ba1e12c"
+        },
+        "AWS::DataSync::LocationFSxLustre": {
+          "type_sha256": "9c88d740891b99909e68865a666b9e47692c8871953a8d7f3cef726078162de9",
+          "baseline_type_sha256": "9c88d740891b99909e68865a666b9e47692c8871953a8d7f3cef726078162de9"
+        },
+        "AWS::DataSync::LocationNFS": {
+          "type_sha256": "5f6be34a195b7f518b9b8ceddc34a6d61ac458e3557f31477869aa794e60680c",
+          "baseline_type_sha256": "5f6be34a195b7f518b9b8ceddc34a6d61ac458e3557f31477869aa794e60680c"
+        },
+        "AWS::DataSync::LocationS3": {
+          "type_sha256": "a3adb6cdfcd37481b966cf30f273dfb77564061739300c5d1318ac3480237d4e",
+          "baseline_type_sha256": "a3adb6cdfcd37481b966cf30f273dfb77564061739300c5d1318ac3480237d4e"
+        },
+        "AWS::DataSync::Task": {
+          "type_sha256": "0e0c7eea4d16ae6bff9281da47bb915428a01509bdafda31390467e69e2c144e",
+          "baseline_type_sha256": "0e0c7eea4d16ae6bff9281da47bb915428a01509bdafda31390467e69e2c144e"
+        },
+        "AWS::DirectConnect::Connection": {
+          "type_sha256": "4de829c6918e6a1988e11450b7fc42d7bbce2e04688f152d9088e24b7ac50781",
+          "baseline_type_sha256": "4de829c6918e6a1988e11450b7fc42d7bbce2e04688f152d9088e24b7ac50781"
+        },
+        "AWS::DirectConnect::DirectConnectGateway": {
+          "type_sha256": "b12459d8a485d63127eea0a248b341420753ac6a36eb1b12cbe1cffe44c9f9ce",
+          "baseline_type_sha256": "b12459d8a485d63127eea0a248b341420753ac6a36eb1b12cbe1cffe44c9f9ce"
+        },
+        "AWS::DirectConnect::DirectConnectGatewayAssociation": {
+          "type_sha256": "0788d9ae6a9d99cc2634242b0e312965052ed524cf6ad6edb9b21e4db9e33ae1",
+          "baseline_type_sha256": "0788d9ae6a9d99cc2634242b0e312965052ed524cf6ad6edb9b21e4db9e33ae1"
+        },
+        "AWS::DirectConnect::PrivateVirtualInterface": {
+          "type_sha256": "5c545052d9977b590d4b630907c027c727f9c0644d1963962987da5fef9ff4d1",
+          "baseline_type_sha256": "5c545052d9977b590d4b630907c027c727f9c0644d1963962987da5fef9ff4d1"
+        },
+        "AWS::DirectConnect::PublicVirtualInterface": {
+          "type_sha256": "3ae9c141693c66050717886527138472ee776c37a522dca3c0dfd55294ba8bf1",
+          "baseline_type_sha256": "3ae9c141693c66050717886527138472ee776c37a522dca3c0dfd55294ba8bf1"
+        },
+        "AWS::DocDB::DBClusterParameterGroup": {
+          "type_sha256": "359618468b6a0794dd87335d2badaa28b60500e923504938c0fda2e97b747bd3",
+          "baseline_type_sha256": "359618468b6a0794dd87335d2badaa28b60500e923504938c0fda2e97b747bd3"
+        },
+        "AWS::DocDB::DBInstance": {
+          "type_sha256": "9805be5f9745b7cb26b9cf82f1c348c7729d3668001cf77eed2cc01a7a6195cd",
+          "baseline_type_sha256": "9805be5f9745b7cb26b9cf82f1c348c7729d3668001cf77eed2cc01a7a6195cd"
+        },
+        "AWS::DocDB::GlobalCluster": {
+          "type_sha256": "a34b33491873621adcb9dbb183ca6d2e816ef982ed60e7c73c22ec16db009a2e",
+          "baseline_type_sha256": "a34b33491873621adcb9dbb183ca6d2e816ef982ed60e7c73c22ec16db009a2e"
+        },
+        "AWS::EC2::ApplicationStatusCheck": {
+          "type_sha256": "c7f054fffdf26be6d2b2b7a7b5bb27a573bc7a6caaab01d3e55314b1eb627b44",
+          "baseline_type_sha256": "c7f054fffdf26be6d2b2b7a7b5bb27a573bc7a6caaab01d3e55314b1eb627b44"
+        },
+        "AWS::EC2::CapacityManagerDataExport": {
+          "type_sha256": "b871475173d37625624b9e480837e3e4bfa537d3596d76ad5b8a68dadc6ffb72",
+          "baseline_type_sha256": "b871475173d37625624b9e480837e3e4bfa537d3596d76ad5b8a68dadc6ffb72"
+        },
+        "AWS::EC2::CustomerGateway": {
+          "type_sha256": "cda9637e4ba3829c06befa541fe06e1cf5ef5736973b929d0b2f8010832496a6",
+          "baseline_type_sha256": "cda9637e4ba3829c06befa541fe06e1cf5ef5736973b929d0b2f8010832496a6"
+        },
+        "AWS::EC2::DHCPOptions": {
+          "type_sha256": "26c5ab769c8df7d33981ce6734b9a260ae20eef45fc0f0f686afde55394623d3",
+          "baseline_type_sha256": "26c5ab769c8df7d33981ce6734b9a260ae20eef45fc0f0f686afde55394623d3"
+        },
+        "AWS::EC2::EIP": {
+          "type_sha256": "55c6e43bc1d158fce447e7fc4370e273a6cfd27b5a8d32fc355dea777b6fe19e",
+          "baseline_type_sha256": "55c6e43bc1d158fce447e7fc4370e273a6cfd27b5a8d32fc355dea777b6fe19e"
+        },
+        "AWS::EC2::EIPAssociation": {
+          "type_sha256": "79f1e9b62a5b2b5d04a0bc5db43d256b07f958ad3bc7d91a4171db693ee4b819",
+          "baseline_type_sha256": "79f1e9b62a5b2b5d04a0bc5db43d256b07f958ad3bc7d91a4171db693ee4b819"
+        },
+        "AWS::EC2::EgressOnlyInternetGateway": {
+          "type_sha256": "6b5e8c07f183f81121ce3dbd134456a75b2c3d0b964d6861435ee881f63883a4",
+          "baseline_type_sha256": "6b5e8c07f183f81121ce3dbd134456a75b2c3d0b964d6861435ee881f63883a4"
+        },
+        "AWS::EC2::GatewayRouteTableAssociation": {
+          "type_sha256": "12fcfe3bb951f94acac4887598176f686dfa1cadbc3a75d9efe00d0a7c6f585a",
+          "baseline_type_sha256": "12fcfe3bb951f94acac4887598176f686dfa1cadbc3a75d9efe00d0a7c6f585a"
+        },
+        "AWS::EC2::Host": {
+          "type_sha256": "04bf2d4bce59b6a54660ca61a76df80e6294399fbc99f40d5643a3b2a75ed3ee",
+          "baseline_type_sha256": "04bf2d4bce59b6a54660ca61a76df80e6294399fbc99f40d5643a3b2a75ed3ee"
+        },
+        "AWS::EC2::IPAM": {
+          "type_sha256": "d893536c86ef6ca0aca8274f4a6d10595df0652451e32d36d2b0473687ec7cb5",
+          "baseline_type_sha256": "d893536c86ef6ca0aca8274f4a6d10595df0652451e32d36d2b0473687ec7cb5"
+        },
+        "AWS::EC2::IPAMAllocation": {
+          "type_sha256": "59d139d5d39b9a6566a8e92ff791a46ff886e71052b6b4584e50e41ff67670b0",
+          "baseline_type_sha256": "59d139d5d39b9a6566a8e92ff791a46ff886e71052b6b4584e50e41ff67670b0"
+        },
+        "AWS::EC2::IPAMPoolCidr": {
+          "type_sha256": "b592bd77878cc926f5104ff44d33b5c64de2d91424fe2cfd1a54016c432c48d2",
+          "baseline_type_sha256": "b592bd77878cc926f5104ff44d33b5c64de2d91424fe2cfd1a54016c432c48d2"
+        },
+        "AWS::EC2::IPAMPrefixListResolverTarget": {
+          "type_sha256": "008fa774cc7a05ce932060e1c9b7aab4bd7d9a3e93aeb26c3028984cb2b3cbe4",
+          "baseline_type_sha256": "008fa774cc7a05ce932060e1c9b7aab4bd7d9a3e93aeb26c3028984cb2b3cbe4"
+        },
+        "AWS::EC2::IPAMResourceDiscovery": {
+          "type_sha256": "b8868607a2e8dc3b00e0d082697d3ae905b047f965c0e4ce51753e303428baf0",
+          "baseline_type_sha256": "b8868607a2e8dc3b00e0d082697d3ae905b047f965c0e4ce51753e303428baf0"
+        },
+        "AWS::EC2::IPAMResourceDiscoveryAssociation": {
+          "type_sha256": "da7eacb80189124282ac7fdfefa7f5822d57363eda8264b5320f741287fb606f",
+          "baseline_type_sha256": "da7eacb80189124282ac7fdfefa7f5822d57363eda8264b5320f741287fb606f"
+        },
+        "AWS::EC2::IPAMScope": {
+          "type_sha256": "d830ba7c6920695f5fca43c60e1dccb76f6d64268f6e0a1890f54b33d9acbc62",
+          "baseline_type_sha256": "d830ba7c6920695f5fca43c60e1dccb76f6d64268f6e0a1890f54b33d9acbc62"
+        },
+        "AWS::EC2::InstanceConnectEndpoint": {
+          "type_sha256": "a387501297abe2d134aac7e96e6cdd70f857d6ffe220b52ea49ea6903a3ebfe7",
+          "baseline_type_sha256": "a387501297abe2d134aac7e96e6cdd70f857d6ffe220b52ea49ea6903a3ebfe7"
+        },
+        "AWS::EC2::InternetGateway": {
+          "type_sha256": "81a73a951e6c6178cd825ff5ef00b3648cd37b8febabe96485254299cd00de8d",
+          "baseline_type_sha256": "81a73a951e6c6178cd825ff5ef00b3648cd37b8febabe96485254299cd00de8d"
+        },
+        "AWS::EC2::IpPoolRouteTableAssociation": {
+          "type_sha256": "550c862324af9064afb9bfa95362335555eacef75c3c5872df6d1a6de30ac3c2",
+          "baseline_type_sha256": "550c862324af9064afb9bfa95362335555eacef75c3c5872df6d1a6de30ac3c2"
+        },
+        "AWS::EC2::KeyPair": {
+          "type_sha256": "fb19617c2bdd26dbb40860eee1bb35d20fcad090d0362573caae0a75c1d9052c",
+          "baseline_type_sha256": "fb19617c2bdd26dbb40860eee1bb35d20fcad090d0362573caae0a75c1d9052c"
+        },
+        "AWS::EC2::LocalGatewayRoute": {
+          "type_sha256": "157b275572877d4f55702595eb22f087dbba80ee30b74a2b5fc8ec45933886a3",
+          "baseline_type_sha256": "157b275572877d4f55702595eb22f087dbba80ee30b74a2b5fc8ec45933886a3"
+        },
+        "AWS::EC2::LocalGatewayRouteTable": {
+          "type_sha256": "336137f28439332eaada13186d48a43b3197efada5b88d333b0584316a1da4b2",
+          "baseline_type_sha256": "336137f28439332eaada13186d48a43b3197efada5b88d333b0584316a1da4b2"
+        },
+        "AWS::EC2::LocalGatewayRouteTableVPCAssociation": {
+          "type_sha256": "1f27991ce0c00e0047d324937e1f5e68a8f6eeff7511e25a17d962a9f40c414f",
+          "baseline_type_sha256": "1f27991ce0c00e0047d324937e1f5e68a8f6eeff7511e25a17d962a9f40c414f"
+        },
+        "AWS::EC2::LocalGatewayRouteTableVirtualInterfaceGroupAssociation": {
+          "type_sha256": "deea1a2e51023a70ecf4068587817b8a7cc315e76c84190e9314096253959088",
+          "baseline_type_sha256": "deea1a2e51023a70ecf4068587817b8a7cc315e76c84190e9314096253959088"
+        },
+        "AWS::EC2::LocalGatewayVirtualInterface": {
+          "type_sha256": "0bc1e2a9fe5f5962fbd4da1bcd4dad6c063ef4d7cce9f0698764fecf0c6209c9",
+          "baseline_type_sha256": "0bc1e2a9fe5f5962fbd4da1bcd4dad6c063ef4d7cce9f0698764fecf0c6209c9"
+        },
+        "AWS::EC2::LocalGatewayVirtualInterfaceGroup": {
+          "type_sha256": "fe5e45e295bcae2d4b3a8841b90eb2fcacb8859bbdbd9a2e4f45820d57c9ee50",
+          "baseline_type_sha256": "fe5e45e295bcae2d4b3a8841b90eb2fcacb8859bbdbd9a2e4f45820d57c9ee50"
+        },
+        "AWS::EC2::NetworkAcl": {
+          "type_sha256": "60364ec90dd47d46ff584b81a83b591d3561f93894aa393bdba0211a6bed6581",
+          "baseline_type_sha256": "60364ec90dd47d46ff584b81a83b591d3561f93894aa393bdba0211a6bed6581"
+        },
+        "AWS::EC2::NetworkAclEntry": {
+          "type_sha256": "bb574e7ed835a2136e64c95037c91d376651d578e59a375de6905f3a1f0d6b26",
+          "baseline_type_sha256": "bb574e7ed835a2136e64c95037c91d376651d578e59a375de6905f3a1f0d6b26"
+        },
+        "AWS::EC2::NetworkInsightsAccessScope": {
+          "type_sha256": "d5e4ec1939ccd4c03c315134ed64888dd71cbfc5d51a2bf159bb041c41a597f0",
+          "baseline_type_sha256": "d5e4ec1939ccd4c03c315134ed64888dd71cbfc5d51a2bf159bb041c41a597f0"
+        },
+        "AWS::EC2::NetworkInsightsAccessScopeAnalysis": {
+          "type_sha256": "4dbbcfe52fd4a9a3c448b048b95e73094fcd98ce092aa00820f922056b6b4b70",
+          "baseline_type_sha256": "4dbbcfe52fd4a9a3c448b048b95e73094fcd98ce092aa00820f922056b6b4b70"
+        },
+        "AWS::EC2::NetworkInsightsPath": {
+          "type_sha256": "4dc384cfe59b8fe8ef556ba1b030006bba11514b9f1ffe13ccedeac8465724d5",
+          "baseline_type_sha256": "4dc384cfe59b8fe8ef556ba1b030006bba11514b9f1ffe13ccedeac8465724d5"
+        },
+        "AWS::EC2::NetworkInterface": {
+          "type_sha256": "a28169e767bdddd098be9fe40cad019cdf213fa93163984b853252f5649b271f",
+          "baseline_type_sha256": "a28169e767bdddd098be9fe40cad019cdf213fa93163984b853252f5649b271f"
+        },
+        "AWS::EC2::NetworkInterfaceAttachment": {
+          "type_sha256": "2b138a87e63f1464e170c96d9626c54ca2a5212cecd60bfe4ff62b6df3c1f8ae",
+          "baseline_type_sha256": "2b138a87e63f1464e170c96d9626c54ca2a5212cecd60bfe4ff62b6df3c1f8ae"
+        },
+        "AWS::EC2::NetworkInterfacePermission": {
+          "type_sha256": "ff2e70a38f5b49eb2b78b3c4aa7fb93e1aedbb7838d8037f6665a1d37619f6e3",
+          "baseline_type_sha256": "ff2e70a38f5b49eb2b78b3c4aa7fb93e1aedbb7838d8037f6665a1d37619f6e3"
+        },
+        "AWS::EC2::NetworkPerformanceMetricSubscription": {
+          "type_sha256": "8bfa10b29caf27ce941447f4b3a3c6ec36aa8fcc24972ef77a8f954f20924c65",
+          "baseline_type_sha256": "8bfa10b29caf27ce941447f4b3a3c6ec36aa8fcc24972ef77a8f954f20924c65"
+        },
+        "AWS::EC2::PrefixList": {
+          "type_sha256": "01f7a2ca288efe8a25a5c5675689a7a4397975ae46265dde0dc9b6bb4ec590a7",
+          "baseline_type_sha256": "01f7a2ca288efe8a25a5c5675689a7a4397975ae46265dde0dc9b6bb4ec590a7"
+        },
+        "AWS::EC2::Route": {
+          "type_sha256": "8c289f522677761bc0b44ecf311fb1c4b32f141090e7c46c2ac4d75a0ae4d6b8",
+          "baseline_type_sha256": "8c289f522677761bc0b44ecf311fb1c4b32f141090e7c46c2ac4d75a0ae4d6b8"
+        },
+        "AWS::EC2::RouteServer": {
+          "type_sha256": "420847507f5f2dab346c4165ebb0f8ff9b95f940b703f3ffc01dc5ba6f6a5091",
+          "baseline_type_sha256": "420847507f5f2dab346c4165ebb0f8ff9b95f940b703f3ffc01dc5ba6f6a5091"
+        },
+        "AWS::EC2::RouteServerAssociation": {
+          "type_sha256": "3ca816b2ce672b742c1260445e879ea66cae0cb6c5acfab8c6e2fd18eeb3ae82",
+          "baseline_type_sha256": "3ca816b2ce672b742c1260445e879ea66cae0cb6c5acfab8c6e2fd18eeb3ae82"
+        },
+        "AWS::EC2::RouteServerEndpoint": {
+          "type_sha256": "3c6ace2a8b03f9b09438f13dec107404c99a533b179f0b36d00790539b62c496",
+          "baseline_type_sha256": "3c6ace2a8b03f9b09438f13dec107404c99a533b179f0b36d00790539b62c496"
+        },
+        "AWS::EC2::RouteServerPeer": {
+          "type_sha256": "8a5f65463dfb36d3fbf2cfb1cff95e27c82c22ac31a21d2f8dfd21a00aa88ae7",
+          "baseline_type_sha256": "8a5f65463dfb36d3fbf2cfb1cff95e27c82c22ac31a21d2f8dfd21a00aa88ae7"
+        },
+        "AWS::EC2::RouteServerPropagation": {
+          "type_sha256": "ff52a42e854c60a5843faf93c012338d3f5b4990093c3d0573a82e31b76751f2",
+          "baseline_type_sha256": "ff52a42e854c60a5843faf93c012338d3f5b4990093c3d0573a82e31b76751f2"
+        },
+        "AWS::EC2::RouteTable": {
+          "type_sha256": "f22c9ba5ea5126160d88ffd848ffdcb34aab05223e92051e258afe08d3f1954d",
+          "baseline_type_sha256": "f22c9ba5ea5126160d88ffd848ffdcb34aab05223e92051e258afe08d3f1954d"
+        },
+        "AWS::EC2::SecurityGroupEgress": {
+          "type_sha256": "38de51318db0cf1e7daf068402746e85b5be830a0a460555fa72e0b015a3e819",
+          "baseline_type_sha256": "38de51318db0cf1e7daf068402746e85b5be830a0a460555fa72e0b015a3e819"
+        },
+        "AWS::EC2::SecurityGroupIngress": {
+          "type_sha256": "b906523b7a48217cdce6ddaa7d902f62b7862c70a38fbc68f21a79b055157158",
+          "baseline_type_sha256": "b906523b7a48217cdce6ddaa7d902f62b7862c70a38fbc68f21a79b055157158"
+        },
+        "AWS::EC2::SecurityGroupVpcAssociation": {
+          "type_sha256": "5618fe6af276050e3135419a1dac4b18572979e715292aca7fe337cf1a964aa2",
+          "baseline_type_sha256": "5618fe6af276050e3135419a1dac4b18572979e715292aca7fe337cf1a964aa2"
+        },
+        "AWS::EC2::SnapshotBlockPublicAccess": {
+          "type_sha256": "bf71ca727ee5dc5203772f9eac3048949d77d890eb5e41b403d0275f2ef7254c",
+          "baseline_type_sha256": "bf71ca727ee5dc5203772f9eac3048949d77d890eb5e41b403d0275f2ef7254c"
+        },
+        "AWS::EC2::SqlHaStandbyDetectedInstance": {
+          "type_sha256": "120991479da4cb982c767311e40278ede458855b5f38a148d9ebf2436a0eadff",
+          "baseline_type_sha256": "120991479da4cb982c767311e40278ede458855b5f38a148d9ebf2436a0eadff"
+        },
+        "AWS::EC2::Subnet": {
+          "type_sha256": "5afda9486a67412b6c6c912b3ebd812bfac8e64b195dfa6eb6920a94133d9bde",
+          "baseline_type_sha256": "5afda9486a67412b6c6c912b3ebd812bfac8e64b195dfa6eb6920a94133d9bde"
+        },
+        "AWS::EC2::SubnetCidrBlock": {
+          "type_sha256": "44a15cfdbcc538a61726b840243651d6e9aee8bf9042cf6fb21168a08c80be36",
+          "baseline_type_sha256": "44a15cfdbcc538a61726b840243651d6e9aee8bf9042cf6fb21168a08c80be36"
+        },
+        "AWS::EC2::SubnetNetworkAclAssociation": {
+          "type_sha256": "1c22a87c5f478a2ab7ab07f74c6a5932315580b8ca842cb2f94caae1d31b020e",
+          "baseline_type_sha256": "1c22a87c5f478a2ab7ab07f74c6a5932315580b8ca842cb2f94caae1d31b020e"
+        },
+        "AWS::EC2::SubnetRouteTableAssociation": {
+          "type_sha256": "8a84b1c4b95bc64a9566d3e6e1f6410fafa5f1663593fcb01a5c9945a9844c89",
+          "baseline_type_sha256": "8a84b1c4b95bc64a9566d3e6e1f6410fafa5f1663593fcb01a5c9945a9844c89"
+        },
+        "AWS::EC2::TrafficMirrorFilter": {
+          "type_sha256": "9b1eb5e94a66c0f2bbbb468a6f5d7e5a89d3a5e8b3afac7e802303960d5cbbb9",
+          "baseline_type_sha256": "9b1eb5e94a66c0f2bbbb468a6f5d7e5a89d3a5e8b3afac7e802303960d5cbbb9"
+        },
+        "AWS::EC2::TrafficMirrorFilterRule": {
+          "type_sha256": "8bd436fbbdee27e188f7b8e1dda675cdcb0abc138de28d712f7ae1fd9ecd00a6",
+          "baseline_type_sha256": "8bd436fbbdee27e188f7b8e1dda675cdcb0abc138de28d712f7ae1fd9ecd00a6"
+        },
+        "AWS::EC2::TrafficMirrorSession": {
+          "type_sha256": "87807f5f29de999df185b5d0d86e5055010deb5f86e80ecaba2995d91c291536",
+          "baseline_type_sha256": "87807f5f29de999df185b5d0d86e5055010deb5f86e80ecaba2995d91c291536"
+        },
+        "AWS::EC2::TrafficMirrorTarget": {
+          "type_sha256": "43c098acb7961fb4a901c0bcc9b162ca140966688ba96542d2afc85cde45f190",
+          "baseline_type_sha256": "43c098acb7961fb4a901c0bcc9b162ca140966688ba96542d2afc85cde45f190"
+        },
+        "AWS::EC2::TransitGateway": {
+          "type_sha256": "0182d15dda50dfe3920eb4623536b7114c0222ca5111c6636eef0c7d26b4d6a2",
+          "baseline_type_sha256": "0182d15dda50dfe3920eb4623536b7114c0222ca5111c6636eef0c7d26b4d6a2"
+        },
+        "AWS::EC2::TransitGatewayConnect": {
+          "type_sha256": "efa2d903602be72df2bb8ed5a2d578345efff7ec687318c49089517e2c9557a4",
+          "baseline_type_sha256": "efa2d903602be72df2bb8ed5a2d578345efff7ec687318c49089517e2c9557a4"
+        },
+        "AWS::EC2::TransitGatewayConnectPeer": {
+          "type_sha256": "06f538b68a46c73c417d2c5464eecb8a21b98764e7d829b1f5e2ffb8bd1775f1",
+          "baseline_type_sha256": "06f538b68a46c73c417d2c5464eecb8a21b98764e7d829b1f5e2ffb8bd1775f1"
+        },
+        "AWS::EC2::TransitGatewayMeteringPolicy": {
+          "type_sha256": "ae68ae3a7b32d6bb46760ec85aa2675e15527b31c97afae851e36a20ead11117",
+          "baseline_type_sha256": "ae68ae3a7b32d6bb46760ec85aa2675e15527b31c97afae851e36a20ead11117"
+        },
+        "AWS::EC2::TransitGatewayMeteringPolicyEntry": {
+          "type_sha256": "29a5139b27c475638cf196c31a8c7556b1de0a8bc1e00c8987ae468ef99a02f4",
+          "baseline_type_sha256": "29a5139b27c475638cf196c31a8c7556b1de0a8bc1e00c8987ae468ef99a02f4"
+        },
+        "AWS::EC2::TransitGatewayMulticastDomain": {
+          "type_sha256": "6e05b4ae46b6926fb7f0fbe07ae8b3fe9d7e3b6f73f526d3c48c5b64237004e6",
+          "baseline_type_sha256": "6e05b4ae46b6926fb7f0fbe07ae8b3fe9d7e3b6f73f526d3c48c5b64237004e6"
+        },
+        "AWS::EC2::TransitGatewayMulticastDomainAssociation": {
+          "type_sha256": "024b32ea4c6d6526cbc39abc5e916c9b1c89c3411bb769cc4e7695173630e8d1",
+          "baseline_type_sha256": "024b32ea4c6d6526cbc39abc5e916c9b1c89c3411bb769cc4e7695173630e8d1"
+        },
+        "AWS::EC2::TransitGatewayMulticastGroupMember": {
+          "type_sha256": "a4be02645e48db99cec59f0bbf27cefed1889ed90551d7f5ad24e8cec495d74f",
+          "baseline_type_sha256": "a4be02645e48db99cec59f0bbf27cefed1889ed90551d7f5ad24e8cec495d74f"
+        },
+        "AWS::EC2::TransitGatewayMulticastGroupSource": {
+          "type_sha256": "bcb81a9a7408732aea16484fad5cf4343f4476fbd509d6f9285788aa7143f003",
+          "baseline_type_sha256": "bcb81a9a7408732aea16484fad5cf4343f4476fbd509d6f9285788aa7143f003"
+        },
+        "AWS::EC2::TransitGatewayPolicyTable": {
+          "type_sha256": "c7d814ea07c23a6ac1edbb24bc8e030f0fbce7f5a8d3ded600416fc7bf461d72",
+          "baseline_type_sha256": "c7d814ea07c23a6ac1edbb24bc8e030f0fbce7f5a8d3ded600416fc7bf461d72"
+        },
+        "AWS::EC2::TransitGatewayPolicyTableAssociation": {
+          "type_sha256": "a55e1d9541af18de95d40bb6089cecf370a71598bda192fd44f44ec7c827bce6",
+          "baseline_type_sha256": "a55e1d9541af18de95d40bb6089cecf370a71598bda192fd44f44ec7c827bce6"
+        },
+        "AWS::EC2::TransitGatewayPolicyTableEntry": {
+          "type_sha256": "1f72bbdde520d0fb318656a09c356a9992cd143eef728d8c6ee0f1ae3583c04c",
+          "baseline_type_sha256": "1f72bbdde520d0fb318656a09c356a9992cd143eef728d8c6ee0f1ae3583c04c"
+        },
+        "AWS::EC2::TransitGatewayRoute": {
+          "type_sha256": "60d6a3c880c473d5f40fa177d067e3922746706e71b000d627295d9c1c0868e6",
+          "baseline_type_sha256": "60d6a3c880c473d5f40fa177d067e3922746706e71b000d627295d9c1c0868e6"
+        },
+        "AWS::EC2::TransitGatewayRouteTable": {
+          "type_sha256": "25c0480d754d7df71d245e24b2ac06ecfcdaf0dfdfcf74a91f717662900f30b4",
+          "baseline_type_sha256": "25c0480d754d7df71d245e24b2ac06ecfcdaf0dfdfcf74a91f717662900f30b4"
+        },
+        "AWS::EC2::TransitGatewayRouteTableAssociation": {
+          "type_sha256": "52afcd4a35bad6ee319c271f9ce1a62ec9db45a8c9cb966e6b65f3a597584a5b",
+          "baseline_type_sha256": "52afcd4a35bad6ee319c271f9ce1a62ec9db45a8c9cb966e6b65f3a597584a5b"
+        },
+        "AWS::EC2::TransitGatewayRouteTablePropagation": {
+          "type_sha256": "b2dc0ffdd1868756b568c3ab132b0ba3788115bf86322bf4356e9c6676b05cd0",
+          "baseline_type_sha256": "b2dc0ffdd1868756b568c3ab132b0ba3788115bf86322bf4356e9c6676b05cd0"
+        },
+        "AWS::EC2::VPC": {
+          "type_sha256": "680969fcf2f14406a1b1eb39d0b8c1cdd61b60aaae105a8e73e2fb4088532dcf",
+          "baseline_type_sha256": "680969fcf2f14406a1b1eb39d0b8c1cdd61b60aaae105a8e73e2fb4088532dcf"
+        },
+        "AWS::EC2::VPCBlockPublicAccessOptions": {
+          "type_sha256": "2e95d4935e7285c89497be88341d7ecc6ce3b27e698acf34acbccc725b68f88b",
+          "baseline_type_sha256": "2e95d4935e7285c89497be88341d7ecc6ce3b27e698acf34acbccc725b68f88b"
+        },
+        "AWS::EC2::VPCCidrBlock": {
+          "type_sha256": "929049dd801f3cf4c9dbb8bcdb60ba08dbbd3096fd2216518519014881739fff",
+          "baseline_type_sha256": "929049dd801f3cf4c9dbb8bcdb60ba08dbbd3096fd2216518519014881739fff"
+        },
+        "AWS::EC2::VPCDHCPOptionsAssociation": {
+          "type_sha256": "addf0b6ee8d83cdc526f861449926a50d71ce1d923b1b8f3daf288b8df339716",
+          "baseline_type_sha256": "addf0b6ee8d83cdc526f861449926a50d71ce1d923b1b8f3daf288b8df339716"
+        },
+        "AWS::EC2::VPCEncryptionControl": {
+          "type_sha256": "bfa5546033ddb7220060d1d96a90896cd55439df137e879b1cd356d3a55cb473",
+          "baseline_type_sha256": "bfa5546033ddb7220060d1d96a90896cd55439df137e879b1cd356d3a55cb473"
+        },
+        "AWS::EC2::VPCEndpoint": {
+          "type_sha256": "8e1ed11a675ec7fe36c150109bb77d9644b6b723a65a06987210b1fee568b8b1",
+          "baseline_type_sha256": "8e1ed11a675ec7fe36c150109bb77d9644b6b723a65a06987210b1fee568b8b1"
+        },
+        "AWS::EC2::VPCEndpointConnectionNotification": {
+          "type_sha256": "7bf0147a71eb3201bf4d6b8cc9ab460d2e42fda01b2766aa48b651d2725d1c84",
+          "baseline_type_sha256": "7bf0147a71eb3201bf4d6b8cc9ab460d2e42fda01b2766aa48b651d2725d1c84"
+        },
+        "AWS::EC2::VPCEndpointService": {
+          "type_sha256": "1db4c85665de8f7349624cf09521d2f2478386669ae21b84ea5c120a69f6a4cc",
+          "baseline_type_sha256": "1db4c85665de8f7349624cf09521d2f2478386669ae21b84ea5c120a69f6a4cc"
+        },
+        "AWS::EC2::VPCEndpointServicePermissions": {
+          "type_sha256": "26cb825f5342240be0f85a0f3b47177a3dcbaa3dd6b9f73e3a90a1055f7bce80",
+          "baseline_type_sha256": "26cb825f5342240be0f85a0f3b47177a3dcbaa3dd6b9f73e3a90a1055f7bce80"
+        },
+        "AWS::EC2::VPCGatewayAttachment": {
+          "type_sha256": "0933d628b0512af79a5f9da574c111993c1810631a27585c74515f9ae1ea17aa",
+          "baseline_type_sha256": "0933d628b0512af79a5f9da574c111993c1810631a27585c74515f9ae1ea17aa"
+        },
+        "AWS::EC2::VPNConnection": {
+          "type_sha256": "aa12dce2bbef237ad7d91774ead0a218b2db82d3047fa2190f13f1d2956c715d",
+          "baseline_type_sha256": "aa12dce2bbef237ad7d91774ead0a218b2db82d3047fa2190f13f1d2956c715d"
+        },
+        "AWS::EC2::VPNConnectionRoute": {
+          "type_sha256": "a5fe3c5382fe552ededaed889a5755f46d9ca3254ba0b57e8ce563ea5e63a1c0",
+          "baseline_type_sha256": "a5fe3c5382fe552ededaed889a5755f46d9ca3254ba0b57e8ce563ea5e63a1c0"
+        },
+        "AWS::EC2::VPNGateway": {
+          "type_sha256": "b98ad550fefcbc530e48ec0c38daaa16e6b11e97a9ee5c50840ded3bb7a60ba0",
+          "baseline_type_sha256": "b98ad550fefcbc530e48ec0c38daaa16e6b11e97a9ee5c50840ded3bb7a60ba0"
+        },
+        "AWS::EC2::VPNGatewayRoutePropagation": {
+          "type_sha256": "38bfa6a5a08e275770b33473bb94e232d702594065661fafccfedfd375097f7a",
+          "baseline_type_sha256": "38bfa6a5a08e275770b33473bb94e232d702594065661fafccfedfd375097f7a"
+        },
+        "AWS::ECR::PullThroughCacheRule": {
+          "type_sha256": "3926880e62300e4e72495ba6ed62c726ea77cda43740c6848ed5668162006110",
+          "baseline_type_sha256": "3926880e62300e4e72495ba6ed62c726ea77cda43740c6848ed5668162006110"
+        },
+        "AWS::ECR::PullTimeUpdateExclusion": {
+          "type_sha256": "9bb2989f5d152a2f11159fbc8d48b7ba7fff40121648c0b667017d13396f695c",
+          "baseline_type_sha256": "9bb2989f5d152a2f11159fbc8d48b7ba7fff40121648c0b667017d13396f695c"
+        },
+        "AWS::ECR::RegistryPolicy": {
+          "type_sha256": "1ac5b8ad8a469f94315bd8cb711d25caac009a0cd01ad1fad5fc7f0b760b39fd",
+          "baseline_type_sha256": "1ac5b8ad8a469f94315bd8cb711d25caac009a0cd01ad1fad5fc7f0b760b39fd"
+        },
+        "AWS::ECR::RegistryScanningConfiguration": {
+          "type_sha256": "e551cae70b9ded50ce02a6579b198ea16b4021bec6afa518fab28e8778896bef",
+          "baseline_type_sha256": "e551cae70b9ded50ce02a6579b198ea16b4021bec6afa518fab28e8778896bef"
+        },
+        "AWS::ECR::Repository": {
+          "type_sha256": "9dbf00d85675d3a8526eda344d53dd3fff89600d0b7700fd803538ff33f1ecf2",
+          "baseline_type_sha256": "9dbf00d85675d3a8526eda344d53dd3fff89600d0b7700fd803538ff33f1ecf2"
+        },
+        "AWS::ECR::RepositoryCreationTemplate": {
+          "type_sha256": "1a638a690fd17285f58f32454c7af8b5b05927243a8653fb95d039a241b33a18",
+          "baseline_type_sha256": "1a638a690fd17285f58f32454c7af8b5b05927243a8653fb95d039a241b33a18"
+        },
+        "AWS::ECS::CapacityProvider": {
+          "type_sha256": "5dbe91b8e4926336bf7d7e64f095127e673682fc7e3f406a54d63f9dd25a1ca0",
+          "baseline_type_sha256": "5dbe91b8e4926336bf7d7e64f095127e673682fc7e3f406a54d63f9dd25a1ca0"
+        },
+        "AWS::ECS::ClusterCapacityProviderAssociations": {
+          "type_sha256": "c215adb6fd9b20f8a1285966ba98d7990177ac6b727f8aa07cd03909c6b90439",
+          "baseline_type_sha256": "c215adb6fd9b20f8a1285966ba98d7990177ac6b727f8aa07cd03909c6b90439"
+        },
+        "AWS::ECS::Daemon": {
+          "type_sha256": "f4b43bcc3febab68e29a1366be3a384bcd9e79c976723aa497f0bf51defb7c50",
+          "baseline_type_sha256": "f4b43bcc3febab68e29a1366be3a384bcd9e79c976723aa497f0bf51defb7c50"
+        },
+        "AWS::ECS::ExpressGatewayService": {
+          "type_sha256": "c8436142a491e79df8d6be8f556e61a429512ddd851a9bef65c5c848ab64b3ec",
+          "baseline_type_sha256": "c8436142a491e79df8d6be8f556e61a429512ddd851a9bef65c5c848ab64b3ec"
+        },
+        "AWS::ECS::PrimaryTaskSet": {
+          "type_sha256": "605b1e4adb55180427f2747f94548a2279a5175820387dfc06d744b22cae2782",
+          "baseline_type_sha256": "605b1e4adb55180427f2747f94548a2279a5175820387dfc06d744b22cae2782"
+        },
+        "AWS::EFS::AccessPoint": {
+          "type_sha256": "ffd3327b690b21a18aa545313c170ae6f6114d221e34d3672d7a874ffb91b7b3",
+          "baseline_type_sha256": "ffd3327b690b21a18aa545313c170ae6f6114d221e34d3672d7a874ffb91b7b3"
+        },
+        "AWS::EKS::Addon": {
+          "type_sha256": "e8f03afa0c6bafef66a3d512bb901d7e0fc692e96e511657ebe8d7d00d5d0e2d",
+          "baseline_type_sha256": "e8f03afa0c6bafef66a3d512bb901d7e0fc692e96e511657ebe8d7d00d5d0e2d"
+        },
+        "AWS::EKS::FargateProfile": {
+          "type_sha256": "e0f47a0957749d9ad60c3bf7884a51e5feeb00a8d83005331cc8bea79d8879d1",
+          "baseline_type_sha256": "e0f47a0957749d9ad60c3bf7884a51e5feeb00a8d83005331cc8bea79d8879d1"
+        },
+        "AWS::EKS::IdentityProviderConfig": {
+          "type_sha256": "8e5e730746768985a6ddf9f71110069cdc66c56e25ab67aef1ab7979a3451e4c",
+          "baseline_type_sha256": "8e5e730746768985a6ddf9f71110069cdc66c56e25ab67aef1ab7979a3451e4c"
+        },
+        "AWS::EKS::PodIdentityAssociation": {
+          "type_sha256": "33af5c30ca3f66c64e0a04eda644ba938f5da734166d349745223b58e991f333",
+          "baseline_type_sha256": "33af5c30ca3f66c64e0a04eda644ba938f5da734166d349745223b58e991f333"
+        },
+        "AWS::EMR::InstanceGroupConfig": {
+          "type_sha256": "e0719a65460ea2844a961c6b1780ad102dcb6e00fa3996d2dc047ac59a77fa80",
+          "baseline_type_sha256": "e0719a65460ea2844a961c6b1780ad102dcb6e00fa3996d2dc047ac59a77fa80"
+        },
+        "AWS::EMR::SecurityConfiguration": {
+          "type_sha256": "fcd2c10ad10863e58ff2ac946e3290d0549a1d9f1ec96f4dd12b36740be00d1c",
+          "baseline_type_sha256": "fcd2c10ad10863e58ff2ac946e3290d0549a1d9f1ec96f4dd12b36740be00d1c"
+        },
+        "AWS::EMR::Step": {
+          "type_sha256": "9fa429e83c7d9f24d9e98a6173b0ee257b76008ae7c1a8c5ef21c26c6b9c57ef",
+          "baseline_type_sha256": "9fa429e83c7d9f24d9e98a6173b0ee257b76008ae7c1a8c5ef21c26c6b9c57ef"
+        },
+        "AWS::EMR::StudioSessionMapping": {
+          "type_sha256": "bc4c839b5ed1ec95ef7797beacdafda34934b5840f35fe9d467e775750002cb2",
+          "baseline_type_sha256": "bc4c839b5ed1ec95ef7797beacdafda34934b5840f35fe9d467e775750002cb2"
+        },
+        "AWS::EMRContainers::SecurityConfiguration": {
+          "type_sha256": "4079da90c24228ef61db91486950ab3d7943c5cdf220d2f32186462205f61267",
+          "baseline_type_sha256": "4079da90c24228ef61db91486950ab3d7943c5cdf220d2f32186462205f61267"
+        },
+        "AWS::EMRContainers::VirtualCluster": {
+          "type_sha256": "ec0d05dbe849d2feec71439cb048e96c2856a53074b28f480bb295f80f03c9c2",
+          "baseline_type_sha256": "ec0d05dbe849d2feec71439cb048e96c2856a53074b28f480bb295f80f03c9c2"
+        },
+        "AWS::EVS::Environment": {
+          "type_sha256": "b2430aea6ce6192ca65b408260ab814efe2ccbf7f2e5eb8ab8607d26b6f160ea",
+          "baseline_type_sha256": "b2430aea6ce6192ca65b408260ab814efe2ccbf7f2e5eb8ab8607d26b6f160ea"
+        },
+        "AWS::ElastiCache::ParameterGroup": {
+          "type_sha256": "8892c865e009667ce507b26442eab0929791d859d80d88bdd537942106c2d087",
+          "baseline_type_sha256": "8892c865e009667ce507b26442eab0929791d859d80d88bdd537942106c2d087"
+        },
+        "AWS::ElastiCache::SecurityGroup": {
+          "type_sha256": "7d004dd93412a869f6a807589e21283f728b93022daeec6be0a8f8b8f146d056",
+          "baseline_type_sha256": "7d004dd93412a869f6a807589e21283f728b93022daeec6be0a8f8b8f146d056"
+        },
+        "AWS::ElastiCache::SecurityGroupIngress": {
+          "type_sha256": "cd4c2b4d31310bd21f352a0a6a2d594efa03b90cc60d992d37287be1d930c599",
+          "baseline_type_sha256": "cd4c2b4d31310bd21f352a0a6a2d594efa03b90cc60d992d37287be1d930c599"
+        },
+        "AWS::ElastiCache::SubnetGroup": {
+          "type_sha256": "eccf6aa3b10130d3473acda2100bcb61555c185d8442d6186b65bced93f60f6e",
+          "baseline_type_sha256": "eccf6aa3b10130d3473acda2100bcb61555c185d8442d6186b65bced93f60f6e"
+        },
+        "AWS::ElastiCache::User": {
+          "type_sha256": "71ae9a888ea3057e37355c4f105c19e02451ff2121491752f4c6e4e02220718c",
+          "baseline_type_sha256": "71ae9a888ea3057e37355c4f105c19e02451ff2121491752f4c6e4e02220718c"
+        },
+        "AWS::ElasticBeanstalk::Application": {
+          "type_sha256": "4b5a464c8c174d5d44a345f0f331a8ef17535cd1ffd6f1caec7ea1b0e60d74a2",
+          "baseline_type_sha256": "4b5a464c8c174d5d44a345f0f331a8ef17535cd1ffd6f1caec7ea1b0e60d74a2"
+        },
+        "AWS::ElasticLoadBalancingV2::Listener": {
+          "type_sha256": "dc623b01696480f9df9c990ce4823283ffb8bb556c79f24d6c6cf2d8f3b06f12",
+          "baseline_type_sha256": "dc623b01696480f9df9c990ce4823283ffb8bb556c79f24d6c6cf2d8f3b06f12"
+        },
+        "AWS::ElasticLoadBalancingV2::TrustStore": {
+          "type_sha256": "5d33ec1a482f8fbeca3b2705352964a96fa3140dee8064047657a0789a787853",
+          "baseline_type_sha256": "5d33ec1a482f8fbeca3b2705352964a96fa3140dee8064047657a0789a787853"
+        },
+        "AWS::EventSchemas::Discoverer": {
+          "type_sha256": "76307344883764fa3edc7d0795bf1f270da986584bc3dd70b5496d0ab6ac6b56",
+          "baseline_type_sha256": "76307344883764fa3edc7d0795bf1f270da986584bc3dd70b5496d0ab6ac6b56"
+        },
+        "AWS::EventSchemas::Registry": {
+          "type_sha256": "c1cdd059dc6ba4d829aebd383013c5c02b11b7976b0da4bda50f1d57e1904343",
+          "baseline_type_sha256": "c1cdd059dc6ba4d829aebd383013c5c02b11b7976b0da4bda50f1d57e1904343"
+        },
+        "AWS::EventSchemas::RegistryPolicy": {
+          "type_sha256": "f4c042c95daa6565b4c0ad44b2ead6e1607fcb63bb1d485e4691d7994276d5a5",
+          "baseline_type_sha256": "f4c042c95daa6565b4c0ad44b2ead6e1607fcb63bb1d485e4691d7994276d5a5"
+        },
+        "AWS::EventSchemas::Schema": {
+          "type_sha256": "a1bb44c11be9a5804ed9683c5a53da792d1c44e8238d304675fb701ed201e69e",
+          "baseline_type_sha256": "a1bb44c11be9a5804ed9683c5a53da792d1c44e8238d304675fb701ed201e69e"
+        },
+        "AWS::Events::ApiDestination": {
+          "type_sha256": "90951ea034bc53d0104eaf602dcaf9edc0b0f83f08b16349d14b1639f7469e33",
+          "baseline_type_sha256": "90951ea034bc53d0104eaf602dcaf9edc0b0f83f08b16349d14b1639f7469e33"
+        },
+        "AWS::Events::Archive": {
+          "type_sha256": "6c45b8f1ad2775476760d87d768d077c1dd5d9d5a49e388b00b6aedd6f6cc8dd",
+          "baseline_type_sha256": "6c45b8f1ad2775476760d87d768d077c1dd5d9d5a49e388b00b6aedd6f6cc8dd"
+        },
+        "AWS::Events::Connection": {
+          "type_sha256": "7398c0c17559ce3bcf7ee6fb5b9997671836d3ec799c89cdfd8eef1f255d1e2d",
+          "baseline_type_sha256": "7398c0c17559ce3bcf7ee6fb5b9997671836d3ec799c89cdfd8eef1f255d1e2d"
+        },
+        "AWS::Events::EventBus": {
+          "type_sha256": "433fcd743a3a6e0f4f3cea63bedb3357fc934db062e05359ac17361dbe192744",
+          "baseline_type_sha256": "433fcd743a3a6e0f4f3cea63bedb3357fc934db062e05359ac17361dbe192744"
+        },
+        "AWS::FIS::ExperimentTemplate": {
+          "type_sha256": "54dd2750aa13f3a953bbaea5cb492c1f78d78d385cfbd84db64214e0bbb9ff3d",
+          "baseline_type_sha256": "54dd2750aa13f3a953bbaea5cb492c1f78d78d385cfbd84db64214e0bbb9ff3d"
+        },
+        "AWS::FIS::TargetAccountConfiguration": {
+          "type_sha256": "3a480d0d6d22b0a438e8098d4d1395a448fdf8c0446e1bad4613aaadce82eeb5",
+          "baseline_type_sha256": "3a480d0d6d22b0a438e8098d4d1395a448fdf8c0446e1bad4613aaadce82eeb5"
+        },
+        "AWS::FMS::NotificationChannel": {
+          "type_sha256": "54c837568ba6c32d986b030734a1bf59f71e704c67f84395b2844f61250157c3",
+          "baseline_type_sha256": "54c837568ba6c32d986b030734a1bf59f71e704c67f84395b2844f61250157c3"
+        },
+        "AWS::FMS::Policy": {
+          "type_sha256": "0770830de4986e0bb842a79c9e7f1ee0cf9b34818027bee39cce1439c62373f3",
+          "baseline_type_sha256": "0770830de4986e0bb842a79c9e7f1ee0cf9b34818027bee39cce1439c62373f3"
+        },
+        "AWS::FMS::ResourceSet": {
+          "type_sha256": "5a3658f4c5dbb839b6419262ef5e3a6ef624728528e0fc88529046a837476caa",
+          "baseline_type_sha256": "5a3658f4c5dbb839b6419262ef5e3a6ef624728528e0fc88529046a837476caa"
+        },
+        "AWS::FSx::S3AccessPointAttachment": {
+          "type_sha256": "ccec4e2e28c3bb2a5b44002ce9970cf67960a8de41091d1b338ea6748a80d048",
+          "baseline_type_sha256": "ccec4e2e28c3bb2a5b44002ce9970cf67960a8de41091d1b338ea6748a80d048"
+        },
+        "AWS::GlobalAccelerator::Accelerator": {
+          "type_sha256": "b8a0019f90dcb89f8243ab7993d081d27f7afa701687ab16b587ffa7af79c699",
+          "baseline_type_sha256": "b8a0019f90dcb89f8243ab7993d081d27f7afa701687ab16b587ffa7af79c699"
+        },
+        "AWS::GlobalAccelerator::Listener": {
+          "type_sha256": "e9cfaa79320213059496dc87d5d011ec0840de50e970bd0cc8ffe4b52c121628",
+          "baseline_type_sha256": "e9cfaa79320213059496dc87d5d011ec0840de50e970bd0cc8ffe4b52c121628"
+        },
+        "AWS::Glue::Catalog": {
+          "type_sha256": "7b7434ab50a51bca69676f434650083eac1c580989c0c9d4414b976b1f0f57c0",
+          "baseline_type_sha256": "7b7434ab50a51bca69676f434650083eac1c580989c0c9d4414b976b1f0f57c0"
+        },
+        "AWS::Glue::Classifier": {
+          "type_sha256": "1f91ba3e5ea3dc57a5b89c395d330ccc1b70074eba38f83e19d8d2f89b092518",
+          "baseline_type_sha256": "1f91ba3e5ea3dc57a5b89c395d330ccc1b70074eba38f83e19d8d2f89b092518"
+        },
+        "AWS::Glue::Connection": {
+          "type_sha256": "9edc24c7b3b8f68024a5610764a1c6af9110a29dd522f7e49681e0307a9746ba",
+          "baseline_type_sha256": "9edc24c7b3b8f68024a5610764a1c6af9110a29dd522f7e49681e0307a9746ba"
+        },
+        "AWS::Glue::Crawler": {
+          "type_sha256": "ab593b683260bd2ceea62c505499885510938d3a47ba559e16c0e24784417722",
+          "baseline_type_sha256": "ab593b683260bd2ceea62c505499885510938d3a47ba559e16c0e24784417722"
+        },
+        "AWS::Glue::CustomEntityType": {
+          "type_sha256": "1cbba96da898c2c10acf00dc0437004748a186943a932d1b2937f292a60ead84",
+          "baseline_type_sha256": "1cbba96da898c2c10acf00dc0437004748a186943a932d1b2937f292a60ead84"
+        },
+        "AWS::Glue::DataCatalogEncryptionSettings": {
+          "type_sha256": "19068a8c2829fad92e42185a6ecb10d521b4565c3d8d3d6486fa3a2388f924e4",
+          "baseline_type_sha256": "19068a8c2829fad92e42185a6ecb10d521b4565c3d8d3d6486fa3a2388f924e4"
+        },
+        "AWS::Glue::DataQualityRuleset": {
+          "type_sha256": "4ca6a790bfa6a710f483f4acf25a18285363a0fc8a3476897b49049d3681c6b5",
+          "baseline_type_sha256": "4ca6a790bfa6a710f483f4acf25a18285363a0fc8a3476897b49049d3681c6b5"
+        },
+        "AWS::Glue::Database": {
+          "type_sha256": "cb53ead83f6fd540a2fa96780ab9b48c1ffc8f269feb6a08414d714bf45e64cf",
+          "baseline_type_sha256": "cb53ead83f6fd540a2fa96780ab9b48c1ffc8f269feb6a08414d714bf45e64cf"
+        },
+        "AWS::Glue::DevEndpoint": {
+          "type_sha256": "65d914698b3ce6d2d41a2ea6e7f8ce634b0d426a6feb9eac69d39519be7096a5",
+          "baseline_type_sha256": "65d914698b3ce6d2d41a2ea6e7f8ce634b0d426a6feb9eac69d39519be7096a5"
+        },
+        "AWS::Glue::IdentityCenterConfiguration": {
+          "type_sha256": "6591d1caeeb643f3909a2a1aba1ea358eefc135639fdba925a00c41d6113299d",
+          "baseline_type_sha256": "6591d1caeeb643f3909a2a1aba1ea358eefc135639fdba925a00c41d6113299d"
+        },
+        "AWS::Glue::Job": {
+          "type_sha256": "8670fbf31fd32bf10fd1dd38b2bb5a696dff2659ace6f81b8f6673c188ee4b32",
+          "baseline_type_sha256": "8670fbf31fd32bf10fd1dd38b2bb5a696dff2659ace6f81b8f6673c188ee4b32"
+        },
+        "AWS::Glue::MLTransform": {
+          "type_sha256": "b38f9a4f986f9e1edb0914dc4c8d202f6a879b7a04528c15963db0a5bd98d837",
+          "baseline_type_sha256": "b38f9a4f986f9e1edb0914dc4c8d202f6a879b7a04528c15963db0a5bd98d837"
+        },
+        "AWS::Glue::Registry": {
+          "type_sha256": "d7ff1a174e2e9b0db9089e1822742d10ae3e50f883538577d5b716535ad0c318",
+          "baseline_type_sha256": "d7ff1a174e2e9b0db9089e1822742d10ae3e50f883538577d5b716535ad0c318"
+        },
+        "AWS::Glue::Schema": {
+          "type_sha256": "ec1ec71311c876160587d1293d16f267ec55b3dcd0fc2e226a2b52280b8a2111",
+          "baseline_type_sha256": "ec1ec71311c876160587d1293d16f267ec55b3dcd0fc2e226a2b52280b8a2111"
+        },
+        "AWS::Glue::SchemaVersionMetadata": {
+          "type_sha256": "ec5f4171b70502ffef4aa2b3f5c33caad27be66456d63265dcd1bc06aa335f04",
+          "baseline_type_sha256": "ec5f4171b70502ffef4aa2b3f5c33caad27be66456d63265dcd1bc06aa335f04"
+        },
+        "AWS::Glue::SecurityConfiguration": {
+          "type_sha256": "632cd04396d774a220a58ea60718135f97fa05d18d00ee6db481648d1c05aa96",
+          "baseline_type_sha256": "632cd04396d774a220a58ea60718135f97fa05d18d00ee6db481648d1c05aa96"
+        },
+        "AWS::Glue::Session": {
+          "type_sha256": "8b78ecf00f7fe069e44458f88da1ee4f8d0a7cd861ee140f9c34c036c78bcfc4",
+          "baseline_type_sha256": "8b78ecf00f7fe069e44458f88da1ee4f8d0a7cd861ee140f9c34c036c78bcfc4"
+        },
+        "AWS::Glue::Trigger": {
+          "type_sha256": "e98a24994033d35393365266dcd6a9c5a149068fab7fe620361cd9fb3f712662",
+          "baseline_type_sha256": "e98a24994033d35393365266dcd6a9c5a149068fab7fe620361cd9fb3f712662"
+        },
+        "AWS::Glue::UsageProfile": {
+          "type_sha256": "6dc0ffb281f4aede4ee3ce43b78aa42bbee6810fbf75e1dc60a896cd15add7b1",
+          "baseline_type_sha256": "6dc0ffb281f4aede4ee3ce43b78aa42bbee6810fbf75e1dc60a896cd15add7b1"
+        },
+        "AWS::Glue::Workflow": {
+          "type_sha256": "23bace79298ffc4711179d3025bae4eeba1faa769617dc4852f9dd9858895e00",
+          "baseline_type_sha256": "23bace79298ffc4711179d3025bae4eeba1faa769617dc4852f9dd9858895e00"
+        },
+        "AWS::GuardDuty::CustomDetectionRuleAssociation": {
+          "type_sha256": "d1cb1e0503b5cd46b9868e96c7fbd85e071f0636fb75ac1ba0e8f5e21ad4b779",
+          "baseline_type_sha256": "d1cb1e0503b5cd46b9868e96c7fbd85e071f0636fb75ac1ba0e8f5e21ad4b779"
+        },
+        "AWS::GuardDuty::Detector": {
+          "type_sha256": "5bf836322c7ceba9e5c31d8181161ee665cf5b873f03fe0b535f02533a030acf",
+          "baseline_type_sha256": "5bf836322c7ceba9e5c31d8181161ee665cf5b873f03fe0b535f02533a030acf"
+        },
+        "AWS::GuardDuty::Filter": {
+          "type_sha256": "d6853cd1b5f9e88e96a5e1799eb89bee4277d1c49f0217e2149fb6449cbc8db8",
+          "baseline_type_sha256": "d6853cd1b5f9e88e96a5e1799eb89bee4277d1c49f0217e2149fb6449cbc8db8"
+        },
+        "AWS::GuardDuty::MalwareProtectionPlan": {
+          "type_sha256": "405c2078977e0bcb7ea0d8edbcf32046387491d2f99e5c362f98ce20c2f856c2",
+          "baseline_type_sha256": "405c2078977e0bcb7ea0d8edbcf32046387491d2f99e5c362f98ce20c2f856c2"
+        },
+        "AWS::GuardDuty::PublishingDestination": {
+          "type_sha256": "d19abccb452b3c12de5546342e9d6d85063452cba4fa8c5ad54560e1ca587378",
+          "baseline_type_sha256": "d19abccb452b3c12de5546342e9d6d85063452cba4fa8c5ad54560e1ca587378"
+        },
+        "AWS::IAM::AccessKey": {
+          "type_sha256": "bf29289b78d371e3145ad2491bf9d63b979e225a8592267972058d9cd14209d6",
+          "baseline_type_sha256": "bf29289b78d371e3145ad2491bf9d63b979e225a8592267972058d9cd14209d6"
+        },
+        "AWS::IAM::Group": {
+          "type_sha256": "b2b15bd2d6a64dcf6568b14ebb52ef54a30f440b4cb796ff7515a256eab745ca",
+          "baseline_type_sha256": "b2b15bd2d6a64dcf6568b14ebb52ef54a30f440b4cb796ff7515a256eab745ca"
+        },
+        "AWS::IAM::GroupPolicy": {
+          "type_sha256": "ea0845033d8263d0dc6f912c5dfd193493235628c91a01086d022974e5f537bb",
+          "baseline_type_sha256": "ea0845033d8263d0dc6f912c5dfd193493235628c91a01086d022974e5f537bb"
+        },
+        "AWS::IAM::InstanceProfile": {
+          "type_sha256": "95cd88affe163add124764d57d982bb1b0c3fcf787037bc538bc11531dc8d2a3",
+          "baseline_type_sha256": "95cd88affe163add124764d57d982bb1b0c3fcf787037bc538bc11531dc8d2a3"
+        },
+        "AWS::IAM::ManagedPolicy": {
+          "type_sha256": "bcde27bb48a676db1bdfb4bda63938511f658e2a9f3841a10384e29ec5704bcb",
+          "baseline_type_sha256": "bcde27bb48a676db1bdfb4bda63938511f658e2a9f3841a10384e29ec5704bcb"
+        },
+        "AWS::IAM::OIDCProvider": {
+          "type_sha256": "4b96c12d76c34908f67bc294ff9d65adffd4a0466f7cb5a00918eb3e294fc87b",
+          "baseline_type_sha256": "4b96c12d76c34908f67bc294ff9d65adffd4a0466f7cb5a00918eb3e294fc87b"
+        },
+        "AWS::IAM::Policy": {
+          "type_sha256": "b5f8b6986c1745723c62cf4f06eb938dcfa21fd8dabf605539d5500172706e01",
+          "baseline_type_sha256": "b5f8b6986c1745723c62cf4f06eb938dcfa21fd8dabf605539d5500172706e01"
+        },
+        "AWS::IAM::Role": {
+          "type_sha256": "cb3d29b2519cf7a0547bb547c19a07e82492d74bb4d2e9affe9eaed6416d13cc",
+          "baseline_type_sha256": "cb3d29b2519cf7a0547bb547c19a07e82492d74bb4d2e9affe9eaed6416d13cc"
+        },
+        "AWS::IAM::RolePolicy": {
+          "type_sha256": "048e69a15fe02cdb45537be2331ab5b243d1930906f93b4301d20b0119d93b76",
+          "baseline_type_sha256": "048e69a15fe02cdb45537be2331ab5b243d1930906f93b4301d20b0119d93b76"
+        },
+        "AWS::IAM::SAMLProvider": {
+          "type_sha256": "fa6d297ec5e1e90d208a944d16ede43787701a26d2d803b6fc3f34bbf1bd9219",
+          "baseline_type_sha256": "fa6d297ec5e1e90d208a944d16ede43787701a26d2d803b6fc3f34bbf1bd9219"
+        },
+        "AWS::IAM::ServerCertificate": {
+          "type_sha256": "eae03209bf1fdb48f8600b31b789f607a0121c7056e7ba5d18591ac5c940a89c",
+          "baseline_type_sha256": "eae03209bf1fdb48f8600b31b789f607a0121c7056e7ba5d18591ac5c940a89c"
+        },
+        "AWS::IAM::ServiceLinkedRole": {
+          "type_sha256": "e5c92190556d7a11e48ed550999f71c5f7dfb4940eedf7414b3f53e06ce9458d",
+          "baseline_type_sha256": "e5c92190556d7a11e48ed550999f71c5f7dfb4940eedf7414b3f53e06ce9458d"
+        },
+        "AWS::IAM::User": {
+          "type_sha256": "b28fe5ffd7ff1fd7f567e15b5d808843a143dbbe02f624cf7bf8ca88f5222af1",
+          "baseline_type_sha256": "b28fe5ffd7ff1fd7f567e15b5d808843a143dbbe02f624cf7bf8ca88f5222af1"
+        },
+        "AWS::IAM::UserPolicy": {
+          "type_sha256": "a2ff3816d2c89b3527cca6039dc8a55d20db10bccc720e215f7f82c6ca742e93",
+          "baseline_type_sha256": "a2ff3816d2c89b3527cca6039dc8a55d20db10bccc720e215f7f82c6ca742e93"
+        },
+        "AWS::IAM::UserToGroupAddition": {
+          "type_sha256": "c2f159876b94abb1b79f0868fd5a7dc5106796266dc14271855fe2af0dda618a",
+          "baseline_type_sha256": "c2f159876b94abb1b79f0868fd5a7dc5106796266dc14271855fe2af0dda618a"
+        },
+        "AWS::IdentityStore::Group": {
+          "type_sha256": "7e386ec2349e5aaeef8f92b5c682b2633eb3c539033f23de18f521e82c419da5",
+          "baseline_type_sha256": "7e386ec2349e5aaeef8f92b5c682b2633eb3c539033f23de18f521e82c419da5"
+        },
+        "AWS::IdentityStore::GroupMembership": {
+          "type_sha256": "08b78af964a0ff2feed7aea16df2e50b95db5eb612c13442687262c2f08ba2d4",
+          "baseline_type_sha256": "08b78af964a0ff2feed7aea16df2e50b95db5eb612c13442687262c2f08ba2d4"
+        },
+        "AWS::ImageBuilder::Workflow": {
+          "type_sha256": "65adf4ce1fad9a87d098b3d9056e08a4e8880252cd47070a72a6d30909ed5a78",
+          "baseline_type_sha256": "65adf4ce1fad9a87d098b3d9056e08a4e8880252cd47070a72a6d30909ed5a78"
+        },
+        "AWS::InspectorV2::CisScanConfiguration": {
+          "type_sha256": "b6e3479c139ad490a6c69d9b4b4f040f86bbf11b810791e1b43f8d2d93b4d2e1",
+          "baseline_type_sha256": "b6e3479c139ad490a6c69d9b4b4f040f86bbf11b810791e1b43f8d2d93b4d2e1"
+        },
+        "AWS::InspectorV2::Connector": {
+          "type_sha256": "db56896404e619abd1923707629f1df94be93633086b9e1b3c3284efb09096f1",
+          "baseline_type_sha256": "db56896404e619abd1923707629f1df94be93633086b9e1b3c3284efb09096f1"
+        },
+        "AWS::InternetMonitor::Monitor": {
+          "type_sha256": "5c1c0d3f45ec1273d1b2e4052314177038d30536359db872a58be81f8e735473",
+          "baseline_type_sha256": "5c1c0d3f45ec1273d1b2e4052314177038d30536359db872a58be81f8e735473"
+        },
+        "AWS::Invoicing::InvoiceUnit": {
+          "type_sha256": "51a3f94d003dcc0782e9b06d6031c53fbc4259959a41aba46e3839d781a9b5dd",
+          "baseline_type_sha256": "51a3f94d003dcc0782e9b06d6031c53fbc4259959a41aba46e3839d781a9b5dd"
+        },
+        "AWS::IoT::PolicyPrincipalAttachment": {
+          "type_sha256": "e210f7b6321653872f1926981eddb175f93ec7d1492f7d4751a3b93adff41f49",
+          "baseline_type_sha256": "e210f7b6321653872f1926981eddb175f93ec7d1492f7d4751a3b93adff41f49"
+        },
+        "AWS::KafkaConnect::CustomPlugin": {
+          "type_sha256": "28b6d49fef7a0480a0b139ef845633bcf7635133604668cae61e82693494501a",
+          "baseline_type_sha256": "28b6d49fef7a0480a0b139ef845633bcf7635133604668cae61e82693494501a"
+        },
+        "AWS::KafkaConnect::WorkerConfiguration": {
+          "type_sha256": "00333100fee70a74c794c273feadd4e64974648231c4a79b5f5f57cec35cb7d4",
+          "baseline_type_sha256": "00333100fee70a74c794c273feadd4e64974648231c4a79b5f5f57cec35cb7d4"
+        },
+        "AWS::Kinesis::ResourcePolicy": {
+          "type_sha256": "9b58a6222dcad127ae68aa52b01708eeb38c8164628645c67677def0402499a5",
+          "baseline_type_sha256": "9b58a6222dcad127ae68aa52b01708eeb38c8164628645c67677def0402499a5"
+        },
+        "AWS::Kinesis::StreamConsumer": {
+          "type_sha256": "86d0dee3f599b48e5b3d518a437cbff925e06e3ea61769815f99823ad036b4da",
+          "baseline_type_sha256": "86d0dee3f599b48e5b3d518a437cbff925e06e3ea61769815f99823ad036b4da"
+        },
+        "AWS::KinesisAnalyticsV2::Application": {
+          "type_sha256": "8f08894b2d079a22859a7fcef0ac3c3ed629c2407bb383cf76a2d626ba4584e5",
+          "baseline_type_sha256": "8f08894b2d079a22859a7fcef0ac3c3ed629c2407bb383cf76a2d626ba4584e5"
+        },
+        "AWS::LakeFormation::DataCellsFilter": {
+          "type_sha256": "83f071da734a928d7d6f655b1d127a2aa5e356b57740af08d3b9c02b61bcf317",
+          "baseline_type_sha256": "83f071da734a928d7d6f655b1d127a2aa5e356b57740af08d3b9c02b61bcf317"
+        },
+        "AWS::LakeFormation::DataLakeSettings": {
+          "type_sha256": "0ee20115774573ac68c3f829bb754322fa352d904e438b5add9bffbab8334884",
+          "baseline_type_sha256": "0ee20115774573ac68c3f829bb754322fa352d904e438b5add9bffbab8334884"
+        },
+        "AWS::LakeFormation::Permissions": {
+          "type_sha256": "ab441a3252bbf4d16d3d11089bfdb8946c8f206fdd36dd65fcc1666965bff327",
+          "baseline_type_sha256": "ab441a3252bbf4d16d3d11089bfdb8946c8f206fdd36dd65fcc1666965bff327"
+        },
+        "AWS::LakeFormation::PrincipalPermissions": {
+          "type_sha256": "21ba60e950fe2a3f2eb60415b520b2ec4f9d33e2ada4a0a0f40c4259e4a46a23",
+          "baseline_type_sha256": "21ba60e950fe2a3f2eb60415b520b2ec4f9d33e2ada4a0a0f40c4259e4a46a23"
+        },
+        "AWS::LakeFormation::Resource": {
+          "type_sha256": "2e04d988a908ca5f0d5b1b6b86ccb039ec129b1c47a9762b55fc1f3711fb89cd",
+          "baseline_type_sha256": "2e04d988a908ca5f0d5b1b6b86ccb039ec129b1c47a9762b55fc1f3711fb89cd"
+        },
+        "AWS::LakeFormation::Tag": {
+          "type_sha256": "df0671c90a558edaa56c267ec2c458fb34370919567c33611f29bff9499916bc",
+          "baseline_type_sha256": "df0671c90a558edaa56c267ec2c458fb34370919567c33611f29bff9499916bc"
+        },
+        "AWS::LakeFormation::TagAssociation": {
+          "type_sha256": "ac161078581f9b537493991254e36428ceb04b7c10c9b34d8cb064c26dcb0b37",
+          "baseline_type_sha256": "ac161078581f9b537493991254e36428ceb04b7c10c9b34d8cb064c26dcb0b37"
+        },
+        "AWS::Lambda::Alias": {
+          "type_sha256": "058c16fec7392075d832685f7f40b9c519fe855bddbd1f5f767c70fd53a6ebdb",
+          "baseline_type_sha256": "058c16fec7392075d832685f7f40b9c519fe855bddbd1f5f767c70fd53a6ebdb"
+        },
+        "AWS::Lambda::CapacityProvider": {
+          "type_sha256": "68c071e9d7a13ebe709f8591fc5dc1ca726fd26ed3dc3e6454b01fe3347a4a35",
+          "baseline_type_sha256": "68c071e9d7a13ebe709f8591fc5dc1ca726fd26ed3dc3e6454b01fe3347a4a35"
+        },
+        "AWS::Lambda::EventSourceMapping": {
+          "type_sha256": "39f8d1287bc36416f0958c90db0a11eb34d8ac7a870c6e3c0a43b639994e2472",
+          "baseline_type_sha256": "39f8d1287bc36416f0958c90db0a11eb34d8ac7a870c6e3c0a43b639994e2472"
+        },
+        "AWS::Lambda::LayerVersion": {
+          "type_sha256": "508f6fe163a19302c5fb08f9ba9ab1a36134bb5bfecdbcfa78e5c16d8d0084a9",
+          "baseline_type_sha256": "508f6fe163a19302c5fb08f9ba9ab1a36134bb5bfecdbcfa78e5c16d8d0084a9"
+        },
+        "AWS::Lambda::LayerVersionPermission": {
+          "type_sha256": "daed69a949a1ae21137c3de256e86f19149b4a6689165f8a6a53437193d1194f",
+          "baseline_type_sha256": "daed69a949a1ae21137c3de256e86f19149b4a6689165f8a6a53437193d1194f"
+        },
+        "AWS::Lambda::Url": {
+          "type_sha256": "426400697ee57303a3bbcefdaeff7f390e94f4baf8ed8bca73f3ff83550bf1e8",
+          "baseline_type_sha256": "426400697ee57303a3bbcefdaeff7f390e94f4baf8ed8bca73f3ff83550bf1e8"
+        },
+        "AWS::LaunchWizard::Deployment": {
+          "type_sha256": "77a800a4494fac9523a611febc511bf91dc06d2eae69f225477215b924899014",
+          "baseline_type_sha256": "77a800a4494fac9523a611febc511bf91dc06d2eae69f225477215b924899014"
+        },
+        "AWS::LicenseManager::LicenseAssetGroup": {
+          "type_sha256": "0b7e451b6eaa137b8b5523617d0b94b2d853d82719d9d2f60233e37165090b4e",
+          "baseline_type_sha256": "0b7e451b6eaa137b8b5523617d0b94b2d853d82719d9d2f60233e37165090b4e"
+        },
+        "AWS::LicenseManager::LicenseAssetRuleSet": {
+          "type_sha256": "a96d53efbcc70396d1a5a040d68ba470d3b498a8d515baa49f5ff87a4a5b738b",
+          "baseline_type_sha256": "a96d53efbcc70396d1a5a040d68ba470d3b498a8d515baa49f5ff87a4a5b738b"
+        },
+        "AWS::Logs::AccountPolicy": {
+          "type_sha256": "ea646fd6d57170920a6a240de486fc0ddca50188e24e9b586205818616017920",
+          "baseline_type_sha256": "ea646fd6d57170920a6a240de486fc0ddca50188e24e9b586205818616017920"
+        },
+        "AWS::Logs::Delivery": {
+          "type_sha256": "fd266b04bd33d83808e9368892439241d26afd3789d28625e89eb86a7111450b",
+          "baseline_type_sha256": "fd266b04bd33d83808e9368892439241d26afd3789d28625e89eb86a7111450b"
+        },
+        "AWS::Logs::DeliveryDestination": {
+          "type_sha256": "c136e2e19cdaf93d9d9d1d030a20aa5332bd4bfe52f47e59765671d5b5f80155",
+          "baseline_type_sha256": "c136e2e19cdaf93d9d9d1d030a20aa5332bd4bfe52f47e59765671d5b5f80155"
+        },
+        "AWS::Logs::DeliverySource": {
+          "type_sha256": "a8254b2e69e687ebd728488d71cec186412a564bc32514740e3e82eb646c3fb8",
+          "baseline_type_sha256": "a8254b2e69e687ebd728488d71cec186412a564bc32514740e3e82eb646c3fb8"
+        },
+        "AWS::Logs::Destination": {
+          "type_sha256": "f881fb91ba2137c26f4c799f9bd520ad2300264e4a80cf5dc97724bf58bfbfed",
+          "baseline_type_sha256": "f881fb91ba2137c26f4c799f9bd520ad2300264e4a80cf5dc97724bf58bfbfed"
+        },
+        "AWS::Logs::LogGroup": {
+          "type_sha256": "567d270323771a7fbb0b79f3c1b5ad8a9155f24d736b4014e78fb58dbbac7e61",
+          "baseline_type_sha256": "567d270323771a7fbb0b79f3c1b5ad8a9155f24d736b4014e78fb58dbbac7e61"
+        },
+        "AWS::Logs::LogStream": {
+          "type_sha256": "56dc3332d3bfa7a5363574e5b33bc1c96635ddbb87ef3f3b38b5cb0554e2941c",
+          "baseline_type_sha256": "56dc3332d3bfa7a5363574e5b33bc1c96635ddbb87ef3f3b38b5cb0554e2941c"
+        },
+        "AWS::Logs::QueryDefinition": {
+          "type_sha256": "313114cbcdc28712e4332f16fc1edc7ee1208e9ab07881ece87862127e9cedf7",
+          "baseline_type_sha256": "313114cbcdc28712e4332f16fc1edc7ee1208e9ab07881ece87862127e9cedf7"
+        },
+        "AWS::Logs::ResourcePolicy": {
+          "type_sha256": "0f275b33894abe0befdd2d364d16edfaae6ef64f2ee673d29e49c44812d64e92",
+          "baseline_type_sha256": "0f275b33894abe0befdd2d364d16edfaae6ef64f2ee673d29e49c44812d64e92"
+        },
+        "AWS::Logs::ScheduledQuery": {
+          "type_sha256": "63d43143ad7e8e6170ef44d8c08c2e270f37237023fe8edc8f7f8c7eb9ce90d7",
+          "baseline_type_sha256": "63d43143ad7e8e6170ef44d8c08c2e270f37237023fe8edc8f7f8c7eb9ce90d7"
+        },
+        "AWS::Logs::StorageTierPolicy": {
+          "type_sha256": "d7c34179aa7a079eff70159f3f7d97879d92ea78460c0440c8393da7c3398b17",
+          "baseline_type_sha256": "d7c34179aa7a079eff70159f3f7d97879d92ea78460c0440c8393da7c3398b17"
+        },
+        "AWS::Logs::Transformer": {
+          "type_sha256": "c7db4b71f48a06f763b5b53228a0412ad62516a9a056c2c8e87c3f4ea20db31f",
+          "baseline_type_sha256": "c7db4b71f48a06f763b5b53228a0412ad62516a9a056c2c8e87c3f4ea20db31f"
+        },
+        "AWS::M2::Application": {
+          "type_sha256": "bfc26814e29d670390123a687765050b46f73480296793f91fc99f2c7fb0b2af",
+          "baseline_type_sha256": "bfc26814e29d670390123a687765050b46f73480296793f91fc99f2c7fb0b2af"
+        },
+        "AWS::M2::Deployment": {
+          "type_sha256": "df1d72ec0bb365ce2c787bdf2bf8787c7d55dcc28b4899a16296c0d39868bc58",
+          "baseline_type_sha256": "df1d72ec0bb365ce2c787bdf2bf8787c7d55dcc28b4899a16296c0d39868bc58"
+        },
+        "AWS::M2::Environment": {
+          "type_sha256": "a8b7f825f2cb453915ca0f5302cfcaa6e3b5879c23593223fd57fa1cddb2266a",
+          "baseline_type_sha256": "a8b7f825f2cb453915ca0f5302cfcaa6e3b5879c23593223fd57fa1cddb2266a"
+        },
+        "AWS::MSK::BatchScramSecret": {
+          "type_sha256": "b68c9a1a87dfd16e14e9fed0fc08df5111d0bf7f3f59f425ffdf6e9f4d881bab",
+          "baseline_type_sha256": "b68c9a1a87dfd16e14e9fed0fc08df5111d0bf7f3f59f425ffdf6e9f4d881bab"
+        },
+        "AWS::MSK::Channel": {
+          "type_sha256": "4f1d9d23cef6322924da0a03fac49a13fcdd447d293870afb48d6c3a6a1cd430",
+          "baseline_type_sha256": "4f1d9d23cef6322924da0a03fac49a13fcdd447d293870afb48d6c3a6a1cd430"
+        },
+        "AWS::MSK::ClusterPolicy": {
+          "type_sha256": "ae6e7f488d731d1e3b74fb99a75af63c5811f9ceff423fc15b106dfd2acd8bb0",
+          "baseline_type_sha256": "ae6e7f488d731d1e3b74fb99a75af63c5811f9ceff423fc15b106dfd2acd8bb0"
+        },
+        "AWS::MSK::Configuration": {
+          "type_sha256": "5ae3322e28167abce8d689bf6a80f4f2646e09ec2817365048dfc8a0819b4928",
+          "baseline_type_sha256": "5ae3322e28167abce8d689bf6a80f4f2646e09ec2817365048dfc8a0819b4928"
+        },
+        "AWS::MSK::ServerlessCluster": {
+          "type_sha256": "0566356e2c208934376398513a1e1157e6b9916f32a4f4b4ebf1f523fa7845e0",
+          "baseline_type_sha256": "0566356e2c208934376398513a1e1157e6b9916f32a4f4b4ebf1f523fa7845e0"
+        },
+        "AWS::MSK::Topic": {
+          "type_sha256": "3894c444e76ce4c7d78a335791e6d712224b57f8dac7782a56631aed4694cfe2",
+          "baseline_type_sha256": "3894c444e76ce4c7d78a335791e6d712224b57f8dac7782a56631aed4694cfe2"
+        },
+        "AWS::MSK::VpcConnection": {
+          "type_sha256": "30ab33e2788c2a548eeb365fd8f281a87516237d0646a921e0b8f19ed59ec262",
+          "baseline_type_sha256": "30ab33e2788c2a548eeb365fd8f281a87516237d0646a921e0b8f19ed59ec262"
+        },
+        "AWS::Macie::CustomDataIdentifier": {
+          "type_sha256": "2474eed2490236bcf6d8c6e42a41b10742a709170f530ca989750492a265a0ef",
+          "baseline_type_sha256": "2474eed2490236bcf6d8c6e42a41b10742a709170f530ca989750492a265a0ef"
+        },
+        "AWS::Macie::FindingsFilter": {
+          "type_sha256": "3abbf840b37fa128379c186636e9c23e4e146d2403b5183a5eb7f2936888e48d",
+          "baseline_type_sha256": "3abbf840b37fa128379c186636e9c23e4e146d2403b5183a5eb7f2936888e48d"
+        },
+        "AWS::Macie::Session": {
+          "type_sha256": "108b2d2e7356102be20f54828e3c08fedc9f31fca1f83a20bdd70b03fa92946a",
+          "baseline_type_sha256": "108b2d2e7356102be20f54828e3c08fedc9f31fca1f83a20bdd70b03fa92946a"
+        },
+        "AWS::MediaConnect::BridgeOutput": {
+          "type_sha256": "e6f6dc798778c92a6dc2a105bc81cd5bb0e7da6873374f87575baa8bd954248f",
+          "baseline_type_sha256": "e6f6dc798778c92a6dc2a105bc81cd5bb0e7da6873374f87575baa8bd954248f"
+        },
+        "AWS::MediaConnect::BridgeSource": {
+          "type_sha256": "e943110631a29e3c76e43acc39ed8fde4cc436712451a84cfcb5fafddd5b1ad7",
+          "baseline_type_sha256": "e943110631a29e3c76e43acc39ed8fde4cc436712451a84cfcb5fafddd5b1ad7"
+        },
+        "AWS::MediaConnect::Gateway": {
+          "type_sha256": "0573925a53f76c6864a8743b01279f5df84fd8e9f429990f542fded9e72b3832",
+          "baseline_type_sha256": "0573925a53f76c6864a8743b01279f5df84fd8e9f429990f542fded9e72b3832"
+        },
+        "AWS::MediaConnect::RouterNetworkInterface": {
+          "type_sha256": "fe5993187764072a3f0bc1916af33f856e04131290694b556c921a55e780f989",
+          "baseline_type_sha256": "fe5993187764072a3f0bc1916af33f856e04131290694b556c921a55e780f989"
+        },
+        "AWS::MediaConvert::Preset": {
+          "type_sha256": "74bd099124a108e2275a7da8da2c3c67ee25c86790c0cd2f951b37558bd2a0ac",
+          "baseline_type_sha256": "74bd099124a108e2275a7da8da2c3c67ee25c86790c0cd2f951b37558bd2a0ac"
+        },
+        "AWS::MediaLive::Multiplex": {
+          "type_sha256": "f463ca6b96079310104228977eeaf47579ee410d850feb1c0a73808260e3b799",
+          "baseline_type_sha256": "f463ca6b96079310104228977eeaf47579ee410d850feb1c0a73808260e3b799"
+        },
+        "AWS::MediaLive::Multiplexprogram": {
+          "type_sha256": "f5fc582bd1a35a68a929ee20054643ce021773423408b5c65f6e99e89894bbba",
+          "baseline_type_sha256": "f5fc582bd1a35a68a929ee20054643ce021773423408b5c65f6e99e89894bbba"
+        },
+        "AWS::MediaPackage::Asset": {
+          "type_sha256": "e3f926bfa79092b65a3cbc0eca51ca325b055774f94b2f749784a66dc6fb558b",
+          "baseline_type_sha256": "e3f926bfa79092b65a3cbc0eca51ca325b055774f94b2f749784a66dc6fb558b"
+        },
+        "AWS::MediaPackage::Channel": {
+          "type_sha256": "994975f6d57b282486ed08c096a27b1677ec0713f4c561e9ed7c7d21a81d72f0",
+          "baseline_type_sha256": "994975f6d57b282486ed08c096a27b1677ec0713f4c561e9ed7c7d21a81d72f0"
+        },
+        "AWS::MediaPackage::OriginEndpoint": {
+          "type_sha256": "4a9f09af3868820e703535daedde24bb01494a56af1303edab204b4fc20e9d31",
+          "baseline_type_sha256": "4a9f09af3868820e703535daedde24bb01494a56af1303edab204b4fc20e9d31"
+        },
+        "AWS::MediaPackage::PackagingConfiguration": {
+          "type_sha256": "4742501c739396c7fa12db0f15fc73a16be47d6386d86cc9b4e9c5a202419dc9",
+          "baseline_type_sha256": "4742501c739396c7fa12db0f15fc73a16be47d6386d86cc9b4e9c5a202419dc9"
+        },
+        "AWS::MediaPackage::PackagingGroup": {
+          "type_sha256": "f02a906c3f9ac540864341101ed149ed4c0260bf43809fdf430ea28f6f8d0842",
+          "baseline_type_sha256": "f02a906c3f9ac540864341101ed149ed4c0260bf43809fdf430ea28f6f8d0842"
+        },
+        "AWS::MediaPackageV2::ChannelGroup": {
+          "type_sha256": "1fbde704f2807bd37c29bc3189385454ee14c098d27dfdeeaaf317538732cd8a",
+          "baseline_type_sha256": "1fbde704f2807bd37c29bc3189385454ee14c098d27dfdeeaaf317538732cd8a"
+        },
+        "AWS::MediaPackageV2::ChannelPolicy": {
+          "type_sha256": "396cbb51503a9310a04262e2ca607f340abda8c5eb4e0384506591e1abba2bcf",
+          "baseline_type_sha256": "396cbb51503a9310a04262e2ca607f340abda8c5eb4e0384506591e1abba2bcf"
+        },
+        "AWS::MediaPackageV2::OriginEndpointPolicy": {
+          "type_sha256": "893ce639ede4d0bb10f72c87285e432692e176feafb006f2ef84420e709fa839",
+          "baseline_type_sha256": "893ce639ede4d0bb10f72c87285e432692e176feafb006f2ef84420e709fa839"
+        },
+        "AWS::MediaTailor::Channel": {
+          "type_sha256": "98fb94baf8463c7ea189ef3ee7ea14ffea3eb3f147ece8a963e4737a1e9ff667",
+          "baseline_type_sha256": "98fb94baf8463c7ea189ef3ee7ea14ffea3eb3f147ece8a963e4737a1e9ff667"
+        },
+        "AWS::MediaTailor::ChannelPolicy": {
+          "type_sha256": "9b2079a9fdb3880967f6da790b0829f8a83748fc03dfd3f3510aa47f532ded2b",
+          "baseline_type_sha256": "9b2079a9fdb3880967f6da790b0829f8a83748fc03dfd3f3510aa47f532ded2b"
+        },
+        "AWS::MediaTailor::Function": {
+          "type_sha256": "6932b658456adda258f49427c71e0165e68b30eec3f61e5a615b3cd3544272bb",
+          "baseline_type_sha256": "6932b658456adda258f49427c71e0165e68b30eec3f61e5a615b3cd3544272bb"
+        },
+        "AWS::MediaTailor::LiveSource": {
+          "type_sha256": "7df3ab6eb964eaee94f13dd10f7335f9afd8959af279a1c5717236a5105ca122",
+          "baseline_type_sha256": "7df3ab6eb964eaee94f13dd10f7335f9afd8959af279a1c5717236a5105ca122"
+        },
+        "AWS::MediaTailor::SourceLocation": {
+          "type_sha256": "b50f0e5b917db2e33ea8ed20a21a603b8731c4fdb99bb7fc3f37cd80dd4c864f",
+          "baseline_type_sha256": "b50f0e5b917db2e33ea8ed20a21a603b8731c4fdb99bb7fc3f37cd80dd4c864f"
+        },
+        "AWS::MediaTailor::VodSource": {
+          "type_sha256": "d7eabc10c66d41d986886fb53c3ed1229f5ecc157bbd3e43a62e1982fb3f8d24",
+          "baseline_type_sha256": "d7eabc10c66d41d986886fb53c3ed1229f5ecc157bbd3e43a62e1982fb3f8d24"
+        },
+        "AWS::Neptune::DBClusterParameterGroup": {
+          "type_sha256": "eb6ab33105533849335280a6341ef816e7c0e1c9068be6b04fbe57d8e0c6439b",
+          "baseline_type_sha256": "eb6ab33105533849335280a6341ef816e7c0e1c9068be6b04fbe57d8e0c6439b"
+        },
+        "AWS::Neptune::DBInstance": {
+          "type_sha256": "4c25b4d95fc076015937ce1deb0a09d739fda9619310432590ba1114ac6709df",
+          "baseline_type_sha256": "4c25b4d95fc076015937ce1deb0a09d739fda9619310432590ba1114ac6709df"
+        },
+        "AWS::Neptune::DBParameterGroup": {
+          "type_sha256": "3e7cf71098132a98db73d772c8a0efce7e437db25c4f2ac00d6204dee3b35226",
+          "baseline_type_sha256": "3e7cf71098132a98db73d772c8a0efce7e437db25c4f2ac00d6204dee3b35226"
+        },
+        "AWS::NeptuneGraph::GraphSnapshot": {
+          "type_sha256": "968f225c343228e2592b8e337bced5b9c1fc5aaa0a3cec3dcf1a085fdd7ff965",
+          "baseline_type_sha256": "968f225c343228e2592b8e337bced5b9c1fc5aaa0a3cec3dcf1a085fdd7ff965"
+        },
+        "AWS::NeptuneGraph::PrivateGraphEndpoint": {
+          "type_sha256": "2f52153ac5ec9f3b43588ade08180df860ece94ed92627b76fd3c168c775f110",
+          "baseline_type_sha256": "2f52153ac5ec9f3b43588ade08180df860ece94ed92627b76fd3c168c775f110"
+        },
+        "AWS::NetworkFirewall::LoggingConfiguration": {
+          "type_sha256": "874a8bf8979376a2267d6c4fddf6b0d8f1f97b1d3e158c53c8d8b83660f6b491",
+          "baseline_type_sha256": "874a8bf8979376a2267d6c4fddf6b0d8f1f97b1d3e158c53c8d8b83660f6b491"
+        },
+        "AWS::NetworkFirewall::RuleGroup": {
+          "type_sha256": "918e30bfa257ba6c8b32c0a211e4ea6b546af6b540c2dd0fb7d1f2892f2b2949",
+          "baseline_type_sha256": "918e30bfa257ba6c8b32c0a211e4ea6b546af6b540c2dd0fb7d1f2892f2b2949"
+        },
+        "AWS::NetworkManager::ConnectAttachment": {
+          "type_sha256": "3316c3df911659df80d60f3a1b2a1bf76e03d7267f9d320839bc083206898014",
+          "baseline_type_sha256": "3316c3df911659df80d60f3a1b2a1bf76e03d7267f9d320839bc083206898014"
+        },
+        "AWS::NetworkManager::ConnectPeer": {
+          "type_sha256": "d106e1e81f729805a6f7b4db9270f547f46fc0cb60b2e13992deacf0d8882029",
+          "baseline_type_sha256": "d106e1e81f729805a6f7b4db9270f547f46fc0cb60b2e13992deacf0d8882029"
+        },
+        "AWS::NetworkManager::CoreNetwork": {
+          "type_sha256": "0044aae9cd2dba1083686117a84586ede29fd08c25771c23f95a6208f73c2676",
+          "baseline_type_sha256": "0044aae9cd2dba1083686117a84586ede29fd08c25771c23f95a6208f73c2676"
+        },
+        "AWS::NetworkManager::CoreNetworkPrefixListAssociation": {
+          "type_sha256": "670212b9f0b2d84a7ed3098d407b9da3e29325f22fad2c9cc7a0f3ae7a7cd06e",
+          "baseline_type_sha256": "670212b9f0b2d84a7ed3098d407b9da3e29325f22fad2c9cc7a0f3ae7a7cd06e"
+        },
+        "AWS::NetworkManager::CustomerGatewayAssociation": {
+          "type_sha256": "19d4e336125eb6d93fe0213efc6c7607db51b839ede1635460a72adb8eefbc9f",
+          "baseline_type_sha256": "19d4e336125eb6d93fe0213efc6c7607db51b839ede1635460a72adb8eefbc9f"
+        },
+        "AWS::NetworkManager::Device": {
+          "type_sha256": "ade551e6e304f9f838fbe122e263e9b4dbea06158d6421f901d54dd62a3fd7b4",
+          "baseline_type_sha256": "ade551e6e304f9f838fbe122e263e9b4dbea06158d6421f901d54dd62a3fd7b4"
+        },
+        "AWS::NetworkManager::DirectConnectGatewayAttachment": {
+          "type_sha256": "0f91fe173e11e488e07dba1e33e1794a75b51453b1ca854c61b86caff23b445f",
+          "baseline_type_sha256": "0f91fe173e11e488e07dba1e33e1794a75b51453b1ca854c61b86caff23b445f"
+        },
+        "AWS::NetworkManager::GlobalNetwork": {
+          "type_sha256": "1ad762e9f9d9f16ced000b3c1cf16074793dc11d3a88beb20c857b875caab36b",
+          "baseline_type_sha256": "1ad762e9f9d9f16ced000b3c1cf16074793dc11d3a88beb20c857b875caab36b"
+        },
+        "AWS::NetworkManager::Link": {
+          "type_sha256": "6d9d471032153627c6a15e9bd3069e3d60c4bd6de752ba343cdac091a814b7b2",
+          "baseline_type_sha256": "6d9d471032153627c6a15e9bd3069e3d60c4bd6de752ba343cdac091a814b7b2"
+        },
+        "AWS::NetworkManager::LinkAssociation": {
+          "type_sha256": "39bab35c43d9ca19601adf1a3ff5aab1f96618f130c3fc14586052f3032d9722",
+          "baseline_type_sha256": "39bab35c43d9ca19601adf1a3ff5aab1f96618f130c3fc14586052f3032d9722"
+        },
+        "AWS::NetworkManager::Site": {
+          "type_sha256": "60ed9b240af57685822d6ea6ecb338ade5fa4cabf618a30c022624fc7c722254",
+          "baseline_type_sha256": "60ed9b240af57685822d6ea6ecb338ade5fa4cabf618a30c022624fc7c722254"
+        },
+        "AWS::NetworkManager::SiteToSiteVpnAttachment": {
+          "type_sha256": "e6628e9763ae0fc71362cbd2f185a4416a636b39f3719eb9044ed65ed14709a6",
+          "baseline_type_sha256": "e6628e9763ae0fc71362cbd2f185a4416a636b39f3719eb9044ed65ed14709a6"
+        },
+        "AWS::NetworkManager::TransitGatewayPeering": {
+          "type_sha256": "34e1ee1e06db426569860fedb2a209c2609528a51cedb9541e46452f033c6009",
+          "baseline_type_sha256": "34e1ee1e06db426569860fedb2a209c2609528a51cedb9541e46452f033c6009"
+        },
+        "AWS::NetworkManager::TransitGatewayRouteTableAttachment": {
+          "type_sha256": "8447337cace875a21c5a9ba07f0759155af2d33eb31b9788154f62cc901688e1",
+          "baseline_type_sha256": "8447337cace875a21c5a9ba07f0759155af2d33eb31b9788154f62cc901688e1"
+        },
+        "AWS::NetworkManager::VpcAttachment": {
+          "type_sha256": "0359e4c296005405c3cc1eb8cd8a7f1a0a4135cd4863103313b4da6afc5021f6",
+          "baseline_type_sha256": "0359e4c296005405c3cc1eb8cd8a7f1a0a4135cd4863103313b4da6afc5021f6"
+        },
+        "AWS::NetworkMonitor::Monitor": {
+          "type_sha256": "96f78ef40055781b97c7218f709eaef75b79070956499151b2275ebc0db5d933",
+          "baseline_type_sha256": "96f78ef40055781b97c7218f709eaef75b79070956499151b2275ebc0db5d933"
+        },
+        "AWS::ODB::CloudAutonomousVmCluster": {
+          "type_sha256": "f7845756b3da9848df55b70d1b4e66da23e97a5facd22cf3d636a997b8a7c5c4",
+          "baseline_type_sha256": "f7845756b3da9848df55b70d1b4e66da23e97a5facd22cf3d636a997b8a7c5c4"
+        },
+        "AWS::ODB::CloudVmCluster": {
+          "type_sha256": "c1b821f911d0c2fe62f0935b281373023189c083797be93848de9f62b7d85fd3",
+          "baseline_type_sha256": "c1b821f911d0c2fe62f0935b281373023189c083797be93848de9f62b7d85fd3"
+        },
+        "AWS::ODB::OdbPeeringConnection": {
+          "type_sha256": "ef8f075dd0eb247b663e8c9578aa85a9674cb83458244d4d06195ebc309bd40c",
+          "baseline_type_sha256": "ef8f075dd0eb247b663e8c9578aa85a9674cb83458244d4d06195ebc309bd40c"
+        },
+        "AWS::Oam::Link": {
+          "type_sha256": "d8c0a816dbd045e04868886603a77bf83f38dfc4573990827abb3e6fa7767580",
+          "baseline_type_sha256": "d8c0a816dbd045e04868886603a77bf83f38dfc4573990827abb3e6fa7767580"
+        },
+        "AWS::Oam::Sink": {
+          "type_sha256": "62946c528454c0708e99625b1f79e8c0482cfdb160a5099ab9789d3755c30ec2",
+          "baseline_type_sha256": "62946c528454c0708e99625b1f79e8c0482cfdb160a5099ab9789d3755c30ec2"
+        },
+        "AWS::ObservabilityAdmin::S3TableIntegration": {
+          "type_sha256": "462d458e4bb0603196dd5f3f97ab927931c652ddf6f959bbe2de55601a6c1d0b",
+          "baseline_type_sha256": "462d458e4bb0603196dd5f3f97ab927931c652ddf6f959bbe2de55601a6c1d0b"
+        },
+        "AWS::ObservabilityAdmin::TelemetryEnrichment": {
+          "type_sha256": "142141b0a1b9235ecf53f897f353685632bee4eb94c1cfc115f94c5de4a265f7",
+          "baseline_type_sha256": "142141b0a1b9235ecf53f897f353685632bee4eb94c1cfc115f94c5de4a265f7"
+        },
+        "AWS::ObservabilityAdmin::TelemetryPipelines": {
+          "type_sha256": "f377bd59aab7a82faee41f876f8578cd4a0a41d8732fce62beeb7c16ce15441b",
+          "baseline_type_sha256": "f377bd59aab7a82faee41f876f8578cd4a0a41d8732fce62beeb7c16ce15441b"
+        },
+        "AWS::OpenSearchServerless::AccessPolicy": {
+          "type_sha256": "15e1ba34fc7849253dba75f400392dc40e4f64cd2b96480add8e1cab6d60f6d7",
+          "baseline_type_sha256": "15e1ba34fc7849253dba75f400392dc40e4f64cd2b96480add8e1cab6d60f6d7"
+        },
+        "AWS::OpenSearchServerless::CollectionGroup": {
+          "type_sha256": "3840ac9685ddaf04a3a7cc0f7cb53e8b9dfc6f5158cc46ea4a2a4103259e6efd",
+          "baseline_type_sha256": "3840ac9685ddaf04a3a7cc0f7cb53e8b9dfc6f5158cc46ea4a2a4103259e6efd"
+        },
+        "AWS::OpenSearchServerless::Index": {
+          "type_sha256": "78ae42628f0334e7ad8dec2cc89415be9054b7bdc6e5e728075a578d03d07a1f",
+          "baseline_type_sha256": "78ae42628f0334e7ad8dec2cc89415be9054b7bdc6e5e728075a578d03d07a1f"
+        },
+        "AWS::OpenSearchServerless::LifecyclePolicy": {
+          "type_sha256": "035c46cfaca6ddf3e796214729dc232ad21dffe6d52a30d8e41e95ab00fd5c41",
+          "baseline_type_sha256": "035c46cfaca6ddf3e796214729dc232ad21dffe6d52a30d8e41e95ab00fd5c41"
+        },
+        "AWS::OpenSearchServerless::SecurityConfig": {
+          "type_sha256": "55b431678348a05e9686fe4c7a627c47deba27da2e519c5dce90facb577c8340",
+          "baseline_type_sha256": "55b431678348a05e9686fe4c7a627c47deba27da2e519c5dce90facb577c8340"
+        },
+        "AWS::OpenSearchServerless::SecurityPolicy": {
+          "type_sha256": "00acd97d0a6da7122494e985ad67a816b182bbd69774d388fc2ded0accbe3ba9",
+          "baseline_type_sha256": "00acd97d0a6da7122494e985ad67a816b182bbd69774d388fc2ded0accbe3ba9"
+        },
+        "AWS::OpenSearchServerless::VpcEndpoint": {
+          "type_sha256": "ef082de996f8a034c9819e77d5ade4eabcc19a6a8e98825d60cbf64071c77071",
+          "baseline_type_sha256": "ef082de996f8a034c9819e77d5ade4eabcc19a6a8e98825d60cbf64071c77071"
+        },
+        "AWS::OpenSearchService::Application": {
+          "type_sha256": "9a8c537ee13bd41938ad6a14432496c0985541305afb75fe56414d8e73dfa524",
+          "baseline_type_sha256": "9a8c537ee13bd41938ad6a14432496c0985541305afb75fe56414d8e73dfa524"
+        },
+        "AWS::Organizations::Account": {
+          "type_sha256": "62d6ef0c614c7ca89fd529bfb222b6b646b1787e413e20ff6ec4e9ecd1b93d6e",
+          "baseline_type_sha256": "62d6ef0c614c7ca89fd529bfb222b6b646b1787e413e20ff6ec4e9ecd1b93d6e"
+        },
+        "AWS::Organizations::OrganizationalUnit": {
+          "type_sha256": "e8812864b80150ad4ef5c5122d15439c751054b5e8686681be5cef3b923ea6dc",
+          "baseline_type_sha256": "e8812864b80150ad4ef5c5122d15439c751054b5e8686681be5cef3b923ea6dc"
+        },
+        "AWS::Organizations::Policy": {
+          "type_sha256": "416c4a5d57f39fa19be867ecb04d80e91e2a82087d6658921f5c91b474c9d239",
+          "baseline_type_sha256": "416c4a5d57f39fa19be867ecb04d80e91e2a82087d6658921f5c91b474c9d239"
+        },
+        "AWS::Organizations::ResourcePolicy": {
+          "type_sha256": "cc92fc19f7b1bdcedc6207ae020348e14c09651b01e4d8bad32bd4b7f2ded353",
+          "baseline_type_sha256": "cc92fc19f7b1bdcedc6207ae020348e14c09651b01e4d8bad32bd4b7f2ded353"
+        },
+        "AWS::Outposts::Outpost": {
+          "type_sha256": "69d891c402c26b6b62e020807889a7dba9f64afd37cd316688ef9ce8da87e5d1",
+          "baseline_type_sha256": "69d891c402c26b6b62e020807889a7dba9f64afd37cd316688ef9ce8da87e5d1"
+        },
+        "AWS::Outposts::Site": {
+          "type_sha256": "705d97ab6f1017ea19c3c8cbd380a888fb8ed76b7c337f30655a785c52af8708",
+          "baseline_type_sha256": "705d97ab6f1017ea19c3c8cbd380a888fb8ed76b7c337f30655a785c52af8708"
+        },
+        "AWS::PCAConnectorAD::Connector": {
+          "type_sha256": "4d6afddc691a3df2faf05f85b454642cfdcae55f9427937daf642d49629b4daa",
+          "baseline_type_sha256": "4d6afddc691a3df2faf05f85b454642cfdcae55f9427937daf642d49629b4daa"
+        },
+        "AWS::PCAConnectorAD::DirectoryRegistration": {
+          "type_sha256": "92cc7833a4a1a423c5cc8fcb1e2dd0c903385f5cededd0fbbeaf2c2821c8127d",
+          "baseline_type_sha256": "92cc7833a4a1a423c5cc8fcb1e2dd0c903385f5cededd0fbbeaf2c2821c8127d"
+        },
+        "AWS::PCAConnectorAD::ServicePrincipalName": {
+          "type_sha256": "64f5b0a32c8421d14b453bbc9e662eb63252d2685846fb584a5d989ac36a08b5",
+          "baseline_type_sha256": "64f5b0a32c8421d14b453bbc9e662eb63252d2685846fb584a5d989ac36a08b5"
+        },
+        "AWS::PCAConnectorAD::Template": {
+          "type_sha256": "b032fc40dea727e18a679413f345bcea35b0d0b3ac705226ee7f88204652064a",
+          "baseline_type_sha256": "b032fc40dea727e18a679413f345bcea35b0d0b3ac705226ee7f88204652064a"
+        },
+        "AWS::PCAConnectorAD::TemplateGroupAccessControlEntry": {
+          "type_sha256": "62a07c99d13c2897e255e241fa78af4535fe252c9db10c4f2323bf09596cde29",
+          "baseline_type_sha256": "62a07c99d13c2897e255e241fa78af4535fe252c9db10c4f2323bf09596cde29"
+        },
+        "AWS::PCAConnectorSCEP::Challenge": {
+          "type_sha256": "9a0296e2b46a4e35182f346f7b4fb536a88801cfe39688463037ce32f0e72935",
+          "baseline_type_sha256": "9a0296e2b46a4e35182f346f7b4fb536a88801cfe39688463037ce32f0e72935"
+        },
+        "AWS::PCAConnectorSCEP::Connector": {
+          "type_sha256": "e66b66e467535b5eb5e761a0ab0fe1d87eaf1bb99ead155808fb790d97040438",
+          "baseline_type_sha256": "e66b66e467535b5eb5e761a0ab0fe1d87eaf1bb99ead155808fb790d97040438"
+        },
+        "AWS::PCS::Queue": {
+          "type_sha256": "b30dba48bf455427e91d08d02dc8bf68f1998c05a1ac912f6cbbe20bb9a549c9",
+          "baseline_type_sha256": "b30dba48bf455427e91d08d02dc8bf68f1998c05a1ac912f6cbbe20bb9a549c9"
+        },
+        "AWS::PaymentCryptography::Alias": {
+          "type_sha256": "1e62c15b35ad53ff04a05e4561ff063387910c8e909f55856f9846750d458ba8",
+          "baseline_type_sha256": "1e62c15b35ad53ff04a05e4561ff063387910c8e909f55856f9846750d458ba8"
+        },
+        "AWS::RAM::ResourceShare": {
+          "type_sha256": "e52bb6d2edc838b904a438b0da6e383589bd08af4322e9ea44711b7ea1302677",
+          "baseline_type_sha256": "e52bb6d2edc838b904a438b0da6e383589bd08af4322e9ea44711b7ea1302677"
+        },
+        "AWS::RDS::DBSecurityGroup": {
+          "type_sha256": "82701f24348dcff7afeb336c114afdae236a7e1fe1b87c0f9e8e62b5ae798651",
+          "baseline_type_sha256": "82701f24348dcff7afeb336c114afdae236a7e1fe1b87c0f9e8e62b5ae798651"
+        },
+        "AWS::RDS::DBSecurityGroupIngress": {
+          "type_sha256": "4a3061683a51f1bcaac896a4147a5bb5cf9b643b0d8ff6b90d98c057b773659d",
+          "baseline_type_sha256": "4a3061683a51f1bcaac896a4147a5bb5cf9b643b0d8ff6b90d98c057b773659d"
+        },
+        "AWS::RDS::EventSubscription": {
+          "type_sha256": "9813e4ed39994523b25d233b227efbadebd1ea64ff4088e29280ae2a9433ed6f",
+          "baseline_type_sha256": "9813e4ed39994523b25d233b227efbadebd1ea64ff4088e29280ae2a9433ed6f"
+        },
+        "AWS::RDS::OptionGroup": {
+          "type_sha256": "0dd94b8140cdd39010ceeac6d2f409c8229010d5c1b9d07f55eaba09b7216938",
+          "baseline_type_sha256": "0dd94b8140cdd39010ceeac6d2f409c8229010d5c1b9d07f55eaba09b7216938"
+        },
+        "AWS::Redshift::ClusterParameterGroup": {
+          "type_sha256": "df7fbcdef9b6e3093616433893e0437c5fd540ab13ee5207980fbb20561b105c",
+          "baseline_type_sha256": "df7fbcdef9b6e3093616433893e0437c5fd540ab13ee5207980fbb20561b105c"
+        },
+        "AWS::Redshift::ClusterSecurityGroup": {
+          "type_sha256": "b07925e11331955461f7004f203e8080b38296f67577e87becffb3c891659993",
+          "baseline_type_sha256": "b07925e11331955461f7004f203e8080b38296f67577e87becffb3c891659993"
+        },
+        "AWS::Redshift::ClusterSubnetGroup": {
+          "type_sha256": "b16c0050c548c110c308f7489e9b660593a95437cd68e3abf19f64271809afeb",
+          "baseline_type_sha256": "b16c0050c548c110c308f7489e9b660593a95437cd68e3abf19f64271809afeb"
+        },
+        "AWS::Redshift::EndpointAccess": {
+          "type_sha256": "f49d429102fac94310e3635af5ea07e0f625bd2b5e5df6a1c5277fc5ea37cfe3",
+          "baseline_type_sha256": "f49d429102fac94310e3635af5ea07e0f625bd2b5e5df6a1c5277fc5ea37cfe3"
+        },
+        "AWS::Redshift::EndpointAuthorization": {
+          "type_sha256": "ab164694f53a3bf495c7b332b95b8f7e0c4d774ad57b1e7d35a82f78894c496d",
+          "baseline_type_sha256": "ab164694f53a3bf495c7b332b95b8f7e0c4d774ad57b1e7d35a82f78894c496d"
+        },
+        "AWS::Redshift::EventSubscription": {
+          "type_sha256": "df2bd9506a1c6ece2895eb1824c20aa00587cbe43588d409f3b291bc56a73398",
+          "baseline_type_sha256": "df2bd9506a1c6ece2895eb1824c20aa00587cbe43588d409f3b291bc56a73398"
+        },
+        "AWS::Redshift::Integration": {
+          "type_sha256": "d824416e49e92b0eb365ce7a8ce79461c6c05a79aaf3eb3711933e3024369f6e",
+          "baseline_type_sha256": "d824416e49e92b0eb365ce7a8ce79461c6c05a79aaf3eb3711933e3024369f6e"
+        },
+        "AWS::Redshift::ScheduledAction": {
+          "type_sha256": "310cee4f581d89fd341b0e02775a9da86dec172ac1e29cbc0083daf62c1be972",
+          "baseline_type_sha256": "310cee4f581d89fd341b0e02775a9da86dec172ac1e29cbc0083daf62c1be972"
+        },
+        "AWS::Redshift::SnapshotSchedule": {
+          "type_sha256": "ee0c238a94872a27c90b06d7c8a434bcf25f9e353339f3e9b6bad3c79dbb4c1b",
+          "baseline_type_sha256": "ee0c238a94872a27c90b06d7c8a434bcf25f9e353339f3e9b6bad3c79dbb4c1b"
+        },
+        "AWS::RedshiftServerless::Namespace": {
+          "type_sha256": "9d127da1b60f0b93ace0dfa33739e50d3e6a19fc9887b24292dff7c239148b85",
+          "baseline_type_sha256": "9d127da1b60f0b93ace0dfa33739e50d3e6a19fc9887b24292dff7c239148b85"
+        },
+        "AWS::RedshiftServerless::Snapshot": {
+          "type_sha256": "1d843f5978765d04fa5afdc83b51f1a9aa0cbf1f3c8ef7adf650789541427314",
+          "baseline_type_sha256": "1d843f5978765d04fa5afdc83b51f1a9aa0cbf1f3c8ef7adf650789541427314"
+        },
+        "AWS::RefactorSpaces::Application": {
+          "type_sha256": "2493654b45cb7ef48673cf7130e63f937e1e6ab20af8c980c3b90e35357c6024",
+          "baseline_type_sha256": "2493654b45cb7ef48673cf7130e63f937e1e6ab20af8c980c3b90e35357c6024"
+        },
+        "AWS::RefactorSpaces::Environment": {
+          "type_sha256": "0309b24d54f30be875442e84b3d160ea34c36a767396dddb3bdf9738e13000a8",
+          "baseline_type_sha256": "0309b24d54f30be875442e84b3d160ea34c36a767396dddb3bdf9738e13000a8"
+        },
+        "AWS::RefactorSpaces::Route": {
+          "type_sha256": "71ebef9c5f97b37af985b13723d950e95ed8f4fc313749f571b282edb4feceff",
+          "baseline_type_sha256": "71ebef9c5f97b37af985b13723d950e95ed8f4fc313749f571b282edb4feceff"
+        },
+        "AWS::ResourceExplorer2::Index": {
+          "type_sha256": "5c325913813d6b980119db7eb63ad4e171ad9addfbab877665945898c02f23f7",
+          "baseline_type_sha256": "5c325913813d6b980119db7eb63ad4e171ad9addfbab877665945898c02f23f7"
+        },
+        "AWS::ResourceExplorer2::View": {
+          "type_sha256": "cbc50ac4e78aa868f3cdcdde4bf5112cc69aeed7ecc793ace30f450068686246",
+          "baseline_type_sha256": "cbc50ac4e78aa868f3cdcdde4bf5112cc69aeed7ecc793ace30f450068686246"
+        },
+        "AWS::ResourceGroups::TagSyncTask": {
+          "type_sha256": "60373369437085448a4c9007320fa22ba7e967cdb166424a28420eec14e908fc",
+          "baseline_type_sha256": "60373369437085448a4c9007320fa22ba7e967cdb166424a28420eec14e908fc"
+        },
+        "AWS::RolesAnywhere::CRL": {
+          "type_sha256": "e3067ab261dc926abeef17bfca839c0620970001865e7d2437f73e273ce3387c",
+          "baseline_type_sha256": "e3067ab261dc926abeef17bfca839c0620970001865e7d2437f73e273ce3387c"
+        },
+        "AWS::RolesAnywhere::Profile": {
+          "type_sha256": "9fd1aa4dfe61ebb7ca0d9b440f292c73f7ed3363adad04f7b12f8e2eff2afbb5",
+          "baseline_type_sha256": "9fd1aa4dfe61ebb7ca0d9b440f292c73f7ed3363adad04f7b12f8e2eff2afbb5"
+        },
+        "AWS::Route53::CidrCollection": {
+          "type_sha256": "feadd8381dd48f8598bf0aada32c2a30adfeab505334bdf3d07ace313463a6a0",
+          "baseline_type_sha256": "feadd8381dd48f8598bf0aada32c2a30adfeab505334bdf3d07ace313463a6a0"
+        },
+        "AWS::Route53::DNSSEC": {
+          "type_sha256": "93d49b464f44b66423c761e8668bb313eecfa72631459236a2197cc7c06f2f22",
+          "baseline_type_sha256": "93d49b464f44b66423c761e8668bb313eecfa72631459236a2197cc7c06f2f22"
+        },
+        "AWS::Route53::HealthCheck": {
+          "type_sha256": "b4e1df94c58a36920183e55e3997da846842c84a5cb4d17b458e90694636d2c8",
+          "baseline_type_sha256": "b4e1df94c58a36920183e55e3997da846842c84a5cb4d17b458e90694636d2c8"
+        },
+        "AWS::Route53::KeySigningKey": {
+          "type_sha256": "56179b24cbddd74222b5ef63418a4748249ab76ef8871a4bd26fbdc540314b50",
+          "baseline_type_sha256": "56179b24cbddd74222b5ef63418a4748249ab76ef8871a4bd26fbdc540314b50"
+        },
+        "AWS::Route53Profiles::Profile": {
+          "type_sha256": "ef796dae715f67b8c35f35ca59dfe0f07ee83bf224eec7d1749bf10eb46d24b8",
+          "baseline_type_sha256": "ef796dae715f67b8c35f35ca59dfe0f07ee83bf224eec7d1749bf10eb46d24b8"
+        },
+        "AWS::Route53Profiles::ProfileAssociation": {
+          "type_sha256": "c7cfa417317220c6497fe6df7557895cb70d6113e572f692ad35da593640e069",
+          "baseline_type_sha256": "c7cfa417317220c6497fe6df7557895cb70d6113e572f692ad35da593640e069"
+        },
+        "AWS::Route53Profiles::ProfileResourceAssociation": {
+          "type_sha256": "5bc6281576b021e667b0fc1f9fec6f6aa39cf6f5b47e45b5fb880fe53e196265",
+          "baseline_type_sha256": "5bc6281576b021e667b0fc1f9fec6f6aa39cf6f5b47e45b5fb880fe53e196265"
+        },
+        "AWS::Route53Resolver::FirewallRuleGroupAssociation": {
+          "type_sha256": "784649b40dd21b7d4e46f7c7d6e1cf482dfc6970f4aeecec49454ea2786057c8",
+          "baseline_type_sha256": "784649b40dd21b7d4e46f7c7d6e1cf482dfc6970f4aeecec49454ea2786057c8"
+        },
+        "AWS::Route53Resolver::ResolverConfig": {
+          "type_sha256": "8e0dbbbe465dec4c5b4d43e1d766a3d57586520ef26b8e92b86a448aed28af66",
+          "baseline_type_sha256": "8e0dbbbe465dec4c5b4d43e1d766a3d57586520ef26b8e92b86a448aed28af66"
+        },
+        "AWS::Route53Resolver::ResolverDNSSECConfig": {
+          "type_sha256": "b682d9a0d4f97502dc0c69150a0f9c749ce4d74a4c05ca4418fcdbbd4293d328",
+          "baseline_type_sha256": "b682d9a0d4f97502dc0c69150a0f9c749ce4d74a4c05ca4418fcdbbd4293d328"
+        },
+        "AWS::Route53Resolver::ResolverQueryLoggingConfig": {
+          "type_sha256": "597dc50acf87f1a0f2742bf2e672455aaa8d4432446dcb2472e3a6c8535368d0",
+          "baseline_type_sha256": "597dc50acf87f1a0f2742bf2e672455aaa8d4432446dcb2472e3a6c8535368d0"
+        },
+        "AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation": {
+          "type_sha256": "259f05a8436c66f444c69262470c18482069ce30ef51bd4152353417fe076361",
+          "baseline_type_sha256": "259f05a8436c66f444c69262470c18482069ce30ef51bd4152353417fe076361"
+        },
+        "AWS::Route53Resolver::ResolverRule": {
+          "type_sha256": "06359b03b2b3efdfd73e1564b0287fdabc779644a91d9a90f91402645930ff74",
+          "baseline_type_sha256": "06359b03b2b3efdfd73e1564b0287fdabc779644a91d9a90f91402645930ff74"
+        },
+        "AWS::Route53Resolver::ResolverRuleAssociation": {
+          "type_sha256": "349cb81bc2f23f1e3f75a04123d54dd953581445e4fe8b3affea5b072baefbe3",
+          "baseline_type_sha256": "349cb81bc2f23f1e3f75a04123d54dd953581445e4fe8b3affea5b072baefbe3"
+        },
+        "AWS::S3::AccessPoint": {
+          "type_sha256": "98e534eb6eb2ccaa442bbbda7756199ad9aa413b5c5149cd142e52641bc0ce21",
+          "baseline_type_sha256": "98e534eb6eb2ccaa442bbbda7756199ad9aa413b5c5149cd142e52641bc0ce21"
+        },
+        "AWS::S3::BucketPolicy": {
+          "type_sha256": "052a5ef1e32d13495aca4519934e81f47e37638889012152bc15dce845edf8a7",
+          "baseline_type_sha256": "052a5ef1e32d13495aca4519934e81f47e37638889012152bc15dce845edf8a7"
+        },
+        "AWS::S3Express::BucketPolicy": {
+          "type_sha256": "1aa50b5d381ec9733d1f91338c9f4a873c130ce12da113cc5a41766290c144a2",
+          "baseline_type_sha256": "1aa50b5d381ec9733d1f91338c9f4a873c130ce12da113cc5a41766290c144a2"
+        },
+        "AWS::S3Files::AccessPoint": {
+          "type_sha256": "8dc96b64d6fe60ec61e4e0f5117f3bb562b12e049db4f66cf99d1c809df1db81",
+          "baseline_type_sha256": "8dc96b64d6fe60ec61e4e0f5117f3bb562b12e049db4f66cf99d1c809df1db81"
+        },
+        "AWS::S3Files::FileSystem": {
+          "type_sha256": "1e72e088a7fd4935b66cdf1695d7d9e7065ed7a335013e7d775f2e551c2a4528",
+          "baseline_type_sha256": "1e72e088a7fd4935b66cdf1695d7d9e7065ed7a335013e7d775f2e551c2a4528"
+        },
+        "AWS::S3Files::FileSystemPolicy": {
+          "type_sha256": "23476de910d44b0760733769a023f8c3212d5353c3edd8e27460ec8cfdb17170",
+          "baseline_type_sha256": "23476de910d44b0760733769a023f8c3212d5353c3edd8e27460ec8cfdb17170"
+        },
+        "AWS::S3Files::MountTarget": {
+          "type_sha256": "deebbf1530f63eed823d5d8ad59227107d33305d3b92cf2a9b45fcc81f288485",
+          "baseline_type_sha256": "deebbf1530f63eed823d5d8ad59227107d33305d3b92cf2a9b45fcc81f288485"
+        },
+        "AWS::S3ObjectLambda::AccessPointPolicy": {
+          "type_sha256": "0dcffd2beabca91c2fb0bd658c321e018aa8c7ffaa2b54ccc9d8c69d33386530",
+          "baseline_type_sha256": "0dcffd2beabca91c2fb0bd658c321e018aa8c7ffaa2b54ccc9d8c69d33386530"
+        },
+        "AWS::S3Tables::Namespace": {
+          "type_sha256": "0a630911612397af00ee6010076d69426b0290faa33f1a29a71f637b34f5ea77",
+          "baseline_type_sha256": "0a630911612397af00ee6010076d69426b0290faa33f1a29a71f637b34f5ea77"
+        },
+        "AWS::S3Tables::TableBucketPolicy": {
+          "type_sha256": "cb6f172d291db29591cc474f2e71e21aee157f87b02f6f08cb6aa8f1a57067c9",
+          "baseline_type_sha256": "cb6f172d291db29591cc474f2e71e21aee157f87b02f6f08cb6aa8f1a57067c9"
+        },
+        "AWS::S3Tables::TablePolicy": {
+          "type_sha256": "306e91ab157e2d18224fe7b80a996abf71ba7b1378d330c86df17499b8a92f93",
+          "baseline_type_sha256": "306e91ab157e2d18224fe7b80a996abf71ba7b1378d330c86df17499b8a92f93"
+        },
+        "AWS::S3Vectors::VectorBucketPolicy": {
+          "type_sha256": "40c3a903eb49d6612c5f538063868c53262707e45dba4b77c17d1b0238f36314",
+          "baseline_type_sha256": "40c3a903eb49d6612c5f538063868c53262707e45dba4b77c17d1b0238f36314"
+        },
+        "AWS::SES::ConfigurationSet": {
+          "type_sha256": "6cbeeb9470189dcc6c195edbf72592cce6fadd79c5568d9bcc01aecdd237f5e6",
+          "baseline_type_sha256": "6cbeeb9470189dcc6c195edbf72592cce6fadd79c5568d9bcc01aecdd237f5e6"
+        },
+        "AWS::SES::ContactList": {
+          "type_sha256": "669df6970cad511fc7c7f67b7c460a24285868a362f23d8e1b60e4a052847b6a",
+          "baseline_type_sha256": "669df6970cad511fc7c7f67b7c460a24285868a362f23d8e1b60e4a052847b6a"
+        },
+        "AWS::SES::CustomVerificationEmailTemplate": {
+          "type_sha256": "24f20dec8dec0ba66fee8697602b9b516e5a579a3704e17acdc60f78ae566e7b",
+          "baseline_type_sha256": "24f20dec8dec0ba66fee8697602b9b516e5a579a3704e17acdc60f78ae566e7b"
+        },
+        "AWS::SES::DedicatedIpPool": {
+          "type_sha256": "6bfb7af4418445ba33ac86348f876cddd0761edfe02c989e6240cff4878ed56a",
+          "baseline_type_sha256": "6bfb7af4418445ba33ac86348f876cddd0761edfe02c989e6240cff4878ed56a"
+        },
+        "AWS::SES::ReceiptRuleSet": {
+          "type_sha256": "636234bd300d9d5968f311725c9b138edb9f8b721601c6bacfdb1164177d2380",
+          "baseline_type_sha256": "636234bd300d9d5968f311725c9b138edb9f8b721601c6bacfdb1164177d2380"
+        },
+        "AWS::SES::Template": {
+          "type_sha256": "a73e9895dc45fd5632aeb603397006fbfb90098e3c4e14335edaa232ce36d51b",
+          "baseline_type_sha256": "a73e9895dc45fd5632aeb603397006fbfb90098e3c4e14335edaa232ce36d51b"
+        },
+        "AWS::SES::VdmAttributes": {
+          "type_sha256": "ed2a958e604471dcf45d12e9b114a6d00a253cb3aeb037c6e431914d0c402a39",
+          "baseline_type_sha256": "ed2a958e604471dcf45d12e9b114a6d00a253cb3aeb037c6e431914d0c402a39"
+        },
+        "AWS::SMSVOICE::ConfigurationSet": {
+          "type_sha256": "e68f4ae1e5d50aff1205d13d0ef24774b58a4a8baf357e53754a5f8d5f51be19",
+          "baseline_type_sha256": "e68f4ae1e5d50aff1205d13d0ef24774b58a4a8baf357e53754a5f8d5f51be19"
+        },
+        "AWS::SMSVOICE::OptOutList": {
+          "type_sha256": "bd90f0e043faca6712d4611878b9d4ac82a6786e1c4e12fe99cea1b6ccd6582c",
+          "baseline_type_sha256": "bd90f0e043faca6712d4611878b9d4ac82a6786e1c4e12fe99cea1b6ccd6582c"
+        },
+        "AWS::SMSVOICE::PhoneNumber": {
+          "type_sha256": "f453369ce1608b2d606e5a6dea37741efae0255f8bdb7bd8aa7ccee838a9f7a2",
+          "baseline_type_sha256": "f453369ce1608b2d606e5a6dea37741efae0255f8bdb7bd8aa7ccee838a9f7a2"
+        },
+        "AWS::SMSVOICE::Pool": {
+          "type_sha256": "a409c4ccddcd81faae0d773e1559442d4d4420a3046340586f5d77bd21b9383e",
+          "baseline_type_sha256": "a409c4ccddcd81faae0d773e1559442d4d4420a3046340586f5d77bd21b9383e"
+        },
+        "AWS::SMSVOICE::ProtectConfiguration": {
+          "type_sha256": "2ee03b41757b9abe3919ca2aafb40cc8c069f1dce60844802b705ed03d254c17",
+          "baseline_type_sha256": "2ee03b41757b9abe3919ca2aafb40cc8c069f1dce60844802b705ed03d254c17"
+        },
+        "AWS::SMSVOICE::ResourcePolicy": {
+          "type_sha256": "18fd6c7e2bad7d331fc096988b0fa70f41754971c8ffb436f78eae488ff40d3c",
+          "baseline_type_sha256": "18fd6c7e2bad7d331fc096988b0fa70f41754971c8ffb436f78eae488ff40d3c"
+        },
+        "AWS::SMSVOICE::SenderId": {
+          "type_sha256": "3ea86449b2c59c8e12029276c8dd3cd4709eec5ce8f45fcf7f273ba9dfca0354",
+          "baseline_type_sha256": "3ea86449b2c59c8e12029276c8dd3cd4709eec5ce8f45fcf7f273ba9dfca0354"
+        },
+        "AWS::SNS::Topic": {
+          "type_sha256": "7a6ccf02f9ccbe4becc0e4006ad0520a37a00e025de5b65f9c6a0328e21a349a",
+          "baseline_type_sha256": "7a6ccf02f9ccbe4becc0e4006ad0520a37a00e025de5b65f9c6a0328e21a349a"
+        },
+        "AWS::SNS::TopicInlinePolicy": {
+          "type_sha256": "a6f1c451d91602b9d2600506d9b50ffc01ac532ee23adf08907e4822835ca8e6",
+          "baseline_type_sha256": "a6f1c451d91602b9d2600506d9b50ffc01ac532ee23adf08907e4822835ca8e6"
+        },
+        "AWS::SNS::TopicPolicy": {
+          "type_sha256": "e420fa2ca5d33180200ddb8cb768523a97bb90e988d68a0c38d426f46747f6cc",
+          "baseline_type_sha256": "e420fa2ca5d33180200ddb8cb768523a97bb90e988d68a0c38d426f46747f6cc"
+        },
+        "AWS::SQS::Queue": {
+          "type_sha256": "84343877492fee7a645a1180dfcc5b78cb4f5b2c30e5452aca061f6cd50c97d8",
+          "baseline_type_sha256": "84343877492fee7a645a1180dfcc5b78cb4f5b2c30e5452aca061f6cd50c97d8"
+        },
+        "AWS::SQS::QueueInlinePolicy": {
+          "type_sha256": "33d9b35234598aaf34ec2fe838451c9079e3cf0fe89ee63d62bca3a657658011",
+          "baseline_type_sha256": "33d9b35234598aaf34ec2fe838451c9079e3cf0fe89ee63d62bca3a657658011"
+        },
+        "AWS::SQS::QueuePolicy": {
+          "type_sha256": "faa288be40968b1b92434469a72cb371092eab047ae7b93c54098752356e24e4",
+          "baseline_type_sha256": "faa288be40968b1b92434469a72cb371092eab047ae7b93c54098752356e24e4"
+        },
+        "AWS::SSM::Association": {
+          "type_sha256": "0934069b993803d7938a483fcd5b8934825ae0dfc43444a05b64aa9e4ee8d440",
+          "baseline_type_sha256": "0934069b993803d7938a483fcd5b8934825ae0dfc43444a05b64aa9e4ee8d440"
+        },
+        "AWS::SSM::CloudConnector": {
+          "type_sha256": "13bbbd9d0495d7720e1c72502cb1b15f5f1542699df0ed670d821132d70230f3",
+          "baseline_type_sha256": "13bbbd9d0495d7720e1c72502cb1b15f5f1542699df0ed670d821132d70230f3"
+        },
+        "AWS::SSM::Document": {
+          "type_sha256": "ddbd5f258ac9aedfca407ff01460bd3fd55b4499e79fde726536a2f334241a44",
+          "baseline_type_sha256": "ddbd5f258ac9aedfca407ff01460bd3fd55b4499e79fde726536a2f334241a44"
+        },
+        "AWS::SSM::MaintenanceWindow": {
+          "type_sha256": "397778c09294bbad42e5d0efeb31b541d16841a5cf858d625e28faf02c498a09",
+          "baseline_type_sha256": "397778c09294bbad42e5d0efeb31b541d16841a5cf858d625e28faf02c498a09"
+        },
+        "AWS::SSM::MaintenanceWindowTarget": {
+          "type_sha256": "bf92a99ad5096a0270fe4e03fddf77abc2d94845cb56dea01d208fc23e620d9d",
+          "baseline_type_sha256": "bf92a99ad5096a0270fe4e03fddf77abc2d94845cb56dea01d208fc23e620d9d"
+        },
+        "AWS::SSM::PatchBaseline": {
+          "type_sha256": "09de884752a7fe553c2e0723e2fb834753f4da30edeaf0946840e5aca304c637",
+          "baseline_type_sha256": "09de884752a7fe553c2e0723e2fb834753f4da30edeaf0946840e5aca304c637"
+        },
+        "AWS::SSM::ResourcePolicy": {
+          "type_sha256": "ca43ef5e690a752087bd76dc497fa0589f7b6671fb41ac26cd2ffc6c5b6871a5",
+          "baseline_type_sha256": "ca43ef5e690a752087bd76dc497fa0589f7b6671fb41ac26cd2ffc6c5b6871a5"
+        },
+        "AWS::SSM::ServiceSetting": {
+          "type_sha256": "392f94b6077828ed8929074c988b9db3fed428bfed4361684e729b955afe27b0",
+          "baseline_type_sha256": "392f94b6077828ed8929074c988b9db3fed428bfed4361684e729b955afe27b0"
+        },
+        "AWS::SSO::Application": {
+          "type_sha256": "749c95381a0158d5123dd3302cd6666d245121e27d52e59ab14a646955eb2aa8",
+          "baseline_type_sha256": "749c95381a0158d5123dd3302cd6666d245121e27d52e59ab14a646955eb2aa8"
+        },
+        "AWS::SSO::ApplicationAssignment": {
+          "type_sha256": "d526f985b22001dea5ddf4c5513ff9830a649dbad5beee6f61104899d65a57b5",
+          "baseline_type_sha256": "d526f985b22001dea5ddf4c5513ff9830a649dbad5beee6f61104899d65a57b5"
+        },
+        "AWS::SSO::Assignment": {
+          "type_sha256": "8f38b07c29b21b4945d26b6fe2c9e9086a3c2f4bcb4192813553a45548cb80ed",
+          "baseline_type_sha256": "8f38b07c29b21b4945d26b6fe2c9e9086a3c2f4bcb4192813553a45548cb80ed"
+        },
+        "AWS::SSO::InstanceAccessControlAttributeConfiguration": {
+          "type_sha256": "3f95ba6e980126eed857fc36c65fa64236a1301e95848dfd69f47609382c490e",
+          "baseline_type_sha256": "3f95ba6e980126eed857fc36c65fa64236a1301e95848dfd69f47609382c490e"
+        },
+        "AWS::SSO::PermissionSet": {
+          "type_sha256": "9ab24b4d170529f47bf431289c2566ee7baf3163f6eae6df7372e41d8755a917",
+          "baseline_type_sha256": "9ab24b4d170529f47bf431289c2566ee7baf3163f6eae6df7372e41d8755a917"
+        },
+        "AWS::SageMaker::Action": {
+          "type_sha256": "5b5fdd44e190f771eae669c19f24118dd466930fa92ea414423e59c3b56e9418",
+          "baseline_type_sha256": "5b5fdd44e190f771eae669c19f24118dd466930fa92ea414423e59c3b56e9418"
+        },
+        "AWS::SageMaker::AppImageConfig": {
+          "type_sha256": "99ad58027daaad6dfc0ea66df7127dc00d87e508c9b3a68ff93aba89e0978006",
+          "baseline_type_sha256": "99ad58027daaad6dfc0ea66df7127dc00d87e508c9b3a68ff93aba89e0978006"
+        },
+        "AWS::SageMaker::Artifact": {
+          "type_sha256": "1c7631894d2c1021fe27ebba023913b0c16a534d404abc227ec597c825577e5a",
+          "baseline_type_sha256": "1c7631894d2c1021fe27ebba023913b0c16a534d404abc227ec597c825577e5a"
+        },
+        "AWS::SageMaker::CodeRepository": {
+          "type_sha256": "8ba9aafd33db4d640b484b2be29587b1fea2669bc2b2e456f76bdc1dc82cd446",
+          "baseline_type_sha256": "8ba9aafd33db4d640b484b2be29587b1fea2669bc2b2e456f76bdc1dc82cd446"
+        },
+        "AWS::SageMaker::Context": {
+          "type_sha256": "281646b41f499aba43b6ffa737b4e165ee4adc69ec78e0dd9dc0951f1ae323ec",
+          "baseline_type_sha256": "281646b41f499aba43b6ffa737b4e165ee4adc69ec78e0dd9dc0951f1ae323ec"
+        },
+        "AWS::SageMaker::DataQualityJobDefinition": {
+          "type_sha256": "2ee4b8e48439c357704d549b9b153b20efb5649c667e92aadb2933a79a91b27c",
+          "baseline_type_sha256": "2ee4b8e48439c357704d549b9b153b20efb5649c667e92aadb2933a79a91b27c"
+        },
+        "AWS::SageMaker::Endpoint": {
+          "type_sha256": "a1f15dce2027f7a5644389a72cfc7b0da04bca76f442cae8d7bd0bbf91b1bcb2",
+          "baseline_type_sha256": "a1f15dce2027f7a5644389a72cfc7b0da04bca76f442cae8d7bd0bbf91b1bcb2"
+        },
+        "AWS::SageMaker::EndpointConfig": {
+          "type_sha256": "0cecacee78b06c0a61f3280ca1eb424b823da6739b099046489f62e016640ec9",
+          "baseline_type_sha256": "0cecacee78b06c0a61f3280ca1eb424b823da6739b099046489f62e016640ec9"
+        },
+        "AWS::SageMaker::Experiment": {
+          "type_sha256": "c71ad8b2f5bf4d61b810f5999845a07cd8493ffd370e8315110b5e1ca9e2e99d",
+          "baseline_type_sha256": "c71ad8b2f5bf4d61b810f5999845a07cd8493ffd370e8315110b5e1ca9e2e99d"
+        },
+        "AWS::SageMaker::ExperimentTrialComponent": {
+          "type_sha256": "ecf7cc1c42c5b12556c47f908c57b4c7026d3eb2af4812e2b5c9a54351364db0",
+          "baseline_type_sha256": "ecf7cc1c42c5b12556c47f908c57b4c7026d3eb2af4812e2b5c9a54351364db0"
+        },
+        "AWS::SageMaker::FeatureGroup": {
+          "type_sha256": "a3566ed38fe9fe89ca73368c17e0982c3f34ca5369182a78e5559f34ed5804c0",
+          "baseline_type_sha256": "a3566ed38fe9fe89ca73368c17e0982c3f34ca5369182a78e5559f34ed5804c0"
+        },
+        "AWS::SageMaker::Hub": {
+          "type_sha256": "304128ab4ca94293a0c6e04ddd5d0bac5d7b66d94ba3801b1ba184b3c9217ae7",
+          "baseline_type_sha256": "304128ab4ca94293a0c6e04ddd5d0bac5d7b66d94ba3801b1ba184b3c9217ae7"
+        },
+        "AWS::SageMaker::Image": {
+          "type_sha256": "0f2e68f9233c7b00ac957f02e2f4549c40fb9320f80c79a345118729b8a7ab70",
+          "baseline_type_sha256": "0f2e68f9233c7b00ac957f02e2f4549c40fb9320f80c79a345118729b8a7ab70"
+        },
+        "AWS::SageMaker::ImageVersion": {
+          "type_sha256": "680a92e70be5ac3811fa1ea1608cee0cfc644c52d14fe26c0d3978e280eade29",
+          "baseline_type_sha256": "680a92e70be5ac3811fa1ea1608cee0cfc644c52d14fe26c0d3978e280eade29"
+        },
+        "AWS::SageMaker::InferenceExperiment": {
+          "type_sha256": "c5794b0106a4b11f3abf9446dd5a5a11866dd208b9d2b7669f1c5cddc07554ab",
+          "baseline_type_sha256": "c5794b0106a4b11f3abf9446dd5a5a11866dd208b9d2b7669f1c5cddc07554ab"
+        },
+        "AWS::SageMaker::MlflowTrackingServer": {
+          "type_sha256": "31e12ee0f0f7db198dc365c1b822eaff55846d85027161e7ff97dbfca7daba39",
+          "baseline_type_sha256": "31e12ee0f0f7db198dc365c1b822eaff55846d85027161e7ff97dbfca7daba39"
+        },
+        "AWS::SageMaker::ModelBiasJobDefinition": {
+          "type_sha256": "afd8998c73b98ce45e4100499e7379a1eb27812f68a633605e8c99a7140df6e3",
+          "baseline_type_sha256": "afd8998c73b98ce45e4100499e7379a1eb27812f68a633605e8c99a7140df6e3"
+        },
+        "AWS::SageMaker::ModelExplainabilityJobDefinition": {
+          "type_sha256": "24aba629d4dda724196b8751b0a170cc2287935b883ff27a47c5de5b5af0eed7",
+          "baseline_type_sha256": "24aba629d4dda724196b8751b0a170cc2287935b883ff27a47c5de5b5af0eed7"
+        },
+        "AWS::SageMaker::ModelQualityJobDefinition": {
+          "type_sha256": "c3c1f7df17ccc5e2037ad27aaa5b9dbc1898120461ddd34cbba98d8824917a45",
+          "baseline_type_sha256": "c3c1f7df17ccc5e2037ad27aaa5b9dbc1898120461ddd34cbba98d8824917a45"
+        },
+        "AWS::SageMaker::MonitoringSchedule": {
+          "type_sha256": "e1a7a05ad72562471082b1ccd532d38f8915a50bb665ce7c07e035235f2c6dd3",
+          "baseline_type_sha256": "e1a7a05ad72562471082b1ccd532d38f8915a50bb665ce7c07e035235f2c6dd3"
+        },
+        "AWS::SageMaker::NotebookInstance": {
+          "type_sha256": "0d57c14c243eb2a74e84fddc1b389d81d58fb6f326b429b3b9714cd932ee1bb5",
+          "baseline_type_sha256": "0d57c14c243eb2a74e84fddc1b389d81d58fb6f326b429b3b9714cd932ee1bb5"
+        },
+        "AWS::SageMaker::NotebookInstanceLifecycleConfig": {
+          "type_sha256": "0874e7345de96d95e9c4a809d0df616511f535b78ad4f2403e10a9aa1cf58e5d",
+          "baseline_type_sha256": "0874e7345de96d95e9c4a809d0df616511f535b78ad4f2403e10a9aa1cf58e5d"
+        },
+        "AWS::SageMaker::Pipeline": {
+          "type_sha256": "db3e1655385007f0d0a7f068eff34ada1410f0ceeaa20cdbf08edb4e336e5092",
+          "baseline_type_sha256": "db3e1655385007f0d0a7f068eff34ada1410f0ceeaa20cdbf08edb4e336e5092"
+        },
+        "AWS::SageMaker::Project": {
+          "type_sha256": "03374f1f9e7db5ea41144048a731344caf420f073ec5705a17e344dbfccda592",
+          "baseline_type_sha256": "03374f1f9e7db5ea41144048a731344caf420f073ec5705a17e344dbfccda592"
+        },
+        "AWS::SageMaker::StudioLifecycleConfig": {
+          "type_sha256": "c3fb1b3ff89d9e741d3e611dec764d0405b024b8730b5d5573394646184014d9",
+          "baseline_type_sha256": "c3fb1b3ff89d9e741d3e611dec764d0405b024b8730b5d5573394646184014d9"
+        },
+        "AWS::SageMaker::TrialComponent": {
+          "type_sha256": "8b01e7f89271613f49d7c230aafd2e1c74857cd12654c7df0f5bb697040cd00f",
+          "baseline_type_sha256": "8b01e7f89271613f49d7c230aafd2e1c74857cd12654c7df0f5bb697040cd00f"
+        },
+        "AWS::Scheduler::ScheduleGroup": {
+          "type_sha256": "0183b32826044ae0b74f8602f50a4b8238bd8b2dfbd60c9d518d6d5aa1fdb63c",
+          "baseline_type_sha256": "0183b32826044ae0b74f8602f50a4b8238bd8b2dfbd60c9d518d6d5aa1fdb63c"
+        },
+        "AWS::SecretsManager::ResourcePolicy": {
+          "type_sha256": "a584d3d6ed3aff87d05a5709bd3bde68bfec9c4b2b4f92dfc10158a996969a68",
+          "baseline_type_sha256": "a584d3d6ed3aff87d05a5709bd3bde68bfec9c4b2b4f92dfc10158a996969a68"
+        },
+        "AWS::SecretsManager::SecretTargetAttachment": {
+          "type_sha256": "8d4bcf0bce8cf5c3049cc0a2571c64ce412bcd2b506cfb2532dd3cdf02b825e5",
+          "baseline_type_sha256": "8d4bcf0bce8cf5c3049cc0a2571c64ce412bcd2b506cfb2532dd3cdf02b825e5"
+        },
+        "AWS::SecurityHub::AggregatorV2": {
+          "type_sha256": "165ea60cf7b09dbd61e1d0a352283d769f572bb4ef2a9392e96efedefb5937b6",
+          "baseline_type_sha256": "165ea60cf7b09dbd61e1d0a352283d769f572bb4ef2a9392e96efedefb5937b6"
+        },
+        "AWS::SecurityHub::AutomationRule": {
+          "type_sha256": "55e96cfc21258cbe746d6f0b5ff6df581a61ea73df49232b2081f923a08d50d8",
+          "baseline_type_sha256": "55e96cfc21258cbe746d6f0b5ff6df581a61ea73df49232b2081f923a08d50d8"
+        },
+        "AWS::SecurityHub::AutomationRuleV2": {
+          "type_sha256": "710c0f8dcebb6df0f3c343a88cc66b27cf07573feaf93dc7975667dabac0bb84",
+          "baseline_type_sha256": "710c0f8dcebb6df0f3c343a88cc66b27cf07573feaf93dc7975667dabac0bb84"
+        },
+        "AWS::SecurityHub::Connector": {
+          "type_sha256": "e7276e37f96f456e3b8827184bfd3d761a9fdd43ec3134abda02f0b734ae913b",
+          "baseline_type_sha256": "e7276e37f96f456e3b8827184bfd3d761a9fdd43ec3134abda02f0b734ae913b"
+        },
+        "AWS::SecurityHub::ConnectorV2": {
+          "type_sha256": "148a64e7a05728b82dc7eebed2a3bace77d1259f91ee9f59daf03dfc2203cbf7",
+          "baseline_type_sha256": "148a64e7a05728b82dc7eebed2a3bace77d1259f91ee9f59daf03dfc2203cbf7"
+        },
+        "AWS::SecurityHub::DelegatedAdmin": {
+          "type_sha256": "d0f360fe89fa838666090356c97ac8d2f91f37a92e8da2a8298aabb925407a80",
+          "baseline_type_sha256": "d0f360fe89fa838666090356c97ac8d2f91f37a92e8da2a8298aabb925407a80"
+        },
+        "AWS::SecurityHub::Hub": {
+          "type_sha256": "ea0d4a29e6349da642af71ac9a0bc6d99c46ae219665c07ca7649976c03462ec",
+          "baseline_type_sha256": "ea0d4a29e6349da642af71ac9a0bc6d99c46ae219665c07ca7649976c03462ec"
+        },
+        "AWS::SecurityHub::Insight": {
+          "type_sha256": "cbd1c6f52f3b137c90a3095460a5c7e8321f3d249d959544152b1a9badd58f5d",
+          "baseline_type_sha256": "cbd1c6f52f3b137c90a3095460a5c7e8321f3d249d959544152b1a9badd58f5d"
+        },
+        "AWS::SecurityHub::PolicyAssociation": {
+          "type_sha256": "f0a0d75ea0c7549b26f81a59075ed5f7c6c2ad5b5933f322fee02d1ccba74d5a",
+          "baseline_type_sha256": "f0a0d75ea0c7549b26f81a59075ed5f7c6c2ad5b5933f322fee02d1ccba74d5a"
+        },
+        "AWS::SecurityHub::ProductSubscription": {
+          "type_sha256": "4f2f38f9a16053146137859585e4c98e144d7d4a0861430d6ab49a49e2b92446",
+          "baseline_type_sha256": "4f2f38f9a16053146137859585e4c98e144d7d4a0861430d6ab49a49e2b92446"
+        },
+        "AWS::SecurityHub::SecurityControl": {
+          "type_sha256": "bb65e461de243605302e0ad19164037f6fc7f11e72569c529fa33a541ed3d38a",
+          "baseline_type_sha256": "bb65e461de243605302e0ad19164037f6fc7f11e72569c529fa33a541ed3d38a"
+        },
+        "AWS::SecurityLake::SubscriberNotification": {
+          "type_sha256": "1b929fd2c6f137166a5a84c8378c17c2e24c250011e91d659f8b91ee90653489",
+          "baseline_type_sha256": "1b929fd2c6f137166a5a84c8378c17c2e24c250011e91d659f8b91ee90653489"
+        },
+        "AWS::ServiceCatalog::AcceptedPortfolioShare": {
+          "type_sha256": "1d02c7d604716edfd55efe8dc009a97ce4d6b4329c4952f948869182507716ad",
+          "baseline_type_sha256": "1d02c7d604716edfd55efe8dc009a97ce4d6b4329c4952f948869182507716ad"
+        },
+        "AWS::ServiceCatalog::LaunchNotificationConstraint": {
+          "type_sha256": "706026146206d4933a80cf0b82dfe0c7d9e538ccf5b640eede84eea89a9636d8",
+          "baseline_type_sha256": "706026146206d4933a80cf0b82dfe0c7d9e538ccf5b640eede84eea89a9636d8"
+        },
+        "AWS::ServiceCatalog::LaunchRoleConstraint": {
+          "type_sha256": "d2ace0b2aa2330cbf4a09dcc580e80e292ba4b6c02a38cafe068a37548d048b5",
+          "baseline_type_sha256": "d2ace0b2aa2330cbf4a09dcc580e80e292ba4b6c02a38cafe068a37548d048b5"
+        },
+        "AWS::ServiceCatalog::LaunchTemplateConstraint": {
+          "type_sha256": "08dfbebed2369f7d5e77c75de76ad69c0dd11e80e32b4635aaa96c3be34ad481",
+          "baseline_type_sha256": "08dfbebed2369f7d5e77c75de76ad69c0dd11e80e32b4635aaa96c3be34ad481"
+        },
+        "AWS::ServiceCatalog::Portfolio": {
+          "type_sha256": "66323f1dca364c0a4e70be3a2b1900f4431795ac374331f7f7917d3c4d4ef54a",
+          "baseline_type_sha256": "66323f1dca364c0a4e70be3a2b1900f4431795ac374331f7f7917d3c4d4ef54a"
+        },
+        "AWS::ServiceCatalog::PortfolioPrincipalAssociation": {
+          "type_sha256": "0f18466761f18423448223be14ff40ad9b24d373ed29ff6dafe60f31721d2f8b",
+          "baseline_type_sha256": "0f18466761f18423448223be14ff40ad9b24d373ed29ff6dafe60f31721d2f8b"
+        },
+        "AWS::ServiceCatalog::PortfolioProductAssociation": {
+          "type_sha256": "1302db7b81a642165a9837f5246feef3adc03a874a2235c2fb1b1ca4f78687d7",
+          "baseline_type_sha256": "1302db7b81a642165a9837f5246feef3adc03a874a2235c2fb1b1ca4f78687d7"
+        },
+        "AWS::ServiceCatalog::PortfolioShare": {
+          "type_sha256": "e1499dcab6de5f0f41ea4fcf88f456ae016d3025ebf62fa75cd10d15c9a4de64",
+          "baseline_type_sha256": "e1499dcab6de5f0f41ea4fcf88f456ae016d3025ebf62fa75cd10d15c9a4de64"
+        },
+        "AWS::ServiceCatalog::ResourceUpdateConstraint": {
+          "type_sha256": "fd30f0b5067f40cab4495bdbe27090f0806c3be59ecb17b9abef93ada4760cdc",
+          "baseline_type_sha256": "fd30f0b5067f40cab4495bdbe27090f0806c3be59ecb17b9abef93ada4760cdc"
+        },
+        "AWS::ServiceCatalog::ServiceAction": {
+          "type_sha256": "df79ef50d2f7ab4fd4bc5a0562f2763c60c1c9fde348ad26b2e646eb3c2ffafe",
+          "baseline_type_sha256": "df79ef50d2f7ab4fd4bc5a0562f2763c60c1c9fde348ad26b2e646eb3c2ffafe"
+        },
+        "AWS::ServiceCatalog::ServiceActionAssociation": {
+          "type_sha256": "7ce22ab9705373d54d1187e96dc0737265b42f2e9b7cec5577fb2d149ac68b09",
+          "baseline_type_sha256": "7ce22ab9705373d54d1187e96dc0737265b42f2e9b7cec5577fb2d149ac68b09"
+        },
+        "AWS::ServiceCatalog::StackSetConstraint": {
+          "type_sha256": "27e2df15e9a0f588e0235b707e27bbbcd492066287d9de4e8fcc4f6e2c74935f",
+          "baseline_type_sha256": "27e2df15e9a0f588e0235b707e27bbbcd492066287d9de4e8fcc4f6e2c74935f"
+        },
+        "AWS::ServiceCatalog::TagOption": {
+          "type_sha256": "a21c7ef535dce51e08671ca32fc847f56d54750d81f454e712ac5e2a2c698c40",
+          "baseline_type_sha256": "a21c7ef535dce51e08671ca32fc847f56d54750d81f454e712ac5e2a2c698c40"
+        },
+        "AWS::ServiceCatalog::TagOptionAssociation": {
+          "type_sha256": "35b57e35d7eff1aab5e002cda305ad8f06841897d51b55172a9a6d1718304f54",
+          "baseline_type_sha256": "35b57e35d7eff1aab5e002cda305ad8f06841897d51b55172a9a6d1718304f54"
+        },
+        "AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation": {
+          "type_sha256": "4c69392d950071450db8e12afbe9c0c2032d43692301d600e26ae3b9e13568d2",
+          "baseline_type_sha256": "4c69392d950071450db8e12afbe9c0c2032d43692301d600e26ae3b9e13568d2"
+        },
+        "AWS::ServiceCatalogAppRegistry::ResourceAssociation": {
+          "type_sha256": "9c50c16ccf61475743e768eab8bf8ac97529930d9c4770d093c2423171bce52e",
+          "baseline_type_sha256": "9c50c16ccf61475743e768eab8bf8ac97529930d9c4770d093c2423171bce52e"
+        },
+        "AWS::ServiceDiscovery::HttpNamespace": {
+          "type_sha256": "3d9e4236b35bb6e65f9d6447087d2f50084e894df421c56c0d507a5111725fb3",
+          "baseline_type_sha256": "3d9e4236b35bb6e65f9d6447087d2f50084e894df421c56c0d507a5111725fb3"
+        },
+        "AWS::ServiceDiscovery::Instance": {
+          "type_sha256": "f86f3a90052ba3dbd5fa55a47880a037cfa01797bcd4283655e775600a67632e",
+          "baseline_type_sha256": "f86f3a90052ba3dbd5fa55a47880a037cfa01797bcd4283655e775600a67632e"
+        },
+        "AWS::ServiceDiscovery::PrivateDnsNamespace": {
+          "type_sha256": "77ef763e9e759bdf5405a81fc04cf3759f0e54d1d01238428b68a695244c3b63",
+          "baseline_type_sha256": "77ef763e9e759bdf5405a81fc04cf3759f0e54d1d01238428b68a695244c3b63"
+        },
+        "AWS::ServiceDiscovery::Service": {
+          "type_sha256": "0878b8f2d789d296a5fdd4a370aa54fba65ad6eefe8b3a9f51b462e9b86cfcf2",
+          "baseline_type_sha256": "0878b8f2d789d296a5fdd4a370aa54fba65ad6eefe8b3a9f51b462e9b86cfcf2"
+        },
+        "AWS::Shield::DRTAccess": {
+          "type_sha256": "ef6aaffcae9f7b8d453679728c67aab04a880bb8b94990ec2babe40a0b8cf495",
+          "baseline_type_sha256": "ef6aaffcae9f7b8d453679728c67aab04a880bb8b94990ec2babe40a0b8cf495"
+        },
+        "AWS::Shield::ProactiveEngagement": {
+          "type_sha256": "91a212f55413f2822971d549de839aab8ab3e408ac196ba27f122527e7c4ab06",
+          "baseline_type_sha256": "91a212f55413f2822971d549de839aab8ab3e408ac196ba27f122527e7c4ab06"
+        },
+        "AWS::Shield::Protection": {
+          "type_sha256": "37089eb17bc72f301f8bbb5bc5fac59aaca6a23ca099878ed80c6e4b3acdfc36",
+          "baseline_type_sha256": "37089eb17bc72f301f8bbb5bc5fac59aaca6a23ca099878ed80c6e4b3acdfc36"
+        },
+        "AWS::StepFunctions::Activity": {
+          "type_sha256": "665f467f7eacc0ed0583f5802a654104b6bf0ff7744a1b3bd5fb0e159f86cf1f",
+          "baseline_type_sha256": "665f467f7eacc0ed0583f5802a654104b6bf0ff7744a1b3bd5fb0e159f86cf1f"
+        },
+        "AWS::StepFunctions::StateMachineVersion": {
+          "type_sha256": "629fdbc63c97365f44387f12b74a6270601afa9c3f17c57b50e727400aa7cfbe",
+          "baseline_type_sha256": "629fdbc63c97365f44387f12b74a6270601afa9c3f17c57b50e727400aa7cfbe"
+        },
+        "AWS::SystemsManagerSAP::Application": {
+          "type_sha256": "df322d5101043ea6762925edbb5ea3407fd960c94402d6346bf5e0ca05df3101",
+          "baseline_type_sha256": "df322d5101043ea6762925edbb5ea3407fd960c94402d6346bf5e0ca05df3101"
+        },
+        "AWS::Transfer::Agreement": {
+          "type_sha256": "b6eb58a925b2f7d75f407c38a0b2531b214082675fa929ca44b96f1314cc660f",
+          "baseline_type_sha256": "b6eb58a925b2f7d75f407c38a0b2531b214082675fa929ca44b96f1314cc660f"
+        },
+        "AWS::Transfer::Certificate": {
+          "type_sha256": "7d085e547573cb2e2c7b504482a767227a65e3409b00d7e1e7072f400cfbfeb3",
+          "baseline_type_sha256": "7d085e547573cb2e2c7b504482a767227a65e3409b00d7e1e7072f400cfbfeb3"
+        },
+        "AWS::Transfer::Profile": {
+          "type_sha256": "56c3fe6ebfe448e0d9c68eab6569702d47a16c2037fba31f31f20d3ea7e64149",
+          "baseline_type_sha256": "56c3fe6ebfe448e0d9c68eab6569702d47a16c2037fba31f31f20d3ea7e64149"
+        },
+        "AWS::Transfer::User": {
+          "type_sha256": "e4725647eb8e3272bcd090592a1b875479f977a638cc29f35a5f43bc8d8914cd",
+          "baseline_type_sha256": "e4725647eb8e3272bcd090592a1b875479f977a638cc29f35a5f43bc8d8914cd"
+        },
+        "AWS::Transfer::Workflow": {
+          "type_sha256": "3a6e45eb488bbd77281707adc43daa5f9d31f26f5b06430726b14b6fa4571aa5",
+          "baseline_type_sha256": "3a6e45eb488bbd77281707adc43daa5f9d31f26f5b06430726b14b6fa4571aa5"
+        },
+        "AWS::UXC::AccountCustomization": {
+          "type_sha256": "5117f08f0a82d87a88c2626a04170e5ee63a06e5037191e2d45f5f9a4da2b031",
+          "baseline_type_sha256": "5117f08f0a82d87a88c2626a04170e5ee63a06e5037191e2d45f5f9a4da2b031"
+        },
+        "AWS::VerifiedPermissions::Policy": {
+          "type_sha256": "803a0e0625a858773b4a3c6f878b982d9e94f9efe3bcfe6f45a17c6ddf369652",
+          "baseline_type_sha256": "803a0e0625a858773b4a3c6f878b982d9e94f9efe3bcfe6f45a17c6ddf369652"
+        },
+        "AWS::VerifiedPermissions::PolicyStore": {
+          "type_sha256": "1d7d7242c9a86b6254e59ce0533b68bb1b74d17e6d8821cffcfcb276b08fec8f",
+          "baseline_type_sha256": "1d7d7242c9a86b6254e59ce0533b68bb1b74d17e6d8821cffcfcb276b08fec8f"
+        },
+        "AWS::VerifiedPermissions::PolicyStoreAlias": {
+          "type_sha256": "2b79542d0b02560133da94c2b1e4bde8632234f3cc66895b7a1fdfce9a2239f7",
+          "baseline_type_sha256": "2b79542d0b02560133da94c2b1e4bde8632234f3cc66895b7a1fdfce9a2239f7"
+        },
+        "AWS::VerifiedPermissions::PolicyTemplate": {
+          "type_sha256": "43db1b80fe62289a00472681a671a85bb4aa806a1577f3ab8e9bc4216040b8be",
+          "baseline_type_sha256": "43db1b80fe62289a00472681a671a85bb4aa806a1577f3ab8e9bc4216040b8be"
+        },
+        "AWS::VpcLattice::AuthPolicy": {
+          "type_sha256": "1c38f4d31a55c71246b194d9e68278721824c6905fbc2a62a4ab8eb08fe8bb0e",
+          "baseline_type_sha256": "1c38f4d31a55c71246b194d9e68278721824c6905fbc2a62a4ab8eb08fe8bb0e"
+        },
+        "AWS::VpcLattice::DomainVerification": {
+          "type_sha256": "bc6bc22050153eea3e7573013cf733ecbc6fc135d0210e39d206a9442a3e9c80",
+          "baseline_type_sha256": "bc6bc22050153eea3e7573013cf733ecbc6fc135d0210e39d206a9442a3e9c80"
+        },
+        "AWS::VpcLattice::Listener": {
+          "type_sha256": "d7343a26c3f74abed6d064700f50daee2c3f89470e0cd9eb708f4e5f12532adb",
+          "baseline_type_sha256": "d7343a26c3f74abed6d064700f50daee2c3f89470e0cd9eb708f4e5f12532adb"
+        },
+        "AWS::VpcLattice::ResourceConfiguration": {
+          "type_sha256": "d58188837d1e1eab98e7447ec58d3b3d1d9f2a3507b9b5ec6300e176de8e59d3",
+          "baseline_type_sha256": "d58188837d1e1eab98e7447ec58d3b3d1d9f2a3507b9b5ec6300e176de8e59d3"
+        },
+        "AWS::VpcLattice::ResourceGateway": {
+          "type_sha256": "a3d33b08f5152db7746544659b2d90e93c15cafb1c4b428020f325a4f82da96e",
+          "baseline_type_sha256": "a3d33b08f5152db7746544659b2d90e93c15cafb1c4b428020f325a4f82da96e"
+        },
+        "AWS::VpcLattice::ResourcePolicy": {
+          "type_sha256": "d9c0927ad95304bcf47c05c9b485f4ecc160faab453b746c23f39941ce06e284",
+          "baseline_type_sha256": "d9c0927ad95304bcf47c05c9b485f4ecc160faab453b746c23f39941ce06e284"
+        },
+        "AWS::VpcLattice::Rule": {
+          "type_sha256": "7dbbfd96209da40529826e853232f8786ca43b6063d682f756283a8fa9e2f656",
+          "baseline_type_sha256": "7dbbfd96209da40529826e853232f8786ca43b6063d682f756283a8fa9e2f656"
+        },
+        "AWS::VpcLattice::Service": {
+          "type_sha256": "313a759fd74c02afdf21fed900b6b14a95fda33f47e7bc68072824d823a00a1c",
+          "baseline_type_sha256": "313a759fd74c02afdf21fed900b6b14a95fda33f47e7bc68072824d823a00a1c"
+        },
+        "AWS::VpcLattice::ServiceNetwork": {
+          "type_sha256": "3863bc682509a6c8ea2455b17c83c51b72da9f6f131fa67a1266fda34a4edf86",
+          "baseline_type_sha256": "3863bc682509a6c8ea2455b17c83c51b72da9f6f131fa67a1266fda34a4edf86"
+        },
+        "AWS::VpcLattice::ServiceNetworkResourceAssociation": {
+          "type_sha256": "24aa8f8518a4a78a669f9e56c91119de57d3fd6103a939719c6cd3d73c2f8480",
+          "baseline_type_sha256": "24aa8f8518a4a78a669f9e56c91119de57d3fd6103a939719c6cd3d73c2f8480"
+        },
+        "AWS::VpcLattice::ServiceNetworkServiceAssociation": {
+          "type_sha256": "027b696e29df08f9fa12f16b56d2c597944331092c140f1eed24c1656a3e6065",
+          "baseline_type_sha256": "027b696e29df08f9fa12f16b56d2c597944331092c140f1eed24c1656a3e6065"
+        },
+        "AWS::VpcLattice::ServiceNetworkVpcAssociation": {
+          "type_sha256": "38f5fb8fef0fa10453d21dccfc771b783fd12b5e9d985b0969db8ad0f15e7669",
+          "baseline_type_sha256": "38f5fb8fef0fa10453d21dccfc771b783fd12b5e9d985b0969db8ad0f15e7669"
+        },
+        "AWS::WAF::IPSet": {
+          "type_sha256": "0bedbb5d0c9611279db2b7879e2cc97f5c82c66606deb6c07886cbe6c1b658ff",
+          "baseline_type_sha256": "0bedbb5d0c9611279db2b7879e2cc97f5c82c66606deb6c07886cbe6c1b658ff"
+        },
+        "AWS::WAF::WebACL": {
+          "type_sha256": "d4bec40b40afb36319431efc499914e387a4f5c734f6f58517a682bccffb662c",
+          "baseline_type_sha256": "d4bec40b40afb36319431efc499914e387a4f5c734f6f58517a682bccffb662c"
+        },
+        "AWS::XRay::ResourcePolicy": {
+          "type_sha256": "8b765cca57a5ca8499dff4bb440c9499232517f0715bd153191092f0ef80b09c",
+          "baseline_type_sha256": "8b765cca57a5ca8499dff4bb440c9499232517f0715bd153191092f0ef80b09c"
+        },
+        "AWS::XRay::TransactionSearchConfig": {
+          "type_sha256": "22dfefdabcfb41326d258ba34122ddad139916c3bf55e1b310d321f04919d82b",
+          "baseline_type_sha256": "22dfefdabcfb41326d258ba34122ddad139916c3bf55e1b310d321f04919d82b"
+        }
+      }
+    }
+  ]
+}

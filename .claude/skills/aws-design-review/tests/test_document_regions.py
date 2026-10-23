@@ -118,3 +118,67 @@ def test_explicit_dependency_graph_and_cycle_repair(state,reverse,expected):
     if reverse:
         data['connections'].pop()
         assert next(r for r in evaluate(norm(data)).results if r['rule_id']=='DOCUMENT_DEPENDENCY_ACYCLIC')['verdict']=='PASS'
+
+
+def osaka():
+    return {'schema_version':'1.1','system':{'id':'files','name':'Osaka file service'},
+            'environments':[{'id':'dr','name':'Disaster recovery','region':'ap-northeast-3'}],
+            'resources':[
+                {'id':'ontap','name':'ONTAP file system','type':'AWS::FSx::FileSystem',
+                 'settings':{'FileSystemType':lit('ONTAP'),'StorageCapacity':lit(1024),'SubnetIds':{'mode':'EXTERNAL_REF','ref':'subnet/osaka-a'},
+                             'OntapConfiguration':{'mode':'COMPOSITE','value':{'DeploymentType':'SINGLE_AZ_1','ThroughputCapacity':128,
+                                 'FsxAdminPassword':{'$design':{'mode':'SECRET_REF','classification':'SECRET','ref':'secret://fsx/admin'}}}}}},
+                {'id':'svm','name':'File SVM','type':'AWS::FSx::StorageVirtualMachine',
+                 'settings':{'Name':lit('svm1'),'FileSystemId':{'mode':'RESOURCE_REF','ref':'ontap'}}},
+                {'id':'share-volume','name':'Share volume','type':'AWS::FSx::Volume',
+                 'settings':{'Name':lit('share'),'VolumeType':lit('ONTAP'),
+                             'OntapConfiguration':lit({'JunctionPath':'/share','SizeInMegabytes':'10240','StorageVirtualMachineId':'svm-placeholder'})}}]}
+
+
+def test_osaka_generates_fsx_with_its_own_reviewed_catalog(tmp_path):
+    path=tmp_path/'input.json';path.write_text(json.dumps(osaka()),encoding='utf-8')
+    out=tmp_path/'output';result=generate(path,'dr',out,evaluate_design=True)
+    doc=json.loads((out/'design.json').read_text(encoding='utf-8'))
+    assert result['evaluation_status']=='COMPLETE'
+    assert set(doc['resource_regions'].values())=={'ap-northeast-3'}
+    assert doc['regional_catalog_provenance']['ap-northeast-3']['source'].startswith('https://schema.cloudformation.ap-northeast-3.')
+    assert {i['service'] for i in doc['items']}=={'FSx'}
+    report=json.loads((out/'review-report.json').read_text(encoding='utf-8'))
+    assert set(report['rule_review_causes']['counts'])<={'REGIONAL_APPLICABILITY','SCHEMA_CHANGE','OPEN_QUESTION'}
+    assert 'secret://fsx/admin' not in (out/'design.xlsx').read_bytes().decode('latin-1')
+
+
+def test_type_missing_from_osaka_is_not_taken_from_tokyo():
+    data=osaka();data['resources'].append({'id':'lens','name':'Storage Lens','type':'AWS::S3::StorageLens','settings':{}})
+    with pytest.raises((InputError,ValidationError,ValueError)):
+        normalize(json.dumps(data).encode(),'dr')
+
+
+def arn_case(region,key_arn,extra=()):
+    return {'schema_version':'1.1','system':{'id':'arn','name':'ARN regions'},
+            'environments':[{'id':'dr','name':'DR','region':region}],
+            'resources':[{'id':'logs','name':'Logs','type':'AWS::Logs::LogGroup','settings':{'KmsKeyId':lit(key_arn)}},*extra]}
+
+
+def arn_rows(data):
+    doc=normalize(json.dumps(data).encode(),'dr')
+    return [r for r in evaluate(doc).results if r['rule_id']=='DOCUMENT_ARN_REGION']
+
+
+def test_literal_tokyo_key_in_osaka_needs_review_and_matching_key_is_silent():
+    tokyo='arn:aws:kms:ap-northeast-1:111122223333:key/11111111-2222-3333-4444-555555555555'
+    rows=arn_rows(arn_case('ap-northeast-3',tokyo))
+    assert [(r['resource_id'],r['path'],r['verdict'],r['expected'],r['actual']) for r in rows]==[
+        ('logs','/properties/KmsKeyId','NEEDS_REVIEW','ap-northeast-3','aws:ap-northeast-1')]
+    assert arn_rows(arn_case('ap-northeast-1',tokyo))==[]
+    assert arn_rows(arn_case('ap-northeast-3','arn:aws:iam::111122223333:role/global-has-no-region'))==[]
+
+
+@pytest.mark.parametrize('cert_region,verdict',[('us-east-1','PASS'),('ap-northeast-1','FAIL')])
+def test_literal_cloudfront_certificate_arn_must_be_in_us_east_1(cert_region,verdict):
+    cert=f'arn:aws:acm:{cert_region}:111122223333:certificate/x'
+    distribution={'id':'cdn','name':'CDN','type':'AWS::CloudFront::Distribution','settings':{'DistributionConfig':{'mode':'COMPOSITE','value':{
+        'Enabled':True,'ViewerCertificate':{'AcmCertificateArn':{'$design':{'mode':'LITERAL','value':cert}},'SslSupportMethod':'sni-only'}}}}}
+    rows=arn_rows(arn_case('ap-northeast-1','arn:aws:kms:ap-northeast-1:111122223333:key/x',[distribution]))
+    assert [(r['path'],r['verdict'],r['severity']) for r in rows]==[
+        ('/properties/DistributionConfig/ViewerCertificate/AcmCertificateArn',verdict,'ERROR')]

@@ -264,6 +264,8 @@ class SchemaDocument(Document):
     resource_regions: dict[str,str]=Field(default_factory=dict)
     regional_catalog_provenance: dict[str,dict]=Field(default_factory=dict)
     review_report: dict=Field(default_factory=dict)
+    # Local, non-secret values for EXTERNAL_REF settings; evaluation input only.
+    external_bindings: dict=Field(default_factory=dict)
     decision_trace: dict=Field(default_factory=dict)
     decision_expansions: list[dict]=Field(default_factory=list)
 

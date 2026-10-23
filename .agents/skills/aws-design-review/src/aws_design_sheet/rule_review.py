@@ -434,6 +434,45 @@ def review_material(namespace: str, root: Path, *, include_all: bool = False,
     return "\n".join(lines)
 
 
+def schema_review_command(args, root: Path) -> dict:
+    """Queue or record re-reviews against the maintainer's reviewed snapshot; never edits the ledger."""
+    import hashlib
+    from . import schema_reviews
+    from .schema_bootstrap import validate_archive
+    from .schema_diff import _digest, _schemas
+    rules = root / "rules"
+    inputs = {n: hashlib.sha256((rules / n).read_bytes()).hexdigest()
+              for n in ("ledger.json", "ruleset.json", "references.json")}
+    records_path = rules / schema_reviews.FILE
+    records = schema_reviews.load(rules)
+    if args.command == "review-queue":
+        if args.output.exists():
+            raise ValueError("queue output exists; use a fresh path")
+        manifest = json.loads((root / "schemas/manifest.json").read_text(encoding="utf-8"))
+        old = _schemas(manifest, (root / "schemas" / manifest["archive"]).read_bytes())
+        _, schemas = validate_archive(args.archive.read_bytes())
+        result = schema_reviews.queue(
+            json.loads((rules / "ledger.json").read_text(encoding="utf-8")),
+            json.loads((rules / "ruleset.json").read_text(encoding="utf-8")),
+            json.loads((rules / "references.json").read_text(encoding="utf-8")), records,
+            region=args.region, baseline_region=manifest["region"],
+            previous={t: _digest(s) for t, s in old.items()}, schemas=schemas, old_schemas=old)
+        result["inputs"] = {**inputs, "archive_sha256": hashlib.sha256(args.archive.read_bytes()).hexdigest(),
+                            "baseline_zip_sha256": manifest["zip_sha256"]}
+        args.output.write_bytes((json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+        return {"queue": str(args.output), "counts": result["counts"]}
+    queue_data = json.loads(args.queue.read_text(encoding="utf-8"))
+    if any(queue_data.get("inputs", {}).get(n) != h for n, h in inputs.items()):
+        raise ValueError("queue was built from other rule inputs; rebuild it")
+    updated = schema_reviews.record(
+        records, queue_data, kind=args.kind, select=args.select, review_id=args.id, reviewer=args.reviewer.strip(),
+        method=args.method, rationale=args.rationale, source_urls=args.source_urls,
+        reviewed_at=date.today().isoformat(), types=args.types)
+    records_path.write_bytes((json.dumps(updated, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    return {"recorded": args.id, "types": len(updated["reviews"][-1]["types"]),
+            "next": "regenerate the schema lock (scripts/prepare_schema_release.py) and rerun regression tests"}
+
+
 def main(argv: list[str] | None = None) -> int:
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description="Review pinned resource types by namespace")
@@ -448,6 +487,20 @@ def main(argv: list[str] | None = None) -> int:
     merge = commands.add_parser("merge", help="validate and merge fragments into the rules")
     merge.add_argument("fragments", nargs="+", type=Path)
     pending = commands.add_parser("pending", help="list namespaces with unresearched types")
+    rq = commands.add_parser("review-queue", help="classify reviewed types a new archive or region would re-open")
+    rq.add_argument("--archive", type=Path, required=True, help="official CloudformationSchema.zip of the region")
+    rq.add_argument("--region", required=True)
+    rq.add_argument("--output", type=Path, required=True, help="fresh queue JSON path")
+    rr = commands.add_parser("review-record", help="record a re-review batch from a queue into rules/schema-reviews.json")
+    rr.add_argument("--queue", type=Path, required=True)
+    rr.add_argument("--kind", choices=["REGIONAL_APPLICABILITY", "SCHEMA_CHANGE"], required=True)
+    rr.add_argument("--select", required=True, help="queue category, e.g. CARRY_OVER_CANDIDATE or SCHEMA_CHANGED")
+    rr.add_argument("--type", action="append", dest="types", help="limit to these types (default: whole category)")
+    rr.add_argument("--id", required=True)
+    rr.add_argument("--reviewer", required=True)
+    rr.add_argument("--method", required=True)
+    rr.add_argument("--rationale", required=True)
+    rr.add_argument("--source-url", action="append", dest="source_urls", required=True)
     args = parser.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
     if args.command == "material":
@@ -467,6 +520,14 @@ def main(argv: list[str] | None = None) -> int:
             if entry["state"] == "UNRESEARCHED":
                 counts[name.split("::")[1]] = counts.get(name.split("::")[1], 0) + 1
         sys.stdout.write(json.dumps(counts, ensure_ascii=False) + "\n")
+        return 0
+    if args.command in ("review-queue", "review-record"):
+        try:
+            result = schema_review_command(args, root)
+        except (OSError, ValueError, KeyError) as exc:
+            sys.stdout.write(json.dumps({"status": "FAILED", "diagnostic": str(exc)}, ensure_ascii=False) + "\n")
+            return 2
+        sys.stdout.write(json.dumps({"status": "COMPLETE", **result}, ensure_ascii=False) + "\n")
         return 0
     if args.command == "validate":
         schemas = PinnedSchemas(root / "schemas")

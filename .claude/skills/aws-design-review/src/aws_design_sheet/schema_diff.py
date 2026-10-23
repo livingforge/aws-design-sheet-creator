@@ -14,6 +14,7 @@ import zipfile
 from pathlib import Path
 
 from .rule_review import basis_errors, dump_json
+from .schema_reviews import SCHEMA_QUESTION
 
 
 def _schemas(manifest: dict, archive: bytes) -> dict[str, dict]:
@@ -43,16 +44,20 @@ def reconcile(rules_dir: Path, old_manifest: dict, old_archive: bytes, new_manif
 
 
 def reconcile_from_hashes(rules_dir: Path, previous: dict[str, str], schemas: dict,
-                          manifest: dict, checked_at: str) -> dict:
-    """Rebuild the local ledger without distributing the previous AWS schemas."""
+                          manifest: dict, checked_at: str, accepted: dict[str, str] | None = None) -> dict:
+    """Rebuild the local ledger without distributing the previous AWS schemas.
+
+    accepted maps a changed type to the fingerprint a recorded re-review covered;
+    only an exact match with intact rule bases keeps the type's reviewed state.
+    """
     changes = {"added": sorted(set(schemas) - set(previous)),
                "removed": sorted(set(previous) - set(schemas)),
                "changed": sorted(t for t in set(previous) & set(schemas)
                                  if previous[t] != _digest(schemas[t]))}
-    return _apply(rules_dir, changes, schemas, manifest, checked_at, quarantine=True)
+    return _apply(rules_dir, changes, schemas, manifest, checked_at, quarantine=True, accepted=accepted)
 
 
-def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=False):
+def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=False, accepted=None):
     ledger_path, ruleset_path = rules_dir / "ledger.json", rules_dir / "ruleset.json"
     references_path = rules_dir / "references.json"
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -61,6 +66,7 @@ def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=
     references = (json.loads(references_path.read_text(encoding="utf-8")) if references_path.exists()
                   else None)
     removed, changed = set(changes["removed"]), set(changes["changed"])
+    broken_types = set()
     report = {**changes, "reset": [], "review_required": [], "broken_basis": [],
               "removed_rules": [], "removed_references": []}
     if quarantine:
@@ -79,6 +85,8 @@ def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=
         if rule["source_type"] in changed:
             problems = basis_errors(rule.get("basis", []), schemas[rule["source_type"]], rule["id"])
             report["broken_basis"].extend(problems)
+            if problems:
+                broken_types.add(rule["source_type"])
             if quarantine and problems:
                 report["quarantined_rules"].append(rule["id"])
                 ledger["types"][rule["source_type"]]["rule_ids"].remove(rule["id"])
@@ -95,17 +103,22 @@ def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=
                 problems = basis_errors(item["basis"], schemas[item["source_type"]],
                                         f"{item['source_type']} {item['path']}")
                 report["broken_basis"].extend(problems)
+                if problems:
+                    broken_types.add(item["source_type"])
                 if quarantine and problems:
                     report["quarantined_references"].append([item["source_type"], item["path"]])
                     continue
             kept.append(item)
         references["references"] = kept
 
-    question = (f"Pinned schema changed on {checked_at}; re-review registered rules, open questions "
-                "and references against the new schema")
+    question = SCHEMA_QUESTION.format(date=checked_at)
+    review_accepted = []
     for name in changes["changed"]:
         entry = ledger["types"][name]
         if entry["state"] == "UNRESEARCHED":
+            continue
+        if (accepted or {}).get(name) == _digest(schemas[name]) and name not in broken_types:
+            review_accepted.append(name)
             continue
         if entry["state"] == "REVIEWED_NO_ADDITIONAL_RULES":
             ledger["types"][name] = {"service": entry["service"], "state": "UNRESEARCHED",
@@ -118,6 +131,8 @@ def _apply(rules_dir, changes, schemas, new_manifest, checked_at, *, quarantine=
         entry["reviewed_at"] = entry.get("reviewed_at", checked_at)
         report["review_required"].append(name)
 
+    if review_accepted:
+        report["schema_review_accepted"] = review_accepted
     ledger["types"] = dict(sorted(ledger["types"].items()))
     ledger["schema_region"] = new_manifest["region"]
     ledger["schema_zip_sha256"] = new_manifest["zip_sha256"]

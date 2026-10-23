@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MAX_DOWNLOAD = 20 * 1024 * 1024
 MAX_EXPANDED = 128 * 1024 * 1024
 RULE_FILES = {'ledger.json', 'ruleset.json', 'references.json',
-              'rds-event-categories.json', 'service-tiers.json'}
+              'rds-event-categories.json', 'service-tiers.json', 'schema-reviews.json'}
 REQUIRED_RULES = {'ledger.json', 'ruleset.json', 'references.json'}
 SHA = re.compile(r'[0-9a-f]{64}')
 # Format-3 locks: the official URL serves only the latest archive, which AWS
@@ -206,7 +206,8 @@ def verify_inputs(root, lock):
 
 def generate_bundle(raw, stage, root, lock, drift=None):
     """Build only inside an exclusive staging directory; used by the release preparer too."""
-    from .schema_diff import reconcile_from_hashes
+    from .schema_diff import _digest, reconcile_from_hashes
+    from .schema_reviews import REGIONAL_QUESTION, accepted, load
     from .document_catalog import Catalog
     from .ledger import validate_ledger
     types, schemas = validate_archive(raw)
@@ -224,20 +225,27 @@ def generate_bundle(raw, stage, root, lock, drift=None):
     (schema_dir / 'manifest.json').write_bytes(encode(manifest))
     for name in lock['input_sha256']:
         shutil.copyfile(root.parent / 'rules' / name, rule_dir / name)
-    changes = reconcile_from_hashes(rule_dir, lock['previous_type_sha256'], schemas, manifest, lock['reviewed_at'][:10])
+    records = load(rule_dir)
+    changes = reconcile_from_hashes(rule_dir, lock['previous_type_sha256'], schemas, manifest, lock['reviewed_at'][:10],
+                                    accepted(records, 'SCHEMA_CHANGE', lock['region']))
     if lock.get('baseline_region', lock['region']) != lock['region']:
-        # Matching property hashes do not establish regional applicability of prose rules.
+        # Matching property hashes do not establish regional applicability of prose rules;
+        # only a recorded review of this region's exact type schema keeps the baseline state.
         ledger_path = rule_dir / 'ledger.json'
         ledger = json.loads(ledger_path.read_text(encoding='utf-8'))
-        changed = []
+        reviewed = accepted(records, 'REGIONAL_APPLICABILITY', lock['region'], lock['baseline_region'])
+        changed, kept = [], []
         for kind, entry in ledger['types'].items():
             if entry['state'] == 'UNRESEARCHED':continue
+            if kind in reviewed and kind in schemas and reviewed[kind] == _digest(schemas[kind]):
+                kept.append(kind);continue
             entry['state'] = 'REVIEW_REQUIRED'
-            question = f'Regional applicability in {lock["region"]} has not been reviewed; baseline was {lock["baseline_region"]}.'
+            question = REGIONAL_QUESTION.format(region=lock['region'], baseline=lock['baseline_region'])
             if question not in entry['open_questions']:entry['open_questions'].append(question)
             changed.append(kind)
         ledger_path.write_bytes(encode(ledger))
         changes['regional_review_required'] = sorted(changed)
+        if kept:changes['regional_review_accepted'] = sorted(kept)
     (stage / 'reconciliation.json').write_bytes(encode(changes))
     validate_ledger(rule_dir / 'ledger.json', schema_dir, rule_dir / 'ruleset.json')
     # The manifest records this archive's own hash; setup has compared it with the lock.

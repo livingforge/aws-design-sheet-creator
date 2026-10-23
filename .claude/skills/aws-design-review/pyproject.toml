@@ -1,6 +1,6 @@
 [project]
 name = "aws-design-sheet"
-version = "0.4.0"
+version = "0.5.1"
 description = "Traceable AWS design workbooks, required-input and project-policy checks"
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2,<3", "openpyxl>=3.1,<4", "regex>=2024.9", "cryptography>=44,<47", "defusedxml>=0.7,<1", "lxml>=5.3,<7", "tzdata==2026.4", "PyYAML>=6,<7", "cfn-lint>=1.57,<2", "jsonschema>=4.26,<5"]
