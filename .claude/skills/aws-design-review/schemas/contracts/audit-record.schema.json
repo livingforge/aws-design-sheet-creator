@@ -1,0 +1,65 @@
+{
+  "$id": "aws-design-sheet/audit-record",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audited_at": {
+      "title": "Audited At",
+      "type": "string"
+    },
+    "auditor": {
+      "minLength": 1,
+      "title": "Auditor",
+      "type": "string"
+    },
+    "contract": {
+      "const": "audit-record/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "title": "Reason",
+      "type": "string"
+    },
+    "rule": {
+      "enum": [
+        "source_set",
+        "overview",
+        "policy_pack",
+        "review",
+        "external_mapping"
+      ],
+      "title": "Rule",
+      "type": "string"
+    },
+    "target_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Sha256",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "decision_id",
+    "rule",
+    "target_sha256",
+    "verdict",
+    "auditor",
+    "audited_at"
+  ],
+  "title": "AuditRecord",
+  "type": "object"
+}

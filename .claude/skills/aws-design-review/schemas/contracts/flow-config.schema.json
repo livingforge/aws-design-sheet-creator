@@ -1,0 +1,128 @@
+{
+  "$id": "aws-design-sheet/flow-config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "arp_root": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Arp Root"
+    },
+    "asks": {
+      "default": false,
+      "title": "Asks",
+      "type": "boolean"
+    },
+    "environment": {
+      "minLength": 1,
+      "title": "Environment",
+      "type": "string"
+    },
+    "evaluate": {
+      "default": false,
+      "title": "Evaluate",
+      "type": "boolean"
+    },
+    "input": {
+      "minLength": 1,
+      "title": "Input",
+      "type": "string"
+    },
+    "library": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Library"
+    },
+    "overview": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Overview"
+    },
+    "people": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "approver",
+              "architect",
+              "adopter",
+              "reviewer"
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "People"
+    },
+    "policy_input": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Input"
+    },
+    "policy_pack": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Pack"
+    },
+    "source_trace": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Trace"
+    }
+  },
+  "required": [
+    "environment",
+    "input"
+  ],
+  "title": "FlowConfig",
+  "type": "object"
+}

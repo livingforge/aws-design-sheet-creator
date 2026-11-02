@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "Audit": {
+      "additionalProperties": false,
+      "properties": {
+        "max_error_rate": {
+          "default": 0.05,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Max Error Rate",
+          "type": "number"
+        },
+        "min_audits": {
+          "default": 10,
+          "minimum": 1,
+          "title": "Min Audits",
+          "type": "integer"
+        },
+        "sample_rate": {
+          "default": 0.1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Sample Rate",
+          "type": "number"
+        }
+      },
+      "title": "Audit",
+      "type": "object"
+    },
+    "ExternalMappingRule": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "require_distinct_models": {
+          "default": false,
+          "title": "Require Distinct Models",
+          "type": "boolean"
+        }
+      },
+      "title": "ExternalMappingRule",
+      "type": "object"
+    },
+    "OverviewRule": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_findings": {
+          "items": {
+            "enum": [
+              "GAP",
+              "OPEN"
+            ],
+            "type": "string"
+          },
+          "title": "Allow Findings",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "require_distinct_models": {
+          "default": false,
+          "title": "Require Distinct Models",
+          "type": "boolean"
+        },
+        "require_second_draft": {
+          "default": true,
+          "title": "Require Second Draft",
+          "type": "boolean"
+        }
+      },
+      "title": "OverviewRule",
+      "type": "object"
+    },
+    "PolicyPackRule": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "packs": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Packs",
+          "type": "object"
+        }
+      },
+      "title": "PolicyPackRule",
+      "type": "object"
+    },
+    "ReviewRule": {
+      "additionalProperties": false,
+      "properties": {
+        "canaries": {
+          "default": 3,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Canaries",
+          "type": "integer"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "priorities": {
+          "items": {
+            "const": "P2",
+            "type": "string"
+          },
+          "title": "Priorities",
+          "type": "array"
+        },
+        "require_distinct_models": {
+          "default": false,
+          "title": "Require Distinct Models",
+          "type": "boolean"
+        },
+        "reviewers": {
+          "default": 2,
+          "maximum": 5,
+          "minimum": 2,
+          "title": "Reviewers",
+          "type": "integer"
+        }
+      },
+      "title": "ReviewRule",
+      "type": "object"
+    },
+    "Rules": {
+      "additionalProperties": false,
+      "properties": {
+        "external_mapping": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExternalMappingRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "overview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OverviewRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "policy_pack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyPackRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSetRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Rules",
+      "type": "object"
+    },
+    "SourceSetRule": {
+      "additionalProperties": false,
+      "properties": {
+        "accept_reasons": {
+          "items": {
+            "enum": [
+              "ONLY_VERSION",
+              "NEWEST_VERSION",
+              "OLDER_VERSION",
+              "DUPLICATE_OF"
+            ],
+            "type": "string"
+          },
+          "title": "Accept Reasons",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "title": "SourceSetRule",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/delegation-policy",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audit": {
+      "$ref": "#/$defs/Audit"
+    },
+    "contract": {
+      "const": "delegation-policy/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "rules": {
+      "$ref": "#/$defs/Rules"
+    }
+  },
+  "required": [
+    "contract",
+    "id",
+    "rules"
+  ],
+  "title": "Policy",
+  "type": "object"
+}

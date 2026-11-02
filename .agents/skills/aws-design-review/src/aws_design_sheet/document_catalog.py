@@ -100,10 +100,21 @@ class Catalog:
         return nodes
 
     def readonly(self,kind,parts):
-        return any(matches(p,parts) for p in self.schemas[kind].get('readOnlyProperties',[]))
+        # Parsed patterns are cached by the pattern list's content, so a replaced or edited schema is never served stale.
+        patterns=tuple(self.schemas[kind].get('readOnlyProperties',()))
+        cache=self.__dict__.setdefault('_readonly',{})
+        if patterns not in cache:
+            cache[patterns]=[[p.replace('~1','/').replace('~0','~') for p in pattern.split('/')[2:]] for pattern in patterns]
+        return any(len(parts)>=len(wanted) and all(a=='*' or a==str(b) for a,b in zip(wanted,parts)) for wanted in cache[patterns])
 
     def writable(self,kind):
-        return {k:v for k,v in self.schemas[kind]['properties'].items() if not self.readonly(kind,[k])}
+        schema=self.schemas[kind];props=schema['properties']
+        key=(kind,id(props),len(props),tuple(schema.get('readOnlyProperties',())))
+        cache=self.__dict__.setdefault('_writable',{})
+        found=cache.get(key)
+        if found is None or found[0] is not props:
+            found=cache[key]=(props,{k:v for k,v in props.items() if not self.readonly(kind,[k])})
+        return found[1]
 
     def reference_targets(self,kind,parts):
         return {r['target_type'] for r in self.references if r['source_type']==kind

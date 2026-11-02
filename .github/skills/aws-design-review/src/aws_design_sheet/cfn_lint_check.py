@@ -153,4 +153,11 @@ def lint_design(design: Design, exported_templates: list[ExportedTemplate] | Non
                              "path": relation["path"],
                              "reason": "cfn-lint checks one template; the referenced resource is in another"})
     unique = {json.dumps(r, sort_keys=True): r for r in results}
-    return list(unique.values()), coverage
+    # cfn-lint reports several findings of one rule in set-iteration order, which changes with the hash seed;
+    # a total order keeps results, evaluation IDs and workbooks identical from run to run.
+    return sorted(unique.values(), key=_order), sorted(coverage, key=_order)
+
+
+def _order(entry: dict) -> tuple:
+    return (str(entry.get("resource_id") or ""), str(entry.get("rule_id") or entry.get("kind") or ""),
+            str(entry.get("path") or ""), json.dumps(entry, sort_keys=True, default=str))

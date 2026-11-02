@@ -9,10 +9,11 @@ from pydantic import ConfigDict, Field, model_validator
 from .document_catalog import catalog, matches, pointer, input_type_inventory
 from .document_decisions import Decision, Section, validate_decisions
 from .document_changes import ChangeRecord
-from .document_model import (ID, Connection, Document, DocumentInput, Environment, Item, Observation,
+from .document_model import (ID, Status, Connection, Document, DocumentInput, Environment, Item, Observation,
                              Override, Resource, Setting)
 from .document_normalize import InputError, compare, expression, parse, secret_literal
 from .document_requirements import validate_requirements
+from .models import StrictModel
 
 # Policy data complements names; write-only is metadata, not synonymous with secret.
 SECRET_PATHS={
@@ -21,12 +22,38 @@ SECRET_PATHS={
  'AWS::SSM::Parameter':['/properties/Value'],  # conservatively reference-only
  'AWS::MSK::Configuration':['/properties/ServerProperties'],
 }
+# Names that look secret but hold units, key IDs or function ARNs; flags, numbers and listed words are found from the schema.
+NOT_SECRET_PATHS={
+ 'AWS::Cognito::UserPoolClient':['/properties/TokenValidityUnits'],
+ 'AWS::RDS::DBCluster':['/properties/MasterUserSecret/KmsKeyId'],
+ 'AWS::RDS::DBInstance':['/properties/MasterUserSecret/KmsKeyId'],
+ 'AWS::CloudFormation::CustomResource':['/properties/ServiceToken'],
+}
 SECRET_NAME=re.compile(r'(?:password|secretstring|secretbinary|secretaccesskey|privatekey|token|clientsecret|accesskeyid|accesskey|apikey|secret|credentials?)$',re.I)
+
+
+def closed(kind,parts):
+    """Whether the schema lets the property hold only a flag, a number or one of listed words, which cannot carry a secret."""
+    try:cat=catalog()
+    except Exception:return False
+    if kind not in cat.schemas:return False
+    cache=cat.__dict__.setdefault('_closed',{});key=(kind,tuple(parts))
+    if key not in cache:
+        nodes=cat.at(kind,list(parts));result=bool(nodes)
+        for node in nodes:
+            branches=list(cat.branches(kind,node));typed=[b for b in branches if 'type' in b]
+            kinds={t for b in typed for t in (b['type'] if isinstance(b['type'],list) else [b['type']])}
+            listed=any('enum' in b or 'const' in b for b in branches)
+            if not typed or kinds-{'boolean','integer','number','string'} or 'string' in kinds and not listed:result=False;break
+        cache[key]=result
+    return cache[key]
 
 
 def sensitive(kind,parts):
     if any(matches(p,parts) for p in SECRET_PATHS.get(kind,[])):return True
-    return any(SECRET_NAME.search(str(p).replace('_','').replace('-','')) for p in parts if p not in ('GenerateSecretString','ClientRequestToken','ClientToken'))
+    if any(matches(p,parts) for p in NOT_SECRET_PATHS.get(kind,[])):return False
+    named=any(SECRET_NAME.search(str(p).replace('_','').replace('-','')) for p in parts if p not in ('GenerateSecretString','ClientRequestToken','ClientToken'))
+    return named and not closed(kind,parts)
 
 
 class SchemaSetting(Setting):
@@ -41,9 +68,14 @@ class SchemaSetting(Setting):
     mode: Literal['LITERAL','DEFAULT','OMITTED','RESOURCE_REF','EXTERNAL_REF','EXPRESSION','SECRET_REF','COMPOSITE'] | None = None
     # Basic-design decisions this value realizes; explicit links only.
     decision_ids: list[ID]=Field(default_factory=list)
+    # Why an open value is open and, for the ones people answer, the decision of the asks ledger it belongs to.
+    cause: Literal['OWNER_DECISION','WAITS_FOR','EXTERNAL_DATA','DESIGNER_TASK','BUILD_NOTE'] | None = None
+    ask: ID | None = None
 
     @model_validator(mode='after')
     def shape(self):
+        if self.ask is not None and self.cause not in ('OWNER_DECISION','WAITS_FOR','EXTERNAL_DATA'):
+            raise ValueError('ask needs cause OWNER_DECISION, WAITS_FOR or EXTERNAL_DATA')
         if self.status=='DECIDED' and self.mode=='LITERAL' and self.value is None and 'value' in self.model_fields_set:
             if self.ref is not None or self.expression is not None or self.classification=='SECRET':raise ValueError('invalid literal null setting')
             return self
@@ -60,6 +92,27 @@ class SchemaResource(Resource):
     region: str | None = Field(default=None, pattern=r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$')
 
 
+class Actor(StrictModel):
+    """Someone or something the system exchanges data with that the input does not model as a resource: a person
+    (USER, OPERATOR), an outside system (EXTERNAL_SYSTEM), or an AWS service outside the tool's catalog (AWS_SERVICE,
+    named in `service` and placed in `region` or the environment's). Only traffic connections reach an actor."""
+    id: ID
+    name: str = Field(min_length=1)
+    kind: Literal['USER','OPERATOR','EXTERNAL_SYSTEM','AWS_SERVICE']
+    service: str = ''
+    region: str | None = Field(default=None, pattern=r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$')
+    description: str = ''
+    rationale: str = ''
+    status: Status = 'DECIDED'
+    sources: list[ID] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def placed(self):
+        if self.kind=='AWS_SERVICE' and not self.service.strip():raise ValueError('an AWS_SERVICE actor names its service')
+        if self.kind!='AWS_SERVICE' and (self.service or self.region):raise ValueError('only an AWS_SERVICE actor has a service and region')
+        return self
+
+
 class SchemaOverride(Override):
     settings: dict[str,SchemaSetting]
 
@@ -74,7 +127,8 @@ class SchemaInput(DocumentInput):
     environments: list[SchemaEnvironment]=Field(min_length=1)
     design_outline: list[Section] | None = None
     decisions: list[Decision]=Field(default_factory=list)
-    # Approved workbook changes, appended by aws-design-changes apply.
+    actors: list[Actor]=Field(default_factory=list)
+    # Approved workbook changes, appended by aws-design changes apply.
     change_log: list[ChangeRecord]=Field(default_factory=list)
 
     @model_validator(mode='after')
@@ -82,7 +136,7 @@ class SchemaInput(DocumentInput):
         validate_requirements(self)
         validate_decisions(self)
         if len({c.change_id for c in self.change_log})!=len(self.change_log):raise ValueError('duplicate change ID')
-        objects=[self.system,*self.environments,*self.sources,*self.resources,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
+        objects=[self.system,*self.environments,*self.sources,*self.resources,*self.actors,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
         ids=[x.id for x in objects]
         if len(ids)!=len(set(ids)):raise ValueError('duplicate stable ID')
         resources={r.id:r for r in self.resources};sources={s.id for s in self.sources}
@@ -93,6 +147,11 @@ class SchemaInput(DocumentInput):
             if any(s not in sources for s in obj.sources):raise ValueError('invalid source reference')
             links=getattr(obj,'decision_ids',[])
             if len(links)!=len(set(links)) or set(links)-decisions:raise ValueError('invalid decision reference')
+        cats={}
+        def regional(region):
+            # One verified catalog per region for the whole input, not one lookup per resource and environment.
+            if region not in cats:cats[region]=catalog(region)
+            return cats[region]
         def validate(resource,values,cat):
             if resource.type not in cat.schemas:raise ValueError('resource is outside the regional service catalog')
             for name,setting in values.items():
@@ -100,28 +159,35 @@ class SchemaInput(DocumentInput):
                 visit_setting(setting,resource.type,[name],resources,provenance,cat=cat)
         for resource in self.resources:provenance(resource)
         for env in self.environments:
-            for resource in self.resources:validate(resource,resource.settings,catalog(resource.region or env.region))
+            for resource in self.resources:validate(resource,resource.settings,regional(resource.region or env.region))
             if len({o.resource_id for o in env.overrides})!=len(env.overrides):raise ValueError('duplicate environment override')
             for o in env.overrides:
                 if o.resource_id not in resources:raise ValueError('invalid override resource')
                 resource=resources[o.resource_id]
-                validate(resource,o.settings,catalog(resource.region or env.region))
+                validate(resource,o.settings,regional(resource.region or env.region))
         for note in [*self.requirements,*self.operations,*self.issues]:
             provenance(note)
             if any(r not in resources for r in note.resources):raise ValueError('invalid note resource')
+        actors={a.id for a in self.actors}
+        for actor in self.actors:
+            provenance(actor)
+            # A service the catalog holds is modelled as a resource, so its settings are checked.
+            if actor.kind=='AWS_SERVICE' and any(actor.service.strip() in regional(actor.region or e.region).schemas for e in self.environments):
+                raise ValueError('an AWS service in the catalog is a resource, not an actor')
         for conn in self.connections:
             provenance(conn)
-            if conn.source not in resources or conn.target not in resources:raise ValueError('invalid connection endpoint')
+            if any(e not in resources and e not in actors for e in (conn.source,conn.target)):raise ValueError('invalid connection endpoint')
+            if (conn.source in actors or conn.target in actors) and conn.kind!='TRAFFIC':raise ValueError('only traffic connections reach an actor')
             if conn.kind=='REFERENCE':
                 source=resources[conn.source]
-                if any(conn.property not in catalog(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError('unknown connection property')
+                if any(conn.property not in regional(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError('unknown connection property')
             elif conn.property is not None:raise ValueError('only reference connections have a property')
         from .document_decisions import expanded_setting, expansion_targets
         for d in self.decisions:
             for e in d.expansions:
                 for env in self.environments:
                     for rid in expansion_targets(self,d,e,env.id):
-                        resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},catalog(resource.region or env.region))
+                        resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},regional(resource.region or env.region))
         from .document_policy_model import validate_policies
         validate_policies(self)
         return self
@@ -270,8 +336,9 @@ class SchemaDocument(Document):
     decision_expansions: list[dict]=Field(default_factory=list)
 
 
-def normalize_schema(raw,environment,cfn_raw=None):
-    parsed=parse(raw)
+def normalize_schema(raw,environment,cfn_raw=None,*,parsed=None):
+    # The caller may hand over its own parse of these bytes; parsing twice doubled time and memory.
+    if parsed is None:parsed=parse(raw)
     # Setup errors must retain their category outside Pydantic's value-error wrapper.
     if isinstance(parsed,dict):
         regions=set()
@@ -281,7 +348,7 @@ def normalize_schema(raw,environment,cfn_raw=None):
                     region=entry.get('region') if isinstance(entry,dict) else None
                     if isinstance(region,str) and re.fullmatch(r'[a-z]{2}(?:-gov)?-[a-z]+-\d+',region):regions.add(region)
         for region in sorted(regions):catalog(region)
-    spec=SchemaInput.model_validate(parsed)
+    spec=SchemaInput.model_validate(parsed);del parsed   # the validated model replaces the raw tree
     env=next((e for e in spec.environments if e.id==environment),None)
     if env is None:raise InputError('unknown environment')
     cats={region:catalog(region) for region in {env.region,*[r.region or env.region for r in spec.resources]}}

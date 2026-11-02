@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "Sheet": {
+      "additionalProperties": false,
+      "properties": {
+        "asks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Asks",
+          "type": "array"
+        },
+        "audience": {
+          "title": "Audience",
+          "type": "string"
+        },
+        "markdown": {
+          "title": "Markdown",
+          "type": "string"
+        },
+        "workbook": {
+          "title": "Workbook",
+          "type": "string"
+        }
+      },
+      "required": [
+        "audience",
+        "asks",
+        "workbook",
+        "markdown"
+      ],
+      "title": "Sheet",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/ask-batch",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agenda": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Agenda",
+      "type": "array"
+    },
+    "contract": {
+      "const": "ask-batch/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "ledger_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ledger Sha256",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "sheets": {
+      "items": {
+        "$ref": "#/$defs/Sheet"
+      },
+      "title": "Sheets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "sequence",
+    "ledger_sha256",
+    "created_at"
+  ],
+  "title": "Batch",
+  "type": "object"
+}

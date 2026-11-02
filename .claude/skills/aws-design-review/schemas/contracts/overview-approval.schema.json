@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "Basis": {
+      "additionalProperties": false,
+      "description": "Why an agent could record a decision: the approved policy, the rule and what it rests on.",
+      "properties": {
+        "actors": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Actors",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_sha256",
+        "rule",
+        "actors"
+      ],
+      "title": "Basis",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/overview-approval",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_findings": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Accepted Findings",
+      "type": "object"
+    },
+    "approved_at": {
+      "title": "Approved At",
+      "type": "string"
+    },
+    "approver": {
+      "minLength": 1,
+      "title": "Approver",
+      "type": "string"
+    },
+    "assessment": {
+      "title": "Assessment",
+      "type": "string"
+    },
+    "delegation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Basis"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "overview_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Overview Sha256",
+      "type": "string"
+    },
+    "version": {
+      "const": "1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "overview_sha256",
+    "approver",
+    "approved_at",
+    "assessment"
+  ],
+  "title": "OverviewApproval",
+  "type": "object"
+}

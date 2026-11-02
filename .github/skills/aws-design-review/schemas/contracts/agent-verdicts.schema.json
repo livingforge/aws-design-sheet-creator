@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "AgentVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "checked": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Checked",
+          "type": "array"
+        },
+        "key": {
+          "pattern": "^r[0-9a-f]{12}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "OK",
+            "NG"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "verdict",
+        "reason"
+      ],
+      "title": "AgentVerdict",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/agent-verdicts",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "contract": {
+      "const": "agent-verdicts/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "model": {
+      "default": "",
+      "title": "Model",
+      "type": "string"
+    },
+    "packet_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Packet Sha256",
+      "type": "string"
+    },
+    "verdicts": {
+      "items": {
+        "$ref": "#/$defs/AgentVerdict"
+      },
+      "title": "Verdicts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "packet_sha256",
+    "actor",
+    "verdicts"
+  ],
+  "title": "AgentVerdicts",
+  "type": "object"
+}

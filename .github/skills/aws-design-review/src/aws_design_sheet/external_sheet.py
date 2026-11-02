@@ -19,6 +19,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, JsonValue, ValidationError, model_validator
 
+from .delegation import Basis
 from .models import StrictModel
 
 CONTRACT_VERSION = '1'
@@ -203,6 +204,8 @@ class Entry(StrictModel):
     approved_by: str = Field(min_length=1)
     approved_at: str = Field(min_length=1)
     evidence: EntryEvidence | None = None
+    # Set only when agents' agreeing readings were approved under a delegation policy.
+    delegation: Basis | None = None
 
 
 class Dictionary(StrictModel):
@@ -609,9 +612,14 @@ def check(book, items_file, dictionary, *, region=None):
     return result
 
 
-def check_report(result):
-    return {'status': 'FAIL' if result.errors else 'PASS', 'errors': result.errors, 'warnings': result.warnings,
-            'error_counts': dict(sorted(Counter(e['code'] for e in result.errors).items()))}
+def check_report(result, items_file=None):
+    report = {'status': 'FAIL' if result.errors else 'PASS', 'errors': result.errors, 'warnings': result.warnings,
+              'error_counts': dict(sorted(Counter(e['code'] for e in result.errors).items()))}
+    if items_file is not None:
+        # How much of the reading rests on approved entries rather than new judgment.
+        entries = sum(i.mapping.entry is not None for i in items_file.items)
+        report['mapping_counts'] = {'entry': entries, 'proposal': len(items_file.items) - entries}
+    return report
 
 
 def dump(value):return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
@@ -720,8 +728,15 @@ def build(book, items_raw, dictionary_raw, base_raw, *, review_raw=None, source_
                      'note_cells': [cell_view(c) for c in item.note_cells],
                      'conditions': [{'label': cell_view(c.label_cell), 'value': cell_view(c.value_cell)} for c in item.conditions],
                      'reason': item.reason, 'source_id': sid, 'review': item_review(item)})
+        conversion = None
+        if leaf is not None and 'value' in leaf:
+            raw = book.cells[item.value_cell]['value']
+            as_written = type(leaf['value']) is type(raw) and (leaf['value'] == raw or (isinstance(raw, str) and leaf['value'] == raw.strip()))
+            conversion = 'AS_WRITTEN' if as_written else 'CONVERTED'
+        elif leaf is not None:conversion = 'AS_WRITTEN' if item.state in ('RESOURCE_REF', 'SECRET_REF') else 'STATE_WORD'
         snapshot = {'setting_id': f'ext:{item.id}', 'kind': 'CFN', 'status': item.state,
-                    'verification_status': rows[-1]['mapping']['status'], 'label': rows[-1]['label'],
+                    'verification_status': rows[-1]['mapping']['status'], **({'conversion': conversion} if conversion else {}),
+                    'label': rows[-1]['label'],
                     'value': rows[-1]['value_cell']['text'], **({'formula': rows[-1]['value_cell']['formula']} if 'formula' in rows[-1]['value_cell'] else {}),
                     'paths': item.paths}
         trace.append({'setting_id': f'ext:{item.id}', 'kind': 'CFN', 'source_snapshot': snapshot, 'item_ids': written_ids,
@@ -934,10 +949,13 @@ def trace_workbook(mapping, coverage):
     return out.getvalue()
 
 
-def approve(book, items_file, dictionary, approver, selected=None, *, now=None):
-    """Turn proposals into dictionary entries. Only a person named by the user approves."""
-    from .document_catalog import catalog
-    if not approver.strip():raise InputError('APPROVER_REQUIRED')
+def approve(book, items_file, dictionary, approver, selected=None, *, now=None, delegation=None):
+    """Turn proposals into dictionary entries. A person named by the user approves; agents only through `agree` under a delegation policy."""
+    from .delegation import InputError as DelegationError, is_agent, person_name
+    if delegation is None:
+        try:approver = person_name(approver)
+        except DelegationError as exc:raise InputError(str(exc)) from None
+    elif not is_agent(approver):raise InputError('DELEGATED_APPROVAL: agents approve under an agent name')
     resources = {r.id: r for r in items_file.resources}
     known = {canonical(e.resource_type, e.paths, e.convert, e.value_map, e.units, [w.model_dump() for w in e.when]): e for e in dictionary.entries}
     entries = list(dictionary.entries);added, extended = [], []
@@ -958,12 +976,136 @@ def approve(book, items_file, dictionary, approver, selected=None, *, now=None):
         entry = Entry(id=f"{slug}-{sha(json.dumps(key, ensure_ascii=False).encode())[:8]}",
                       resource_type=resource.type, labels=[label], paths=sorted({pattern_of(x) for x in item.paths}),
                       convert=p.convert, value_map={norm(k): v for k, v in p.value_map.items()}, units=sorted({norm(u) for u in p.units}),
-                      when=[When(label=w['label'], values=w['values']) for w in when], approved_by=approver.strip(), approved_at=stamp,
+                      when=[When(label=w['label'], values=w['values']) for w in when], approved_by=approver.strip(), approved_at=stamp, delegation=delegation,
                       evidence=EntryEvidence(document=book.document, extraction_sha256=book.extraction_sha256, item_id=item.id,
                                              label_cells=item.label_cells))
         entries.append(entry);known[key] = entry;added.append(entry.id)
     result = Dictionary(schema_version='1', state_words=dictionary.state_words, entries=sorted(entries, key=lambda e: e.id))
     return result, {'added': added, 'labels_added_to': sorted(set(extended))}
+
+
+NOTE_HEADERS = ['備考', '説明', '補足', 'メモ', '注記', '注意', 'コメント', '単位', 'レビュー', 'レビュー結果', '確認', '承認',
+                'Note', 'Notes', 'Remark', 'Remarks', 'Description', 'Comment', 'Unit', 'Review']
+
+
+def suggest(book, dictionary):
+    """Value cells whose accepted ARP header is an approved dictionary label: the mechanical part of the reading.
+
+    No resource is chosen and no cell value is returned; the worker confirms each pairing and
+    spends judgment on the remaining cells. Several candidate entries mean the label alone
+    does not decide the resource type or path.
+    """
+    labels = {}
+    for entry in dictionary.entries:
+        for label in entry.labels:labels.setdefault(label_norm(label), []).append(entry)
+    words = state_words(dictionary)
+    beside = {label_norm(w) for w in NOTE_HEADERS}
+    suggestions = []
+    for cid in sorted(book.headers, key=lambda c: (book.cells.get(c, {}).get('sheet_number', 0), c)):
+        if book.roles.get(cid) != 'data' or cid in book.merged:continue
+        for header in book.headers[cid]:
+            entries = labels.get(label_norm(book.text(header))) if header in book.cells else None
+            if not entries:continue
+            # A notes, unit or review column beside the labelled value is never the value itself.
+            if any(label_norm(book.text(h)) in beside for h in book.headers[cid] if h != header and h in book.cells):break
+            cell = book.cells.get(cid) or {}
+            state = ('FORMULA' if cell.get('formula') is not None else 'BLANK' if book.empty(cid)
+                     else words.get(norm(book.text(cid)), 'LITERAL'))
+            suggestions.append({'value_cell': cid, 'label_cell': header, 'state': state,
+                                'entries': [{'id': e.id, 'resource_type': e.resource_type, 'paths': e.paths,
+                                             'conditions': [w.label for w in e.when]} for e in entries]})
+            break
+    data = [c for c in book.headers if book.roles.get(c) == 'data' and c not in book.merged and not book.empty(c)]
+    single = sum(len(s['entries']) == 1 for s in suggestions)
+    return {'suggestions': suggestions,
+            'summary': {'data_cells': len(data), 'suggested': len(suggestions), 'single_entry': single,
+                        'several_entries': len(suggestions) - single,
+                        'suggested_share': round(len({s['value_cell'] for s in suggestions} & set(data)) / len(data), 4) if data else None}}
+
+
+def reading(book, items_file, dictionary):
+    """What one items file claims for each cited cell, independent of the IDs its author chose."""
+    resources = {r.id: r for r in items_file.resources}
+
+    def who(rid):
+        r = resources.get(rid)
+        return [r.type, r.name_cell or rid] if r else [None, rid]
+    claims = {}
+    for item in items_file.items:
+        resource = resources.get(item.resource)
+        status, entry = resolve_mapping(book, items_file, item, resource, dictionary) if resource else ('UNKNOWN_RESOURCE', None)
+        convert, value_map, units = rule(item, entry) if status in ('DICTIONARY', 'PROPOSED') else (None, {}, [])
+        claims[book.merged.get(item.value_cell, item.value_cell)] = {
+            'kind': 'ITEM', 'resource': who(item.resource), 'paths': sorted(item.paths), 'state': item.state,
+            'ref': who(item.ref) if item.ref else None, 'convert': convert,
+            'value_map': sorted((norm(k), json.dumps(v, sort_keys=True)) for k, v in value_map.items()),
+            'units': sorted(norm(u) for u in units), 'conditions': sorted([c.label_cell, c.value_cell] for c in item.conditions)}
+    for kind, collection in (('EXTENSION', items_file.extensions), ('UNMAPPED', items_file.unmapped)):
+        for kept in collection:
+            for ref in kept.cells:
+                for cid in book.expand(ref):claims.setdefault(cid, {'kind': kind, 'category': kept.category})
+    for excluded in items_file.excluded:
+        for ref in excluded.cells:
+            for cid in book.expand(ref):claims.setdefault(cid, {'kind': 'EXCLUDED'})
+    return claims
+
+
+def compare(book, first, second, dictionary):
+    """Cells two independent readings disagree on; codes and structure only, never cell values."""
+    if first.author.actor.strip() == second.author.actor.strip():raise InputError('SAME_AUTHOR: compare readings by two different actors')
+    a, b = reading(book, first, dictionary), reading(book, second, dictionary)
+    shown_fields = ('kind', 'category', 'resource', 'paths', 'state', 'ref', 'convert')
+
+    def brief(claim):return None if claim is None else {k: claim[k] for k in shown_fields if k in claim}
+    disagreements = []
+    for cid in sorted(set(a) | set(b)):
+        x, y = a.get(cid), b.get(cid)
+        if x == y:continue
+        fields = ['cited'] if x is None or y is None else sorted(k for k in set(x) | set(y) if x.get(k) != y.get(k))
+        disagreements.append({'cell': cid, 'fields': fields, 'first': brief(x), 'second': brief(y)})
+    compared = len(set(a) | set(b))
+    return {'status': 'AGREE' if not disagreements else 'DISAGREE', 'actors': [first.author.actor, second.author.actor],
+            'cells_compared': compared, 'disagreements': disagreements,
+            'agreement_rate': round(1 - len(disagreements) / compared, 4) if compared else 1.0}
+
+
+def agree(book, first_raw, second_raw, review_raw, dictionary, rule, policy_sha256, *, now=None):
+    """Proposals two independent readings make identically for the same cells, approved under a delegation rule.
+
+    The first reading must carry an accepted review by a third actor. A proposal is agreed only
+    when the second reading maps the same value cell with an identical proposal and no cell of
+    the item is among the cells the readings disagree on; every other proposal stays for a person."""
+    from .delegation import agent
+    first, second = ItemsFile.model_validate_json(first_raw), ItemsFile.model_validate_json(second_raw)
+    review = Review.model_validate_json(review_raw)
+    if review.decision != 'accepted' or review.items_sha256 != sha(first_raw):raise InputError('REVIEW_REQUIRED: an accepted review of the first reading')
+    authors = [agent(first.author.actor), agent(second.author.actor)]
+    if agent(review.actor) in authors:raise InputError('REVIEWER_IS_AUTHOR: the review must come from a third actor')
+    for items_file in (first, second):
+        if check(book, items_file, dictionary).errors:raise InputError('CHECK_FAILED: both readings must pass check')
+    compared = compare(book, first, second, dictionary)
+    if rule.require_distinct_models:
+        models = [first.author.model.strip().lower(), second.author.model.strip().lower()]
+        if '' in models or models[0] == models[1]:raise InputError('MODELS_NOT_DISTINCT: the policy asks for readings by different models')
+    disagreeing = {d['cell'] for d in compared['disagreements']}
+    second_by_cell = {book.merged.get(i.value_cell, i.value_cell): i for i in second.items}
+    agreed, escalated = [], []
+    for item in first.items:
+        if not item.mapping.proposal:continue
+        cells = {item.value_cell, *item.label_cells, *item.note_cells, *([item.unit_cell] if item.unit_cell else []),
+                 *(c for cond in item.conditions for c in (cond.label_cell, cond.value_cell))}
+        cells = {book.merged.get(c, c) for c in cells}
+        other = second_by_cell.get(book.merged.get(item.value_cell, item.value_cell))
+        if other is None or other.mapping.proposal is None:escalated.append({'item': item.id, 'why': 'NOT_PROPOSED_IN_SECOND_READING'})
+        elif other.mapping.proposal != item.mapping.proposal or sorted(other.paths) != sorted(item.paths):escalated.append({'item': item.id, 'why': 'PROPOSALS_DIFFER'})
+        elif cells & disagreeing:escalated.append({'item': item.id, 'why': 'CELLS_DISAGREE', 'cells': sorted(cells & disagreeing)})
+        else:agreed.append(item.id)
+    basis = Basis(policy_sha256=policy_sha256, rule='external_mapping', actors=[*authors, agent(review.actor)],
+                  evidence=[f'items {authors[0]} sha256 {sha(first_raw)}', f'items {authors[1]} sha256 {sha(second_raw)}',
+                            f"review sha256 {sha(review_raw)}", f"agreement_rate {compared['agreement_rate']}"])
+    approver = '+'.join(authors)
+    updated, changes = approve(book, first, dictionary, approver, agreed, now=now, delegation=basis) if agreed else (dictionary, {'added': [], 'labels_added_to': []})
+    return updated, {'agreed': agreed, 'escalated': escalated, 'agreement_rate': compared['agreement_rate'], 'approver': approver, **changes}, basis
 
 
 def view(book, sheet=None):
@@ -996,13 +1138,14 @@ def write_new(path, data):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog='aws-design-external', description='External design sheets parsed by ARP4 to 1.1 input')
+    parser = argparse.ArgumentParser(prog='aws-design external', description='External design sheets parsed by ARP4 to 1.1 input')
     sub = parser.add_subparsers(dest='command', required=True)
 
     def arp_args(p):
         p.add_argument('--extraction', required=True, help='ARP4 extraction.json')
         p.add_argument('--structure', required=True, help='ARP4 structure view with an accepted review')
         p.add_argument('--document', help='ARP4 document.yml, checked against extraction and structure')
+        p.add_argument('--source-set', help='approved aws-design sources set; the sheet must be CURRENT and unchanged')
     p = sub.add_parser('schema', help='print the JSON Schema of an agent-facing contract')
     p.add_argument('--kind', choices=['items', 'dictionary', 'review'], default='items')
     p = sub.add_parser('view', help='compact cell view for the worker agent');arp_args(p);p.add_argument('--sheet')
@@ -1012,10 +1155,19 @@ def main(argv=None):
     p.add_argument('--items', required=True);p.add_argument('--dictionary');p.add_argument('--region')
     p.add_argument('--decision', choices=['accepted', 'rejected'], required=True)
     p.add_argument('--actor', required=True);p.add_argument('--reason', required=True);p.add_argument('--output', required=True)
+    p = sub.add_parser('suggest', help='value cells whose accepted header is an approved dictionary label');arp_args(p)
+    p.add_argument('--dictionary', required=True)
+    p = sub.add_parser('compare', help='cells where two independent items files disagree');arp_args(p)
+    p.add_argument('--items', required=True, action='append', help='give exactly two items files by different actors');p.add_argument('--dictionary')
     p = sub.add_parser('approve', help='add proposed mappings to the dictionary; approver must be a person the user names');arp_args(p)
     p.add_argument('--items', required=True);p.add_argument('--dictionary');p.add_argument('--output', required=True)
     p.add_argument('--approver', required=True)
     group = p.add_mutually_exclusive_group(required=True);group.add_argument('--all', action='store_true');group.add_argument('--item', action='append')
+    p = sub.add_parser('agree', help='approve, under the workspace delegation policy, the proposals two independent readings make identically');arp_args(p)
+    p.add_argument('--items', required=True, action='append', help='two items files by different actors; the first is the reviewed one')
+    p.add_argument('--review', required=True, help='accepted review of the first items file by a third actor')
+    p.add_argument('--dictionary');p.add_argument('--workspace', required=True, help='workspace whose approved delegation policy covers external_mapping')
+    p.add_argument('--output', required=True, help='fresh path for the updated dictionary')
     p = sub.add_parser('build', help='write 1.1 input, source trace, mapping table and coverage');arp_args(p)
     p.add_argument('--items', required=True);p.add_argument('--dictionary');p.add_argument('--review')
     p.add_argument('--base', required=True, help='1.1 frame with system and environments (resources optional)')
@@ -1027,12 +1179,41 @@ def main(argv=None):
             model = {'items': ItemsFile, 'dictionary': Dictionary, 'review': Review}[args.kind]
             print(json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2));return 0
         book = open_book(args)
+        if args.source_set:
+            from .source_set import InputError as SourceSetError, require_current
+            try:require_current(Path(args.source_set).read_bytes(), book.document, book.source.get('sha256'), book.extraction_sha256)
+            except SourceSetError as exc:raise InputError(str(exc)) from None
         if args.command == 'view':
             sys.stdout.buffer.write(view(book, args.sheet).encode('utf-8'));return 0
+        if args.command == 'suggest':
+            dictionary, _ = load_dictionary(Path(args.dictionary).read_bytes())
+            print(json.dumps(suggest(book, dictionary), ensure_ascii=False, indent=2));return 0
+        if args.command == 'compare':
+            if len(args.items) != 2:raise InputError('compare needs exactly two --items files')
+            first, second = (ItemsFile.model_validate_json(Path(p).read_bytes()) for p in args.items)
+            dictionary, _ = load_dictionary(Path(args.dictionary).read_bytes() if args.dictionary else None)
+            report = compare(book, first, second, dictionary)
+            print(json.dumps(report, ensure_ascii=False, indent=2));return 0 if report['status'] == 'AGREE' else 3
+        if args.command == 'agree':
+            from .delegation import log, rule
+            if len(args.items) != 2:raise InputError('agree needs exactly two --items files')
+            settings, digest, why = rule(Path(args.workspace), 'external_mapping')
+            if why:raise InputError(f'NOT_DELEGATED: {why}')
+            dictionary, _ = load_dictionary(Path(args.dictionary).read_bytes() if args.dictionary else None)
+            output = Path(args.output)
+            if output.exists():raise InputError('output already exists; use a fresh path')
+            updated, report, basis = agree(book, Path(args.items[0]).read_bytes(), Path(args.items[1]).read_bytes(), Path(args.review).read_bytes(),
+                                           dictionary, settings, digest)
+            output.parent.mkdir(parents=True, exist_ok=True);output.write_bytes(dump(updated.model_dump(exclude_none=True)))
+            if report['agreed']:
+                found = log(Path(args.workspace), 'external_mapping', report['approver'].split('+')[0], basis, output,
+                            f"対応付けの提案 {len(report['agreed'])}件を承認、{len(report['escalated'])}件を人へ")
+                report['auto_decision'] = found.id
+            print(json.dumps(report, ensure_ascii=False));return 0 if not report['escalated'] else 3
         items_raw = Path(args.items).read_bytes();items_file = ItemsFile.model_validate_json(items_raw)
         dictionary, _ = load_dictionary(Path(args.dictionary).read_bytes() if args.dictionary else None)
         if args.command == 'check':
-            report = check_report(check(book, items_file, dictionary, region=args.region))
+            report = check_report(check(book, items_file, dictionary, region=args.region), items_file)
             print(json.dumps(report, ensure_ascii=False, indent=2));return 0 if report['status'] == 'PASS' else 2
         if args.command == 'review':
             if args.actor.strip() == items_file.author.actor.strip():raise InputError('REVIEWER_IS_AUTHOR: use an independent reviewer')

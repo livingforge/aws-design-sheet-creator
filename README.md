@@ -1,6 +1,6 @@
 # AWS Design Review — Agent / Skill distribution
 
-AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.5.1。生成成功と設計の承認は別の結果です。
+AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.6.0。生成成功と設計の承認は別の結果です。
 
 ## 導入
 
@@ -8,9 +8,9 @@ AWS設計書の生成、必要入力の確認、人が登録した案件方針�
 
 |ホスト|配置するSkill|任意のAgent|
 |---|---|---|
-|Claude Code|`.claude/skills/aws-design-review/`|`.claude/agents/aws-design-review.md`、外部シート取込み用の`aws-sheet-extract-worker.md`・`aws-sheet-extract-reviewer.md`|
+|Claude Code|`.claude/skills/aws-design-review/`|`.claude/agents/aws-design-author.md`（書く役）・`aws-design-checker.md`（確かめる役）|
 |Codex|`.agents/skills/aws-design-review/`|Skillを直接指定|
-|GitHub Copilot|`.github/skills/aws-design-review/`|`.github/agents/aws-design-review.agent.md`、`aws-sheet-extract-worker.agent.md`・`aws-sheet-extract-reviewer.agent.md`|
+|GitHub Copilot|`.github/skills/aws-design-review/`|`.github/agents/aws-design-author.agent.md`・`aws-design-checker.agent.md`|
 
 旧Codexの`.codex/skills`を使っている場合は新配置へ移行し、同名Skillを二重登録しないでください。ホストのバージョン・信頼設定によって実行許可が必要です。CLI検証と実ホスト呼び出しは別の証拠です。
 
@@ -18,8 +18,10 @@ AWS設計書の生成、必要入力の確認、人が登録した案件方針�
 
 ```powershell
 & .\scripts\install.ps1
-& .\.venv\Scripts\aws-design-document.exe .\examples\project-policies\design.json --environment prod --output .\output\first-review --evaluate
+& .\.venv\Scripts\aws-design.exe bootstrap --check --all-regions
 ```
+
+最初に試すときは、リポジトリ直下の[サンプル資料](samples/aoba-learning-hub/README.md)を使ってください。
 
 インストーラーは新しい`.venv`を作り、PyPIから固定制約付き依存を取得します。導入前に旧版を一覧表示し、確認してから削除します。対象は次の3つです。
 
@@ -36,7 +38,7 @@ AWS設計書の生成、必要入力の確認、人が登録した案件方針�
 - フォルダーがごみ箱の容量を超える
 - 使用するPythonが削除対象の中にある
 
-対話できない実行では一覧を表示して停止します。`-Force`を付けると確認せずに削除します。テストも行う場合は`-Tests`を指定します。
+対話できない実行では一覧を表示して停止します。`-Force`を付けると確認せずに削除します。
 
 Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated install --index-url https://pypi.org/simple -c requirements.lock -e .`、`.venv/bin/python -m aws_design_sheet.schema_bootstrap --all-regions`の順です。この候補の実行検証環境はWindowsです。
 
@@ -56,11 +58,11 @@ Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated i
 
 ```powershell
 # ネット接続なしで全地域を検証
-& .\.venv\Scripts\aws-design-bootstrap.exe --check --all-regions
+& .\.venv\Scripts\aws-design.exe bootstrap --check --all-regions
 # 初回取得の再試行
-& .\.venv\Scripts\aws-design-bootstrap.exe --all-regions
+& .\.venv\Scripts\aws-design.exe bootstrap --all-regions
 # 一地域のみ
-& .\.venv\Scripts\aws-design-bootstrap.exe --check --region us-east-1
+& .\.venv\Scripts\aws-design.exe bootstrap --check --region us-east-1
 ```
 
 公式URLは最新版だけを返し、AWSは1日に複数回ZIPを作り直します。そのため取得したZIPがレビュー済みのZIPと異なっても停止せず、型ごとの差分（追加・変更・削除）を `drift.json` と manifest の `review_status: DRIFTED_FROM_REVIEWED` に記録します。差分のある型の規則は、9月29日の基準スナップショットとの照合で要再確認・隔離として扱い、レビュー済みとはみなしません。実行結果の `catalog`・`regional_catalogs` と設計書の注意事項にも、この状態と件数が出ます。一致した場合は `REVIEWED_EXACT` です。
@@ -69,7 +71,7 @@ Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated i
 
 ## 入力と結果
 
-構造化入力1.0/1.1には`aws-design-document`、規定の行形式には`aws-design-run`、保存済みChecker中間JSONには`aws-design-check`を使います。詳細は各Skillの`references/usage.md`を参照してください。Office/PDFや自由文を生成CLIへ直接渡す契約ではありません。
+構造化入力1.0/1.1には`aws-design document`、規定の行形式には`aws-design run`、保存済みChecker中間JSONには`aws-design check`を使います。詳細は各Skillの`references/usage.md`を参照してください。Office/PDFや自由文を生成CLIへ直接渡す契約ではありません。
 
 1.1の資源は`region`を指定でき、省略時は環境の地域を使います。CloudFrontのviewer ACM証明書とCLOUDFRONT WAFはus-east-1への限定的な参照判定を持ちます。通常の地域間参照制約は保持します。複数地域に対する単一CFNファイル比較は拒否します。明示されたDEPENDENCY接続の循環は検査しますが、スタックやデプロイ順を推測しません。
 
@@ -79,7 +81,7 @@ Linux/macOSでは`python3 -m venv .venv`、`.venv/bin/python -m pip --isolated i
 
 ## 外部デザインシートの取込み（0.4.0）
 
-ARP4で解析済みの外部Excelデザインシート（`extraction.json`・`document.yml`・承認済みの構造解釈）から、`aws-design-external`で1.1入力と`source-trace.json`を作ります。ARP4は同梱しません。このツール自身もOfficeファイルを直接読みません。
+ARP4で解析済みの外部Excelデザインシート（`extraction.json`・`document.yml`・承認済みの構造解釈）から、`aws-design external`で1.1入力と`source-trace.json`を作ります。ARP4は同梱しません。このツール自身もOfficeファイルを直接読みません。
 
 作成担当のエージェントがセルIDを引用した抽出ファイルを書き、別のレビュー担当が照合して受理を記録します。対応付けの提案は利用者が指名した承認者だけが辞書へ承認します。`build`は値を抽出結果から取得し、対応表・未対応一覧・対応範囲も出力します。`import_status: COMPLETE`は変換が終わったことだけを表し、設計の承認ではありません。CodexにはAgent定義を同梱しないため、2つの役割を別セッション・別の担当名で実行します。手順は`references/usage.md`の「External design sheets parsed by ARP4」を参照してください。
 
@@ -91,13 +93,38 @@ ARP4で解析済みの外部Excelデザインシート（`extraction.json`・`do
 
 0.5.1では、ARNの地域検査を加えました。バインディング値のARNがリソースと別の地域・パーティションなら評価に使いません。設計入力に直接書いたARNも`--evaluate`で`DOCUMENT_ARN_REGION`として検査します（CloudFrontの証明書・WebACLはus-east-1、バックアップの地域間コピー先などは別地域を許容）。
 
+## 設計の進め方とレビューの省力化（0.6.0）
+
+デザインシートを作る前の整理と、人のレビュー負担を減らす機能を加えました。各コマンドの詳細は`references/usage.md`、報告の規則は`references/reporting.md`にあります。
+
+- `aws-design flow`：作業フォルダの状態から次の一手を返します。`run all`は人の判断が要る段階まで走査と生成を自動で進め、`people`で登録した担当者名を次の一手のコマンドに入れます。`inbox`／`decide`は保留中の判断を1つのブックに集め、まとめて記録します。
+- `aws-design sources`：ARP4が解析した文書を版の系列にまとめ、利用者が指名した人が根拠にする現行版を承認します。旧版を引用した入力の生成を止め、旧版にだけある値を警告します。
+- `aws-design system`：AWSリソースの上位にあるシステム概要（要件・利用者・境界・構成要素・データの流れ・非機能目標・未決事項）を記述・図示・検査し、合意を記録します。ARP4の要件正本から始められ、作成担当・レビュー担当のAgentと二重作成の照合を同梱します。
+- 生成結果に、収集マトリクス（`collection-matrix.md`）、由来と優先度で人の確認範囲を絞るレビューパック（`review-pack.md`・`.xlsx`・ブラウザだけで使える`review-pack.html`）を加えました。判定は`aws-design review-pack record`／`import`で次回へ引き継ぎ、`recall`で過去のレビュー指摘に対する再現率を測れます。
+- `aws-design policy-pack`：採用者を記録して標準の方針パック（同梱`aws-security-baseline`）を案件方針として加えます。`aws-design library`は承認済みの辞書項目・方針パック・概要のひな型（同梱`three-tier-web`）を案件をまたいで使います。`aws-design export`は組織のExcelテンプレートへ生成結果を書きます。
+- 外部シート取込みに、承認済み辞書による決定的な候補（`suggest`）と、2つの独立した読取りの照合（`compare`）を加えました。
+
+承認・合意・採用・判定はいずれも利用者が指名した人の名前で記録し、エージェントは判断者になりません。優先度や「完了」は作業の順序と状態であり、設計の承認ではありません。
+
+## 判断の台帳・委任・構成図（0.6.0）
+
+- コマンドは `aws-design` の1つにまとめました（`aws-design flow status …`、`aws-design asks …` のようにサブコマンドで使います。一覧は `aws-design --help`）。Agentは書く役の`aws-design-author`と確かめる役の`aws-design-checker`の2つにし、役割ごとの指示はSkillの`references/roles/`に置きました。人に聞くのは判断の台帳だけで、旧`aws-design-questions`は台帳に統合しました。
+- `aws-design asks`：未決の設定を、項目ごとではなく判断ごとに人へ聞きます。作成担当のAgentが判断の台帳を書き、別のレビュー担当が確かめたあと、聞ける判断を順番に宛先ごとの質問票と会議の議題にし、回答を設計入力の写しへ反映します。回答は答えた人の名前でだけ記録します。
+- `aws-design delegation`：人が承認した委任方針の範囲で、根拠文書セットの承認やP2行の判定などの定型の判断をエージェントに任せます。引き渡すファイルには契約があり、生成のたびにゲート（`gates.json`）が契約・根拠文書・引用の裏付けを検査します。引用の検査は、値が引用したセルにあるか（GROUNDED）、セルから換算・解釈したか（INTERPRETED）を分けて数えます。
+- 1.1の生成は基本設計の文章（`basic-design.md`）とdraw.io形式の構成図（`architecture.drawio`）を出力します。構成図は宣言した配置と接続を描き、設計入力の`actors`に書いた利用者・外部システム・ツールで扱えないAWSサービスも描きます。
+- 未記載の任意項目の一覧（`optional-inputs.json`）と、JSONを文字列で持つプロパティの構文検査を加えました。レビューパックは、判断が必要な行を「人の判断・その他・設計者の宿題・構築時の注意」の順に並べます。
+
+## サンプル資料
+
+`samples/aoba-learning-hub/` に、架空案件「あおばラーニングハブ」の設計資料（要件定義・基本設計・議事録・提案書のWord文書9ファイル。作成は架空の「ミナトクラウド設計合同会社」）があります。資料の読み取りにはARP4（別配布）が要ります。試し方は[サンプルのREADME](samples/aoba-learning-hub/README.md)を参照してください。回答や採点の仕組みは同梱していません。
+
 ## 範囲とデータ
 
 ゼロ終了やGENERATED/COMPLETEは設計全体の承認ではありません。FAIL・要確認・未登録要件・未検査条件を個別に確認してください。CLI結果だけでは実ホスト受入を証明できません。物理IDや秘密参照は取得せず、AWS実環境は変更しません。
 
 秘密値ではなく秘密参照を入力してください。出力には設計値や出典が含まれるため、指定した保存先で管理します。任意の`-Llm`は別途Anthropic認証を必要とし、入力を外部APIへ送信します。既定では利用しません。
 
-配布物は許可リストにある実行コード、ルール、ロック、小規模な架空例、関連テスト、操作文書です。開発Git履歴、大量の評価証跡、案件の全文資料、Officeファイル、キャッシュ、認証情報は含めません。例外として、外部シート取込みのテストが原本のハッシュ照合に使う架空のブック`examples/external-sheet/source/sample-design.xlsx`（試験用の偽パスワード入り）を同梱します。3ホストのSkill内容は同一で、`release-manifest.json`にハッシュを記録します。
+各ホストのSkillは、許可リストにある実行コード、ルール、ロック、操作文書です。テストと例は含めません。リポジトリ直下には架空のサンプル資料（Word文書）を1組だけ置きます。開発Git履歴、評価証跡、実案件の資料、キャッシュ、認証情報は含めません。3ホストのSkill内容は同一で、`release-manifest.json`にSkillとルートのファイルのハッシュを記録します。
 
 ## ライセンス
 

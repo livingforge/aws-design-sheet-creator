@@ -1,0 +1,565 @@
+"""Source set: which ARP4-parsed documents a design may cite, and which are older versions.
+
+ARP4 imports every original below its sources folder, so drafts, copies and archived
+versions sit beside the current documents. `scan` proposes version families from each
+document's own ID and version cells, then from file names; a person the user names
+approves the set; `check` refuses a set that no longer matches ARP4 and design sources
+that cite superseded or excluded documents. Statuses are decided by people, never here.
+"""
+import argparse
+import hashlib
+import json
+import re
+import sys
+import unicodedata
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+from .delegation import Basis, InputError as DelegationError, is_agent, person_name
+
+
+class InputError(ValueError):
+    pass
+
+
+Status = Literal['CURRENT', 'SUPERSEDED', 'REFERENCE', 'EXCLUDED', 'UNDECIDED']
+CITABLE = {'CURRENT', 'REFERENCE'}
+# Labels of a document's own ID and version, compared after norm().
+CODE_LABELS = {'文書id', '文書番号', '文書コード', '文書no', 'ドキュメントid', 'ドキュメント番号', '資料番号', '管理番号',
+               'documentid', 'documentno', 'documentnumber', 'docid', 'docno'}
+VERSION_LABELS = {'版', '版数', '版番号', '改版', '改訂版', 'バージョン', 'version', 'ver', 'rev', 'revision'}
+STATUS_WORDS = {'draft', 'ドラフト', '案', '素案', 'final', '確定', '確定版', '最新', '最新版', 'latest', 'old', '旧', '旧版',
+                'copy', 'コピー', 'fix', '修正', '修正版', '改', '改訂', 'wip', 'review', 'レビュー', 'レビュー済', 'ver', 'rev', 'v'}
+ARCHIVE_FOLDERS = {'old', 'archive', 'archives', 'archived', '旧', '旧版', '過去', '過去版', 'backup', 'bk', 'bak', 'history',
+                   '履歴', 'versions', 'version', 'obsolete', '廃止', '退避'}
+DOTTED = re.compile(r'(?<![\d.])(\d{1,3}(?:\.\d{1,3}){1,3})(?![\d.])')
+PREFIXED = re.compile(r'(?:第\s*(\d{1,3})\s*版|(?<![a-z])(?:ver|rev|v)\.?\s*(\d{1,3}(?:\.\d{1,3}){0,3})(?![\d.]))', re.I)
+DATE = re.compile(r'(?<!\d)(20\d{2})[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])(?!\d)')
+# A document whose folder, role cell or title holds one of these words may be a proposal, estimate or
+# other reference rather than a design basis: its single or newest version goes to the approver
+# as UNDECIDED (POSSIBLY_REFERENCE) instead of CURRENT. Matched as substrings after norm().
+REFERENCE_WORDS = ('参考', '提案', '見積', '受注前', '他社', '他案件', 'proposal', 'reference', 'estimate', 'quotation', 'rfp', 'rfi')
+ROLE_LABELS = {'種別', '文書種別', '資料種別', '位置付け', '位置づけ', '文書区分', '資料区分', '分類', '用途',
+               'documenttype', 'doctype', 'category', 'purpose'}
+COVER_CELLS = 40
+COPY_MARK = re.compile(r'[(（]\s*\d{1,2}\s*[)）]|\s*-\s*コピー|\s*のコピー|\bcopy(?:\s*of)?\b', re.I)
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+
+class ReferenceHint(Strict):
+    basis: Literal['FOLDER', 'ROLE', 'TITLE']
+    word: str
+    text: str
+    cell: str | None = None
+
+
+class Signals(Strict):
+    title: str | None = None
+    title_cell: str | None = None
+    role: str | None = None
+    role_cell: str | None = None
+    reference: list[ReferenceHint] = []
+    code: str | None = None
+    code_cell: str | None = None
+    version: str | None = None
+    version_basis: Literal['CONTENT', 'FILE_NAME'] | None = None
+    version_cell: str | None = None
+    archive_folder: bool = False
+
+
+class Entry(Strict):
+    document_id: str
+    source_path: str
+    source_sha256: str
+    extraction_sha256: str
+    family: str
+    family_basis: Literal['DOCUMENT_CODE', 'FILE_NAME']
+    signals: Signals
+    status: Status
+    reason: str
+    related: str | None = None
+    decided: Literal['PROPOSED', 'SET'] = 'PROPOSED'
+
+
+class Approval(Strict):
+    approver: str
+    approved_at: str
+    proposal_sha256: str
+    # Set only when an agent approved under a delegation policy; a person's approval has none.
+    delegation: Basis | None = None
+
+
+class SourceSet(Strict):
+    schema_version: Literal['1']
+    kind: Literal['proposal', 'approved']
+    documents: list[Entry]
+    issues: list[dict] = []
+    approval: Approval | None = None
+
+
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+
+
+def norm(text):
+    return re.sub(r'[\s■□●◆※・:：\-_/()（）\[\]【】]', '', unicodedata.normalize('NFKC', str(text)).lower())
+
+
+def version_key(text):
+    """Comparable key, or None. Dates and dotted numbers are never compared with each other."""
+    if (m := DATE.search(text)):return ('date', tuple(int(g) for g in m.groups()))
+    if (m := PREFIXED.search(text)):return ('number', tuple(int(x) for x in (m.group(1) or m.group(2)).split('.')))
+    if (m := DOTTED.search(text)):return ('number', tuple(int(x) for x in m.group(1).split('.')))
+    return None
+
+
+def column(letters):
+    n = 0
+    for ch in letters:n = n * 26 + ord(ch) - 64
+    return n
+
+
+def content_signals(extraction):
+    """The document's own ID, version, title and role: the cell right of a known label, else one version in the title cells."""
+    signals = {}
+    for number, sheet in enumerate(extraction.get('sheets', []), 1):
+        cells = [c for c in sheet.get('cells', []) if isinstance(c.get('value'), (str, int, float)) and str(c['value']).strip()]
+        at = {}
+        for c in cells:
+            m = re.fullmatch(r'([A-Z]+)(\d+)', c.get('address', ''))
+            if m:at[(column(m.group(1)), int(m.group(2)))] = c
+        if number == 1 and cells and 'title' not in signals:
+            signals['title'], signals['title_cell'] = clip(cells[0]['value']), f"s{number}-{cells[0]['address']}"
+        for i, c in enumerate(cells):
+            label = norm(c['value'])
+            m = re.fullmatch(r'([A-Z]+)(\d+)', c.get('address', ''))
+            if not m or (label not in CODE_LABELS and label not in VERSION_LABELS and label not in ROLE_LABELS):continue
+            right = at.get((column(m.group(1)) + 1, int(m.group(2))))
+            if right is None:continue
+            # A role is read from the cover only: 種別 is also a common column heading in the body's tables.
+            if label in ROLE_LABELS and 'role' not in signals and number == 1 and i < COVER_CELLS:
+                signals['role'], signals['role_cell'] = clip(right['value']), f"s{number}-{right['address']}"
+            if label in CODE_LABELS and 'code' not in signals:
+                signals['code'], signals['code_cell'] = str(right['value']).strip(), f"s{number}-{right['address']}"
+            if label in VERSION_LABELS and 'version' not in signals and version_key(str(right['value'])):
+                signals['version'], signals['version_cell'] = str(right['value']).strip(), f"s{number}-{right['address']}"
+        if number == 1 and 'version' not in signals:
+            found = {}
+            for c in cells[:10]:
+                text = str(c['value'])
+                key = version_key(DATE.sub('', text))
+                if key:found.setdefault(key, (text.strip(), f"s{number}-{c['address']}"))
+            if len(found) == 1:
+                signals['version'], signals['version_cell'] = next(iter(found.values()))
+    if 'version' in signals:signals['version_basis'] = 'CONTENT'
+    hints = [{'basis': basis, 'word': word, 'text': signals[key], 'cell': signals[key + '_cell']}
+             for basis, key in (('ROLE', 'role'), ('TITLE', 'title')) if signals.get(key) and (word := reference_word(signals[key]))]
+    if hints:signals['reference'] = hints
+    return signals
+
+
+def clip(text, limit=80):
+    text = re.sub(r'\s+', ' ', unicodedata.normalize('NFKC', str(text))).strip()
+    return text if len(text) <= limit else text[:limit - 1] + '…'
+
+
+def reference_word(text):
+    """The first reference word the text holds, or None."""
+    plain = norm(text)
+    return next((w for w in REFERENCE_WORDS if w in plain), None)
+
+
+def name_signals(document_id):
+    path = PurePosixPath(document_id)
+    stem = unicodedata.normalize('NFKC', path.stem)
+    signals = {'archive_folder': any(norm(p) in ARCHIVE_FOLDERS or version_key(p) for p in path.parts[:-1])}
+    folders = [{'basis': 'FOLDER', 'word': word, 'text': p} for p in path.parts[:-1] if (word := reference_word(p))]
+    if folders:signals['reference'] = folders[:1]
+    key = version_key(stem)
+    if key:signals.update(version=stem, version_basis='FILE_NAME')
+    base = COPY_MARK.sub(' ', stem.lower())
+    base = DATE.sub(' ', base);base = PREFIXED.sub(' ', base);base = DOTTED.sub(' ', base)
+    tokens = [t for t in re.split(r'[\s\-_.()（）\[\]【】]+', base) if t and t not in STATUS_WORDS and not t.isdigit()]
+    return signals, '-'.join(tokens) + path.suffix.lower()
+
+
+def read_arp(root):
+    """Adopted documents with their records; issues about originals and pending re-imports."""
+    import yaml
+    base = root / '.arp' / 'documents'
+    if not base.is_dir():raise InputError('NO_ARP_DOCUMENTS: .arp/documents not found below the ARP root')
+    documents, issues = [], []
+    for record_path in sorted(base.rglob('document.yml')):
+        folder = record_path.parent
+        if not (folder / 'extraction.json').is_file():continue
+        record = yaml.safe_load(record_path.read_bytes()) or {}
+        document_id = record.get('document_id')
+        if not isinstance(document_id, str) or folder.relative_to(base).as_posix() != document_id:continue
+        extraction_raw = (folder / 'extraction.json').read_bytes()
+        source = record.get('source') or {}
+        if sha(extraction_raw) != record.get('extraction'):issues.append({'code': 'EXTRACTION_MISMATCH', 'document': document_id})
+        original = root / str(source.get('path', ''))
+        if not source.get('path') or not original.is_file():issues.append({'code': 'SOURCE_MISSING', 'document': document_id})
+        elif sha(original.read_bytes()) != source.get('sha256'):issues.append({'code': 'SOURCE_CHANGED', 'document': document_id})
+        if (root / '.arp' / 'changes' / document_id / 'document.yml').is_file():
+            issues.append({'code': 'REIMPORT_PENDING', 'document': document_id})
+        documents.append({'document_id': document_id, 'source_path': str(source.get('path', '')),
+                          'source_sha256': str(source.get('sha256', '')), 'extraction_sha256': sha(extraction_raw),
+                          'extraction': json.loads(extraction_raw)})
+    changes = root / '.arp' / 'changes'
+    adopted = {d['document_id'] for d in documents}
+    if changes.is_dir():
+        for record_path in sorted(changes.rglob('document.yml')):
+            document_id = record_path.parent.relative_to(changes).as_posix()
+            if (record_path.parent / 'extraction.json').is_file() and document_id not in adopted:
+                issues.append({'code': 'NOT_ADOPTED', 'document': document_id})
+    return documents, issues
+
+
+def propose(documents):
+    """One entry per document; the newest distinct version of each family is proposed CURRENT."""
+    entries, families = [], {}
+    for d in documents:
+        named, base = name_signals(d['document_id'])
+        found = content_signals(d['extraction'])
+        signals = Signals(**{**named, **found, 'archive_folder': named['archive_folder'],
+                             'reference': found.get('reference', []) + named.get('reference', [])})
+        family, basis = (('code:' + norm(signals.code), 'DOCUMENT_CODE') if signals.code else ('name:' + base, 'FILE_NAME'))
+        entry = Entry(document_id=d['document_id'], source_path=d['source_path'], source_sha256=d['source_sha256'],
+                      extraction_sha256=d['extraction_sha256'], family=family, family_basis=basis, signals=signals,
+                      status='UNDECIDED', reason='')
+        entries.append(entry);families.setdefault(family, []).append(entry)
+    for members in families.values():
+        by_content = {}
+        for e in members:by_content.setdefault(e.source_sha256, []).append(e)
+        distinct = []
+        for same in by_content.values():
+            keep = min(same, key=lambda e: (e.signals.archive_folder, len(e.document_id), e.document_id))
+            distinct.append(keep)
+            for e in same:
+                if e is not keep:e.status, e.reason, e.related = 'EXCLUDED', 'DUPLICATE_OF', keep.document_id
+        if len(distinct) == 1:
+            e = distinct[0]
+            e.status, e.reason = ('UNDECIDED', 'ARCHIVE_FOLDER') if e.signals.archive_folder else ('CURRENT', 'ONLY_VERSION')
+            continue
+        keys = {e.document_id: version_key(e.signals.version or '') for e in distinct}
+        kinds = {k[0] for k in keys.values() if k}
+        if None in keys.values() or len(kinds) != 1 or len(set(keys.values())) != len(distinct):
+            for e in distinct:e.status, e.reason = 'UNDECIDED', 'VERSION_UNORDERED'
+            continue
+        newest = max(distinct, key=lambda e: keys[e.document_id])
+        for e in distinct:
+            if e is not newest:e.status, e.reason, e.related = 'SUPERSEDED', 'OLDER_VERSION', newest.document_id
+        newest.status, newest.reason = ('UNDECIDED', 'NEWEST_IN_ARCHIVE_FOLDER') if newest.signals.archive_folder else ('CURRENT', 'NEWEST_VERSION')
+    for e in entries:
+        # Versions say which copy is newest, not whether the document is a design basis at all.
+        if e.status == 'CURRENT' and e.signals.reference:e.status, e.reason = 'UNDECIDED', 'POSSIBLY_REFERENCE'
+    return sorted(entries, key=lambda e: (e.family, e.document_id))
+
+
+def blocking(issues, statuses):
+    """Problems with an original or its parse matter only for documents a design may cite."""
+    errors, warnings = [], []
+    for issue in issues:
+        (errors if statuses.get(issue['document'], 'CURRENT') in CITABLE and issue['code'] != 'NOT_ADOPTED' else warnings).append(issue)
+    return errors, warnings
+
+
+def dump(value):return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+
+
+def scan(root):
+    documents, issues = read_arp(root)
+    return SourceSet(schema_version='1', kind='proposal', documents=propose(documents), issues=issues)
+
+
+def approve(root, proposal_raw, approver, settings, *, now=None, delegation=None):
+    """Approve the fresh scan exactly as proposed, with the approver's explicit status settings.
+
+    A person approves by name; an agent approves only with a delegation basis and no settings of its own."""
+    if delegation is None:
+        try:approver = person_name(approver)
+        except DelegationError as exc:raise InputError(str(exc)) from None
+    elif not is_agent(approver) or settings:raise InputError('DELEGATED_APPROVAL: an agent approves as proposed, under an agent name')
+    fresh = scan(root)
+    if sha(dump(fresh.model_dump())) != sha(dump(SourceSet.model_validate_json(proposal_raw).model_dump())):
+        raise InputError('PROPOSAL_STALE: the proposal differs from a fresh scan of ARP4; scan again and show the new proposal')
+    entries = {e.document_id: e for e in fresh.documents}
+    for document_id, status in settings.items():
+        if document_id not in entries:raise InputError(f'UNKNOWN_DOCUMENT: {document_id}')
+        if status not in ('CURRENT', 'SUPERSEDED', 'REFERENCE', 'EXCLUDED'):raise InputError(f'INVALID_STATUS: {status}')
+        entries[document_id].status, entries[document_id].decided = status, 'SET'
+    undecided = sorted(d for d, e in entries.items() if e.status == 'UNDECIDED')
+    if undecided:raise InputError('UNDECIDED_DOCUMENTS: ' + ', '.join(undecided))
+    errors, _ = blocking(fresh.issues, {d: e.status for d, e in entries.items()})
+    if errors:raise InputError('SOURCE_ISSUES: ' + ', '.join(f"{i['code']} {i['document']}" for i in errors))
+    stamp = (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    return SourceSet(schema_version='1', kind='approved', documents=list(entries.values()), issues=fresh.issues,
+                     approval=Approval(approver=approver.strip(), approved_at=stamp, proposal_sha256=sha(proposal_raw), delegation=delegation))
+
+
+def load_approved(raw):
+    approved = SourceSet.model_validate_json(raw)
+    if approved.kind != 'approved' or approved.approval is None:raise InputError('SOURCE_SET_NOT_APPROVED')
+    return approved
+
+
+def require_current(raw, document_id, source_sha256, extraction_sha256):
+    """For one ARP4 document used directly (an external sheet): it must be CURRENT and unchanged."""
+    entry = next((e for e in load_approved(raw).documents if e.document_id == document_id), None)
+    if entry is None:raise InputError(f'UNLISTED_DOCUMENT: {document_id} is not in the source set')
+    if entry.status != 'CURRENT':raise InputError(f'NOT_CURRENT: {document_id} is {entry.status} in the source set')
+    if (entry.source_sha256, entry.extraction_sha256) != (source_sha256, extraction_sha256):
+        raise InputError(f'DOCUMENT_CHANGED: {document_id} differs from the approved source set')
+
+
+def design_citations(design):
+    """Declared sources and how many design objects cite each one."""
+    sources = [s for s in design.get('sources', []) if isinstance(s, dict)]
+    counts = {s.get('id'): 0 for s in sources}
+
+    def walk(value, top=False):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key == 'sources' and not top and isinstance(child, list):
+                    for sid in child:
+                        if sid in counts:counts[sid] += 1
+                else:walk(child)
+        elif isinstance(value, list):
+            for child in value:walk(child)
+    for key, value in design.items():
+        if key != 'sources':walk(value)
+    return [(s.get('id'), str(s.get('locator', '')), counts[s.get('id')]) for s in sources]
+
+
+# Values a design copies from documents; quantities with units are compared as written.
+DESIGN_TOKENS = [
+    ('CIDR', re.compile(r'(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}/\d{1,2}(?![\d/])')),
+    ('IP', re.compile(r'(?<![\d./])(?:\d{1,3}\.){3}\d{1,3}(?![\d./])')),
+    ('ARN', re.compile(r'arn:aws[a-z-]*:[^\s,，、。）)"\']+')),
+    ('INSTANCE_TYPE', re.compile(r'(?<![\w.])(?:db\.|cache\.)?[a-z][a-z0-9-]*\d[a-z0-9-]*\.(?:nano|micro|small|medium|large|\d*xlarge|metal)(?![\w.])')),
+    ('QUANTITY', re.compile(r'(?<![\d.,])(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s?(?:GiB|GB|MiB|MB|TiB|TB|ms|秒|分|時間|日|か月|ヶ月|年|vCPU|ACU|%)', re.I)),
+]
+CALENDAR_YEAR = re.compile(r'(?:19|20)\d{2}年')
+MATCHED_IN_DESIGN = {'CIDR', 'IP', 'ARN', 'INSTANCE_TYPE'}
+
+
+def tokens(text):
+    text = unicodedata.normalize('NFKC', str(text))
+    found = set()
+    for kind, pattern in DESIGN_TOKENS:
+        for m in pattern.finditer(text):
+            value = re.sub(r'[\s,]', '', m.group(0))
+            if not (kind == 'QUANTITY' and CALENDAR_YEAR.fullmatch(value)):found.add((kind, value))
+    return found
+
+
+def cell_texts(extraction):
+    for number, sheet in enumerate(extraction.get('sheets', []), 1):
+        for c in sheet.get('cells', []):
+            value = c.get('value')
+            if isinstance(value, (str, int, float)) and not isinstance(value, bool) and str(value).strip():
+                yield f"s{number}-{c.get('address')}", re.sub(r'\s+', ' ', unicodedata.normalize('NFKC', str(value))).strip()
+
+
+def version_diff(documents, entries):
+    """Per SUPERSEDED document: cell texts removed and added against its newer document, and design values found only in old versions."""
+    texts = {d['document_id']: list(cell_texts(d['extraction'])) for d in documents}
+    current = set()
+    for document_id, entry in entries.items():
+        if entry.status in CITABLE and document_id in texts:
+            for _, text in texts[document_id]:current |= tokens(text)
+    pairs, old_only = [], {}
+    for document_id, entry in sorted(entries.items()):
+        if entry.status != 'SUPERSEDED' or document_id not in texts:continue
+        for cid, text in texts[document_id]:
+            for token in tokens(text) - current:old_only.setdefault(token, []).append(f'{document_id}#{cid}')
+        newer = entry.related
+        if newer not in texts:continue
+        new_set = {t for _, t in texts[newer]};old_set = {t for _, t in texts[document_id]}
+        old_values = set().union(*(tokens(t) for t in old_set));new_values = set().union(*(tokens(t) for t in new_set))
+        removed = [{'cell': cid, 'text': t, 'values': sorted(v for _, v in tokens(t) & (old_values - new_values))}
+                   for cid, t in texts[document_id] if t not in new_set]
+        added = [{'cell': cid, 'text': t, 'values': sorted(v for _, v in tokens(t) & (new_values - old_values))}
+                 for cid, t in texts[newer] if t not in old_set]
+        pairs.append({'document': document_id, 'newer': newer, 'removed': removed, 'added': added,
+                      'removed_values': sorted(v for _, v in old_values - new_values),
+                      'added_values': sorted(v for _, v in new_values - old_values)})
+    return pairs, {token: sorted(set(where)) for token, where in old_only.items()}
+
+
+def design_values(design):
+    """Scalar strings under setting values, with their input pointers."""
+    found = []
+
+    def walk(value, pointer, inside):
+        if isinstance(value, dict):
+            for key, child in value.items():walk(child, f"{pointer}/{str(key).replace('~', '~0').replace('/', '~1')}", inside or key == 'value')
+        elif isinstance(value, list):
+            for i, child in enumerate(value):walk(child, f'{pointer}/{i}', inside)
+        elif inside and isinstance(value, str):found.append((pointer, value))
+    for key in ('resources', 'environments'):walk(design.get(key), '/' + key, False)
+    return found
+
+
+def stale_values(documents, entries, design):
+    _, old_only = version_diff(documents, entries)
+    stale = []
+    for pointer, value in design_values(design):
+        for kind, token in sorted(tokens(value)):
+            if kind in MATCHED_IN_DESIGN and (kind, token) in old_only:
+                stale.append({'code': 'STALE_VALUE_IN_DESIGN', 'pointer': pointer, 'kind': kind, 'value': token, 'found_in': old_only[(kind, token)]})
+    return stale
+
+
+def check(root, set_raw, design=None):
+    approved = load_approved(set_raw)
+    documents, issues = read_arp(root)
+    entries = {e.document_id: e for e in approved.documents}
+    statuses = {d: e.status for d, e in entries.items()}
+    errors, warnings = blocking(issues, statuses)
+    now = {d['document_id']: d for d in documents}
+    for document_id, entry in entries.items():
+        bucket = errors if entry.status in CITABLE else warnings
+        if document_id not in now:bucket.append({'code': 'DOCUMENT_REMOVED', 'document': document_id})
+        elif (now[document_id]['source_sha256'], now[document_id]['extraction_sha256']) != (entry.source_sha256, entry.extraction_sha256):
+            bucket.append({'code': 'DOCUMENT_CHANGED', 'document': document_id})
+    for document_id in sorted(set(now) - set(entries)):
+        errors.append({'code': 'UNLISTED_DOCUMENT', 'document': document_id})
+    families = {}
+    for e in approved.documents:
+        if e.status == 'CURRENT':families.setdefault(e.family, []).append(e.document_id)
+    for family, ids in sorted(families.items()):
+        if len(ids) > 1:warnings.append({'code': 'MULTIPLE_CURRENT', 'family': family, 'documents': sorted(ids)})
+    citations, cited = [], set()
+    if design is not None:
+        for source_id, locator, count in design_citations(design):
+            document_id = locator.split('#', 1)[0]
+            entry = entries.get(document_id)
+            row = {'source': source_id, 'document': document_id if entry else None, 'status': entry.status if entry else None, 'cited_by': count}
+            citations.append(row)
+            if entry is None:warnings.append({'code': 'SOURCE_NOT_IN_SET', 'source': source_id})
+            elif entry.status in ('SUPERSEDED', 'EXCLUDED'):
+                errors.append({'code': 'CITES_' + entry.status, 'source': source_id, 'document': document_id, 'newer': entry.related})
+            elif entry.status == 'REFERENCE':warnings.append({'code': 'CITES_REFERENCE', 'source': source_id, 'document': document_id})
+            if entry:cited.add(document_id)
+        warnings.extend(stale_values(documents, entries, design))
+    counts = {}
+    for e in approved.documents:counts[e.status] = counts.get(e.status, 0) + 1
+    report = {'status': 'FAIL' if errors else 'PASS', 'approval': approved.approval.model_dump(), 'documents': counts,
+              'errors': errors, 'warnings': warnings}
+    if design is not None:
+        report['citations'] = citations
+        report['current_not_cited'] = sorted(d for d, e in entries.items() if e.status == 'CURRENT' and d not in cited)
+    return report
+
+
+def markdown(source_set):
+    """Table for the person who approves the set: one row per document, grouped by family, with its title and role."""
+    lines = ['| 系列 | 文書 | 表題・位置付け | 版（根拠） | 状態 | 理由 |', '|---|---|---|---|---|---|']
+    cell = lambda text: str(text).replace('|', '｜')
+    for e in source_set.documents:
+        version = e.signals.version or '—'
+        basis = {'CONTENT': f'本文 {e.signals.version_cell}', 'FILE_NAME': 'ファイル名'}.get(e.signals.version_basis, '')
+        family = f'{e.signals.code}（文書ID {e.signals.code_cell}）' if e.family_basis == 'DOCUMENT_CODE' else e.family.split(':', 1)[1] + '（ファイル名）'
+        reason = e.reason + (f' → {e.related}' if e.related else '') + ('（承認者が指定）' if e.decided == 'SET' else '')
+        if e.reason == 'POSSIBLY_REFERENCE':reason += '（' + reference_note(e) + '）'
+        about = '<br>'.join(cell(x) for x in (e.signals.title, f'位置付け：{e.signals.role}' if e.signals.role else None) if x) or '—'
+        lines.append(f"| {family} | {e.document_id} | {about} | {version}（{basis}） | {e.status} | {cell(reason)} |".replace('（）', ''))
+    for issue in source_set.issues:lines.append(f"\n- {issue['code']}: {issue['document']}")
+    return '\n'.join(lines) + '\n'
+
+
+def reference_note(entry):
+    """Why a document may be a reference, for the approver."""
+    where = {'FOLDER': 'フォルダ', 'ROLE': '位置付け', 'TITLE': '表題'}
+    found = '、'.join(f"{where[h.basis]}{' ' + h.cell if h.cell else ''}「{h.word}」" for h in entry.signals.reference)
+    return f'参考資料・提案書の可能性：{found}。設計の根拠なら CURRENT、そうでなければ REFERENCE か EXCLUDED を --set で指定'
+
+
+def render_diff(report):
+    """For the reviewer: changed design values per version pair, then values no current document still holds."""
+    lines = ['# 版の差分', '']
+    for pair in report['pairs']:
+        lines += [f"## {pair['document']} → {pair['newer']}", '',
+                  f"削除されたセル {len(pair['removed'])}件・追加されたセル {len(pair['added'])}件。",
+                  f"削除された設計値：{'、'.join(pair['removed_values']) or 'なし'}",
+                  f"追加された設計値：{'、'.join(pair['added_values']) or 'なし'}", '']
+    lines += ['## 旧版にだけある設計値', '']
+    if report['old_only_values']:
+        lines += ['| 種類 | 値 | 記載箇所 |', '|---|---|---|']
+        lines += [f"| {v['kind']} | {v['value']} | {'、'.join(v['found_in'])} |" for v in report['old_only_values']]
+    else:lines.append('なし。')
+    lines += ['', '現行・参考文書のどれにもない値。設計に残っていれば `check --design` が STALE_VALUE_IN_DESIGN として警告する。']
+    return '\n'.join(lines) + '\n'
+
+
+def write_new(path, data):
+    path = Path(path)
+    if path.exists():raise InputError('output already exists; use a fresh path')
+    path.write_bytes(data)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog='aws-design sources', description='Approved set of ARP4 documents a design may cite')
+    sub = parser.add_subparsers(dest='command', required=True)
+    p = sub.add_parser('scan', help='propose CURRENT/SUPERSEDED per version family');p.add_argument('--arp-root', required=True)
+    p.add_argument('--output', required=True, help='fresh path for the proposal')
+    p = sub.add_parser('show', help='Markdown table of a proposal or approved set for the approver');p.add_argument('--source-set', required=True)
+    p = sub.add_parser('approve', help='approve a fresh proposal; the approver must be a person the user names')
+    p.add_argument('--arp-root', required=True);p.add_argument('--proposal', required=True);p.add_argument('--approver', required=True)
+    p.add_argument('--set', action='append', default=[], metavar='DOCUMENT_ID=STATUS', help='CURRENT, SUPERSEDED, REFERENCE or EXCLUDED')
+    p.add_argument('--output', required=True)
+    p = sub.add_parser('check', help='verify the set against ARP4 and, optionally, the sources a design cites')
+    p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True);p.add_argument('--design', help='1.1 input (JSON or YAML)')
+    p = sub.add_parser('diff', help='what changed between each superseded document and its newer version')
+    p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True)
+    p.add_argument('--markdown', action='store_true', help='print a Markdown summary instead of JSON')
+    args = parser.parse_args(argv)
+    try:
+        if args.command == 'show':
+            sys.stdout.buffer.write(markdown(SourceSet.model_validate_json(Path(args.source_set).read_bytes())).encode('utf-8'));return 0
+        root = Path(args.arp_root)
+        if args.command == 'scan':
+            proposal = scan(root);write_new(args.output, dump(proposal.model_dump()))
+            counts = {}
+            for e in proposal.documents:counts[e.status] = counts.get(e.status, 0) + 1
+            print(json.dumps({'proposal': args.output, 'documents': counts, 'issues': proposal.issues,
+                              'undecided': [e.document_id for e in proposal.documents if e.status == 'UNDECIDED']}, ensure_ascii=False));return 0
+        if args.command == 'approve':
+            settings = {}
+            for item in args.set:
+                document_id, sep, status = item.rpartition('=')
+                if not sep:raise InputError(f'INVALID_SET: {item}')
+                settings[document_id] = status.strip().upper()
+            approved = approve(root, Path(args.proposal).read_bytes(), args.approver, settings)
+            write_new(args.output, dump(approved.model_dump()))
+            print(json.dumps({'source_set': args.output, 'approver': approved.approval.approver}, ensure_ascii=False));return 0
+        if args.command == 'diff':
+            documents, _ = read_arp(root)
+            pairs, old_only = version_diff(documents, {e.document_id: e for e in load_approved(Path(args.source_set).read_bytes()).documents})
+            report = {'pairs': pairs, 'old_only_values': [{'kind': k, 'value': v, 'found_in': w} for (k, v), w in sorted(old_only.items())]}
+            text = render_diff(report) if args.markdown else json.dumps(report, ensure_ascii=False, indent=2) + '\n'
+            sys.stdout.buffer.write(text.encode('utf-8'));return 0
+        design = None
+        if args.design:
+            import yaml
+            design = yaml.safe_load(Path(args.design).read_bytes())
+            if not isinstance(design, dict):raise InputError('design input must be a mapping')
+        report = check(root, Path(args.source_set).read_bytes(), design)
+        print(json.dumps(report, ensure_ascii=False, indent=2));return 0 if report['status'] == 'PASS' else 2
+    except ValidationError as exc:
+        errors = [{'loc': [str(x) for x in e['loc']], 'type': e['type']} for e in exc.errors(include_input=False, include_context=False)]
+        print(json.dumps({'status': 'ERROR', 'message': 'CONTRACT_INVALID', 'errors': errors}, ensure_ascii=False));return 2
+    except (InputError, json.JSONDecodeError, OSError) as exc:
+        message = str(exc) if isinstance(exc, InputError) else type(exc).__name__
+        print(json.dumps({'status': 'ERROR', 'message': message}, ensure_ascii=False));return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

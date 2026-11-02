@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "Suspension": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        },
+        "since": {
+          "title": "Since",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule",
+        "reason",
+        "since"
+      ],
+      "title": "Suspension",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/delegation-calibration",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Rules suspended by measured results; suspension only narrows what the approved policy allows.",
+  "properties": {
+    "contract": {
+      "const": "delegation-calibration/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "suspended": {
+      "items": {
+        "$ref": "#/$defs/Suspension"
+      },
+      "title": "Suspended",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "policy_sha256"
+  ],
+  "title": "Calibration",
+  "type": "object"
+}

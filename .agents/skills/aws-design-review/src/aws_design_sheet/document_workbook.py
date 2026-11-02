@@ -1,6 +1,7 @@
 """Lossless text-first XLSX renderer for normalized design documents."""
 import json
 import math
+from copy import copy
 
 from openpyxl import Workbook
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
@@ -22,12 +23,18 @@ def text(value):
 def chunks(value,limit=120):
     """Split visible text; no Excel 32767-character truncation or hidden tall rows."""
     raw=ILLEGAL_CHARACTERS_RE.sub(lambda m:'\\u%04x'%ord(m[0]),text(value))
-    result=[];part='';lines=0
-    for char in raw:
-        part+=char;lines+=char=='\n'
-        if len(part)>=limit or lines>=6:
-            result.append(part);part='';lines=0
-    if part or not result:result.append(part)
+    result=[];start=0
+    while True:
+        # A part ends after `limit` characters or just after its sixth line break, whichever comes first.
+        end=start+limit;at=start;breaks=0
+        while breaks<6:
+            at=raw.find('\n',at,end)
+            if at<0:break
+            at+=1;breaks+=1
+        if breaks==6:end=at
+        if end>len(raw):break
+        result.append(raw[start:end]);start=end
+    if start<len(raw) or not result:result.append(raw[start:])
     return result
 
 
@@ -48,7 +55,7 @@ def observation(item):
     return states[item.state]+('\n'+text(item.value) if item.value is not None else '')
 
 
-def workbook(document, *, services=None, service_only=False):
+def workbook(document, *, services=None, service_only=False, optional=None):
     book=Workbook();book.remove(book.active)
     layout=dict(LAYOUT)
     if document.model_version=='1.1' and not service_only:
@@ -65,6 +72,8 @@ def workbook(document, *, services=None, service_only=False):
     if not service_only:
         layout['必要入力']=(['検査ID','項目ID・パス','必須種別・必要性','条件・根拠','入力状態・解決','結果','対応方法'],[36,42,28,70,26,25,58])
         layout['必要入力根拠']=(['根拠ID','区分','内容'],[36,26,120])
+        if optional is not None:
+            layout['未記載の任意項目']=(['資源ID','種別・項目パス','階層','説明','既定値','備考'],[30,60,10,90,20,40])
         if document.evaluation.status!='NOT_EVALUATED':
             layout['AWS評価']=(['検査ID','規則・資源・パス','判定','理由','入力追跡'],[36,48,24,85,65])
             layout['AWS未検査']=(['検査ID','種別・資源・パス','理由','入力追跡'],[36,52,90,70])
@@ -77,7 +86,7 @@ def workbook(document, *, services=None, service_only=False):
         selected=sorted(set(document.resource_services.values()) if services is None else services)
         layout={k:v for k,v in layout.items() if not k.endswith('設定') and (not service_only or k=='概要')}
         columns,widths=LAYOUT['EC2設定']
-        # Reviewers type proposals only into these columns; aws-design-changes reads nothing else.
+        # Reviewers type proposals only into these columns; aws-design changes reads nothing else.
         for service in selected:layout[service+'設定']=([*columns,*EDIT_COLUMNS],[*widths,30,40,18])
     sheets={}
     for name,(columns,widths) in layout.items():
@@ -93,29 +102,45 @@ def workbook(document, *, services=None, service_only=False):
         ws.page_margins.left=0.25;ws.page_margins.right=0.25
         ws.oddFooter.center.text='&A — &P / &N'
     stripes={name:0 for name in layout}
+    # Rows written per sheet: openpyxl's max_row scans every cell, which made large books quadratic.
+    last={name:1 for name in layout}
+    # Widest row so far (the header first): every row styles that many cells, as iterating the sheet's row did.
+    span={name:len(columns)+1 for name,(columns,_) in layout.items()}
+    styles={};widths={name:{} for name in layout}
+
+    def style(c,striped,closing,highlight):
+        """One style record per combination, copied to each cell; assigning style objects re-hashes them per cell."""
+        key=(striped,closing,highlight)
+        if key not in styles:
+            c.font=Font(name='Yu Gothic',size=10);c.alignment=Alignment(vertical='top',wrap_text=True)
+            if striped:c.fill=PatternFill('solid',fgColor='F0F5FA')
+            if closing:c.border=Border(bottom=Side(style='hair',color='CAD5E0'))
+            if highlight:
+                c.fill=PatternFill('solid',fgColor={'DIFFERENT':'FCE4D6','UNRESOLVED':'FFF2CC','MATCH':'E2F0D9','EXPRESSION_MATCH':'FFF2CC','REFERENCE_MATCH':'FFF2CC'}[highlight])
+                c.font=Font(name='Yu Gothic',size=10,bold=True)
+            styles[key]=copy(c._style)
+        else:c._style=copy(styles[key])
+
     def add(name,values):
         if name not in sheets:return
         ws=sheets[name];parts=[chunks(v,240 if name in ('必要入力根拠','AWS評価根拠','案件方針根拠') else 120) for v in values];count=max(map(len,parts))
         stripes[name]+=1
         for index in range(count):
-            if ws.max_row>=1_048_575:raise ValueError('workbook row limit exceeded')
+            if last[name]>=1_048_575:raise ValueError('workbook row limit exceeded')
             # Keep identity on every continuation row; other columns concatenate losslessly.
             row=[values[0],*[p[index] if index<len(p) else '' for p in parts[1:]],f'{index+1}/{count}']
-            ws.append(row)
+            ws.append(row);last[name]+=1;number=last[name];span[name]=max(span[name],len(row))
             height=1
-            for c in ws[ws.max_row]:
-                c.data_type='s';c.font=Font(name='Yu Gothic',size=10)
-                c.alignment=Alignment(vertical='top',wrap_text=True)
-                if stripes[name]%2:c.fill=PatternFill('solid',fgColor='F0F5FA')
-                if index==count-1:c.border=Border(bottom=Side(style='hair',color='CAD5E0'))
-                if c.value in ('DIFFERENT','UNRESOLVED','MATCH','EXPRESSION_MATCH','REFERENCE_MATCH'):
-                    c.fill=PatternFill('solid',fgColor={'DIFFERENT':'FCE4D6','UNRESOLVED':'FFF2CC','MATCH':'E2F0D9','EXPRESSION_MATCH':'FFF2CC','REFERENCE_MATCH':'FFF2CC'}[c.value])
-                    c.font=Font(name='Yu Gothic',size=10,bold=True)
-                height=max(height,sum(max(1,math.ceil(len(line)/(ws.column_dimensions[c.column_letter].width/2))) for line in str(c.value).split('\n')))
+            for column in range(1,span[name]+1):
+                c=ws.cell(number,column)
+                c.data_type='s'
+                style(c,bool(stripes[name]%2),index==count-1,c.value if c.value in ('DIFFERENT','UNRESOLVED','MATCH','EXPRESSION_MATCH','REFERENCE_MATCH') else None)
+                if column not in widths[name]:widths[name][column]=ws.column_dimensions[c.column_letter].width
+                height=max(height,sum(max(1,math.ceil(len(line)/(widths[name][column]/2))) for line in str(c.value).split('\n')))
             # Yu Gothic wrapping and Excel's print scaling need vertical leading.
             # Keep the released v1 layout unchanged; pad schema-document rows.
             points=17*(height+1) if document.model_version=='1.1' else 15*height
-            ws.row_dimensions[ws.max_row].height=min(390,max(30,points))
+            ws.row_dimensions[number].height=min(390,max(30,points))
     d=document.design;env=next(e for e in d.environments if e.id==document.environment_id)
     if document.model_version=='1.1' and document.review_report and not service_only:
         add('実行サマリ根拠',['@review-report','JSON',document.review_report])
@@ -137,6 +162,11 @@ def workbook(document, *, services=None, service_only=False):
         state=document.resource_comparisons[r.id]
         add('構成一覧',[r.id,r.name,r.type,r.cfn_logical_id or '未対応付け',state,r.rationale,', '.join(r.sources)])
         if state!='PRESENT':add('差異',[r.id,state,r.type,r.cfn_logical_id or '',r.rationale])
+    # Actors are the ends of connections the input does not model; they hold no settings and nothing to compare.
+    for a in getattr(d,'actors',None) or []:
+        kind={'USER':'利用者','OPERATOR':'運用者','EXTERNAL_SYSTEM':'外部システム','AWS_SERVICE':'AWS（入力で扱えないサービス）'}[a.kind]
+        add('構成一覧',[a.id,a.name,kind+(f'：{a.service}' if a.service else ''),'対象外','外部の相手（設定なし）',
+                     ' '.join(x for x in (a.description,a.rationale) if x),', '.join(a.sources)])
     for note in d.requirements:add('要件',[note.id,note.title,note.status,note.text,', '.join(note.resources),', '.join(note.sources)])
     for note in d.operations:add('運用復旧',[note.id,note.title,note.status,note.text,', '.join(note.resources),', '.join(note.sources)])
     for note in d.issues:add('未決事項',[note.id,note.title,note.status,note.text,', '.join(note.resources),', '.join(note.sources)])
@@ -171,6 +201,11 @@ def workbook(document, *, services=None, service_only=False):
     add('概要',['@input-completeness','必要入力の充足',document.checklist.status])
     add('概要',['@input-denominator','必要入力の集計',document.checklist.summary])
     add('概要',['@input-scope','必要入力の検査範囲',document.checklist.limitations])
+    if optional is not None and not service_only:
+        add('概要',['@optional-inputs','未記載の任意項目（参考。判定ではない）',optional['summary']])
+        for row in optional['rows']:
+            add('未記載の任意項目',[row['resource_id'],row['resource_type']+'\n'+row['path'],'トップ' if row['level']=='TOP' else '入れ子',
+                row['description'],'' if row['default'] is None else text(row['default']),'\n'.join(row['notes'])])
     policy=document.project_policy
     add('概要',['@project-policy','案件方針の実行 / 判定',policy.status+' / '+policy.assessment])
     if document.design.project_policies:
@@ -179,15 +214,15 @@ def workbook(document, *, services=None, service_only=False):
         if not service_only:
             add('案件方針根拠',['@project-policy','評価メタデータ',text(policy.model_dump(mode='json',exclude={'rows'}))])
             for row in policy.rows:
-                detail_row=sheets['案件方針根拠'].max_row+1
+                detail_row=last['案件方針根拠']+1
                 add('案件方針根拠',[row['policy_check_id'],'案件条件・入力・出典',text(row)])
-                start=sheets['案件方針'].max_row+1
+                start=last['案件方針']+1
                 exception=row['exception']
                 add('案件方針',[row['policy_check_id'],row['requirement_id']+'\n'+row['policy_id'],
                     row['resource_id']+'\n'+row['path'],row['condition_result']+' / '+row['operator']+' '+text(row['expected']),
                     row['result'],row['reason']+('\n例外: '+exception['id']+' / '+exception['reason'] if exception else ''),
                     row['trace']['row_id']+'\n'+row['trace']['input_pointer']+'\n'+row['trace']['input_state']])
-                for index in range(start,sheets['案件方針'].max_row+1):
+                for index in range(start,last['案件方針']+1):
                     sheets['案件方針'].cell(index,1).hyperlink=f"#'案件方針根拠'!A{detail_row}"
             for row in policy.requirement_coverage:
                 add('案件要件範囲',[row['requirement_id'],', '.join(row['policy_ids']),row['state'],
@@ -203,14 +238,14 @@ def workbook(document, *, services=None, service_only=False):
             for category,records in [('AWS評価',evaluation.results),('AWS未検査',evaluation.coverage)]:
                 for row in records:
                     ident=row.get('evaluation_id','@unmapped')
-                    detail_row=sheets['AWS評価根拠'].max_row+1
+                    detail_row=last['AWS評価根拠']+1
                     add('AWS評価根拠',[ident,category,text(row)])
                     location=(row.get('rule_id') or row.get('kind') or '')+'\n'+(row.get('resource_id') or '')+'\n'+(row.get('path') or '')
                     traces='\n'.join(dict.fromkeys(m['item_id']+' / '+m['input_pointer'] for m in row.get('trace',[])))
                     reason=row.get('reason','')+'\n'+row.get('bridge_reason','')
                     values=[ident,location,row['verdict'],reason,traces] if category=='AWS評価' else [ident,location,reason,traces]
-                    first=sheets[category].max_row+1;add(category,values)
-                    for index in range(first,sheets[category].max_row+1):
+                    first=last[category]+1;add(category,values)
+                    for index in range(first,last[category]+1):
                         sheets[category].cell(index,1).hyperlink=f"#'AWS評価根拠'!A{detail_row}"
     checklist_evidence={}
     for row in document.checklist.rows if not service_only else []:
@@ -226,13 +261,13 @@ def workbook(document, *, services=None, service_only=False):
                 refs.append(checklist_evidence[encoded])
             evidence_refs[key]=refs
         detail={**{k:row[k] for k in ('condition_result','condition','schema_pointer','requirement_id','requirement_confirmation','input_pointer','input_pointer_exists','default_evidence','detail')},**evidence_refs}
-        detail_row=sheets['必要入力根拠'].max_row+1
+        detail_row=last['必要入力根拠']+1
         add('必要入力根拠',[row['checklist_id'],'条件・出典・入力追跡',text(detail)])
-        start=sheets['必要入力'].max_row+1
+        start=last['必要入力']+1
         add('必要入力',[row['checklist_id'],row['item_id']+'\n'+row['path'],row['requirement_kind']+' / '+row['necessity'],
             row['condition_result']+' / '+row['condition']+'\n根拠: '+', '.join(evidence_refs['evidence'])+'\n詳細は検査IDのリンク先',
             row['input_state']+' / '+row['value_resolution'],row['result'],row['action']])
-        for index in range(start,sheets['必要入力'].max_row+1):
+        for index in range(start,last['必要入力']+1):
             sheets['必要入力'].cell(index,1).hyperlink=f"#'必要入力根拠'!A{detail_row}"
     trace=getattr(document,'decision_trace',{})
     if document.model_version=='1.1' and trace:

@@ -1,0 +1,591 @@
+{
+  "$defs": {
+    "Author": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor"
+      ],
+      "title": "Author",
+      "type": "object"
+    },
+    "Binding": {
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "minLength": 1,
+          "title": "Document",
+          "type": "string"
+        },
+        "extraction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extraction Sha256",
+          "type": "string"
+        },
+        "structure_content_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Structure Content Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "extraction_sha256",
+        "structure_content_hash"
+      ],
+      "title": "Binding",
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "properties": {
+        "label_cell": {
+          "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+          "title": "Label Cell",
+          "type": "string"
+        },
+        "value_cell": {
+          "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+          "title": "Value Cell",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label_cell",
+        "value_cell"
+      ],
+      "title": "Condition",
+      "type": "object"
+    },
+    "Excluded": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})(?::([A-Z]{1,3})([1-9][0-9]{0,6}))?$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Cells",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cells",
+        "reason"
+      ],
+      "title": "Excluded",
+      "type": "object"
+    },
+    "Extension": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "BUSINESS",
+            "SERVICE_SPECIFIC",
+            "REFERENCE_ONLY",
+            "OTHER"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})(?::([A-Z]{1,3})([1-9][0-9]{0,6}))?$",
+            "type": "string"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "follow_up": {
+          "default": "",
+          "title": "Follow Up",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "resources": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "sensitive": {
+          "default": false,
+          "title": "Sensitive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "reason",
+        "category"
+      ],
+      "title": "Extension",
+      "type": "object"
+    },
+    "Item": {
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Label Cells",
+          "type": "array"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "note_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "title": "Note Cells",
+          "type": "array"
+        },
+        "paths": {
+          "items": {
+            "pattern": "^(/[^/]+)+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "resource": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Resource",
+          "type": "string"
+        },
+        "review_cell": {
+          "anyOf": [
+            {
+              "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Cell"
+        },
+        "state": {
+          "enum": [
+            "LITERAL",
+            "UNDECIDED",
+            "NOT_APPLICABLE",
+            "DEFAULT",
+            "BLANK",
+            "FORMULA",
+            "RESOURCE_REF",
+            "SECRET_REF",
+            "SECRET_VALUE"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "unit_cell": {
+          "anyOf": [
+            {
+              "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Cell"
+        },
+        "value_cell": {
+          "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+          "title": "Value Cell",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "resource",
+        "label_cells",
+        "value_cell",
+        "paths",
+        "state",
+        "mapping"
+      ],
+      "title": "Item",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Mapping": {
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entry"
+        },
+        "proposal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Proposal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Mapping",
+      "type": "object"
+    },
+    "Proposal": {
+      "additionalProperties": false,
+      "properties": {
+        "convert": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean"
+          ],
+          "title": "Convert",
+          "type": "string"
+        },
+        "units": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Units",
+          "type": "array"
+        },
+        "value_map": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Value Map",
+          "type": "object"
+        }
+      },
+      "required": [
+        "convert"
+      ],
+      "title": "Proposal",
+      "type": "object"
+    },
+    "SheetResource": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "title": "Evidence Cells",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name_cell": {
+          "anyOf": [
+            {
+              "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name Cell"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z]{2}(?:-gov)?-[a-z]+-\\d+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "SheetResource",
+      "type": "object"
+    },
+    "SourceApproval": {
+      "additionalProperties": false,
+      "description": "Cells of the source's own approval block (status, approvers, date, notes).",
+      "properties": {
+        "approver_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "title": "Approver Cells",
+          "type": "array"
+        },
+        "date_cell": {
+          "anyOf": [
+            {
+              "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Cell"
+        },
+        "note_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "title": "Note Cells",
+          "type": "array"
+        },
+        "status_cell": {
+          "anyOf": [
+            {
+              "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Cell"
+        }
+      },
+      "title": "SourceApproval",
+      "type": "object"
+    },
+    "Unmapped": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "NO_CFN_PROPERTY",
+            "AMBIGUOUS",
+            "NEEDS_CONFIRMATION",
+            "UNREADABLE"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})(?::([A-Z]{1,3})([1-9][0-9]{0,6}))?$",
+            "type": "string"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "follow_up": {
+          "minLength": 1,
+          "title": "Follow Up",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_.-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "resources": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "sensitive": {
+          "default": false,
+          "title": "Sensitive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "reason",
+        "category",
+        "follow_up"
+      ],
+      "title": "Unmapped",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/external-items",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceApproval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "author": {
+      "$ref": "#/$defs/Author"
+    },
+    "binding": {
+      "$ref": "#/$defs/Binding"
+    },
+    "excluded": {
+      "items": {
+        "$ref": "#/$defs/Excluded"
+      },
+      "title": "Excluded",
+      "type": "array"
+    },
+    "extensions": {
+      "items": {
+        "$ref": "#/$defs/Extension"
+      },
+      "title": "Extensions",
+      "type": "array"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/Item"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "resources": {
+      "items": {
+        "$ref": "#/$defs/SheetResource"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sheet_version_cell": {
+      "anyOf": [
+        {
+          "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sheet Version Cell"
+    },
+    "unmapped": {
+      "items": {
+        "$ref": "#/$defs/Unmapped"
+      },
+      "title": "Unmapped",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "binding",
+    "author"
+  ],
+  "title": "ItemsFile",
+  "type": "object"
+}

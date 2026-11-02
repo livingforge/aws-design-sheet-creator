@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "Basis": {
+      "additionalProperties": false,
+      "description": "Why an agent could record a decision: the approved policy, the rule and what it rests on.",
+      "properties": {
+        "actors": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Actors",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_sha256",
+        "rule",
+        "actors"
+      ],
+      "title": "Basis",
+      "type": "object"
+    },
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "comment": {
+          "default": "",
+          "title": "Comment",
+          "type": "string"
+        },
+        "delegation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Basis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fingerprint": {
+          "minLength": 1,
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "item_id": {
+          "minLength": 1,
+          "title": "Item Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "reviewer": {
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "OK",
+            "NG"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "fingerprint",
+        "verdict",
+        "reviewer",
+        "recorded_at"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/review-decisions",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/Verdict"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "version": {
+      "const": "1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "title": "Decisions",
+  "type": "object"
+}

@@ -27,13 +27,46 @@ class DocumentLoader(_TemplateLoader):
         return result
 
 
+class _FastDocumentLoader(yaml.cyaml.CParser if yaml.__with_libyaml__ else object,yaml.constructor.SafeConstructor,yaml.resolver.Resolver):
+    """DocumentLoader's resolvers and constructors over libyaml's parser: the same values, several times faster."""
+    def __init__(self,stream):
+        yaml.cyaml.CParser.__init__(self,stream);yaml.constructor.SafeConstructor.__init__(self);yaml.resolver.Resolver.__init__(self)
+    construct_mapping=DocumentLoader.construct_mapping
+
+
+_FastDocumentLoader.yaml_implicit_resolvers=DocumentLoader.yaml_implicit_resolvers
+_FastDocumentLoader.yaml_constructors=DocumentLoader.yaml_constructors
+_FastDocumentLoader.yaml_multi_constructors=DocumentLoader.yaml_multi_constructors
+LOADER=_FastDocumentLoader if yaml.__with_libyaml__ else DocumentLoader
+ALIASES='YAML aliases are not supported; use environment overrides'
+
+
+def aliased(node):
+    """Whether any node is reached twice: only an alias shares a node."""
+    seen=set();stack=[node]
+    while stack:
+        current=stack.pop()
+        if id(current) in seen:return True
+        seen.add(id(current))
+        if isinstance(current,yaml.SequenceNode):stack.extend(current.value)
+        elif isinstance(current,yaml.MappingNode):stack.extend(x for pair in current.value for x in pair)
+    return False
+
+
 def parse(raw):
     if len(raw)>2_000_000:raise InputError('input exceeds v1 size limit')
     try:
         text=raw.decode('utf-8-sig')
-        if any(isinstance(t,yaml.AliasToken) for t in yaml.scan(text)):
-            raise InputError('YAML aliases are not supported; use environment overrides')
-        result=yaml.load(text,Loader=DocumentLoader)
+        loader=LOADER(text)
+        try:
+            # One pass: compose, refuse aliases, then construct.
+            try:node=loader.get_single_node()
+            except yaml.composer.ComposerError as exc:
+                if 'undefined alias' in str(exc):raise InputError(ALIASES) from None
+                raise
+            if node is not None and aliased(node):raise InputError(ALIASES)
+            result=loader.construct_document(node) if node is not None else None
+        finally:loader.dispose()
         # Also rejects non-JSON YAML types and non-finite numbers.
         json.dumps(result,allow_nan=False)
         return result
@@ -123,7 +156,7 @@ def normalize(raw,environment,cfn_raw=None):
     parsed=parse(raw)
     if isinstance(parsed,dict) and parsed.get('schema_version')=='1.1':
         from .document_v11 import normalize_schema
-        return normalize_schema(raw,environment,cfn_raw)
+        return normalize_schema(raw,environment,cfn_raw,parsed=parsed)
     spec=DocumentInput.model_validate(parsed)
     # Secret payloads are rejected, including nested values. No original text is retained.
     for resource in spec.resources:

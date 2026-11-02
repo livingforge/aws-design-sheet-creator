@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "Escalated": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "why": {
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "fingerprint",
+        "why"
+      ],
+      "title": "Escalated",
+      "type": "object"
+    },
+    "Reviewer": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "title": "Actor",
+          "type": "string"
+        },
+        "canaries_caught": {
+          "title": "Canaries Caught",
+          "type": "integer"
+        },
+        "canaries_total": {
+          "title": "Canaries Total",
+          "type": "integer"
+        },
+        "missing_rows": {
+          "title": "Missing Rows",
+          "type": "integer"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        },
+        "void": {
+          "title": "Void",
+          "type": "boolean"
+        },
+        "why": {
+          "default": "",
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor",
+        "canaries_total",
+        "canaries_caught",
+        "missing_rows",
+        "void"
+      ],
+      "title": "Reviewer",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/agent-escalation",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agreed_ok": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Agreed Ok",
+      "type": "array"
+    },
+    "contract": {
+      "const": "agent-escalation/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "escalated": {
+      "items": {
+        "$ref": "#/$defs/Escalated"
+      },
+      "title": "Escalated",
+      "type": "array"
+    },
+    "packet_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Packet Sha256",
+      "type": "string"
+    },
+    "reviewers": {
+      "items": {
+        "$ref": "#/$defs/Reviewer"
+      },
+      "title": "Reviewers",
+      "type": "array"
+    },
+    "run": {
+      "title": "Run",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "AGREED",
+        "CANARY_MISSED",
+        "INSUFFICIENT_REVIEWERS"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "run",
+    "packet_sha256",
+    "status",
+    "reviewers"
+  ],
+  "title": "Escalation",
+  "type": "object"
+}

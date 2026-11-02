@@ -500,9 +500,14 @@ class Inspector:
                      if len(path) == 1 else [])
 
     def run(self):
+        regional = {}
         for resource in self.document.design.resources:
             if self.regional:
-                self.cat = catalog(resource.region or self.env.region)
+                # One verified catalog per region for the run, not one lookup per resource.
+                region = resource.region or self.env.region
+                if region not in regional:
+                    regional[region] = catalog(region)
+                self.cat = regional[region]
                 self.region_matches = True  # catalog verifies the selected region and its pin.
             self.catalogs[self.cat.manifest['region']] = self.cat.manifest['zip_sha256']
             settings = self.effective(resource)

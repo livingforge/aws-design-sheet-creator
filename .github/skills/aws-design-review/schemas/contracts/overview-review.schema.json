@@ -1,0 +1,68 @@
+{
+  "$id": "aws-design-sheet/overview-review",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Author"
+    },
+    "decision": {
+      "enum": [
+        "accepted",
+        "rejected"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "findings": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Findings",
+      "type": "object"
+    },
+    "overview_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Overview Sha256",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recorded_at": {
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "version": {
+      "const": "1",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "overview_sha256",
+    "decision",
+    "actor",
+    "reason",
+    "recorded_at"
+  ],
+  "title": "OverviewReview",
+  "type": "object"
+}

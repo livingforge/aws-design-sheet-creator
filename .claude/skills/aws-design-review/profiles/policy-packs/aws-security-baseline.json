@@ -1,0 +1,29 @@
+{
+  "pack_version": "1",
+  "id": "aws-security-baseline",
+  "version": "2026.10",
+  "title": "AWS基本セキュリティ設定（候補）",
+  "description": "公開アクセスの遮断、保存時・通信時の暗号化、HTTPS、ログの完全性検証、バックアップの基本設定。AWS Foundational Security Best Practicesの一部に対応する値の宣言で、案件で採用を決めた場合にだけ使う。全統制の網羅や準拠の証明ではない。",
+  "reference": "https://docs.aws.amazon.com/securityhub/latest/userguide/fsbp-standard.html",
+  "rules": [
+    {"id": "s3-block-public-acls", "resource_type": "AWS::S3::Bucket", "path": "/properties/PublicAccessBlockConfiguration/BlockPublicAcls", "values": [true], "control": "S3.8"},
+    {"id": "s3-ignore-public-acls", "resource_type": "AWS::S3::Bucket", "path": "/properties/PublicAccessBlockConfiguration/IgnorePublicAcls", "values": [true], "control": "S3.8"},
+    {"id": "s3-block-public-policy", "resource_type": "AWS::S3::Bucket", "path": "/properties/PublicAccessBlockConfiguration/BlockPublicPolicy", "values": [true], "control": "S3.8"},
+    {"id": "s3-restrict-public-buckets", "resource_type": "AWS::S3::Bucket", "path": "/properties/PublicAccessBlockConfiguration/RestrictPublicBuckets", "values": [true], "control": "S3.8"},
+    {"id": "s3-default-encryption", "resource_type": "AWS::S3::Bucket", "path": "/properties/BucketEncryption/ServerSideEncryptionConfiguration/*/ServerSideEncryptionByDefault/SSEAlgorithm", "operator": "IN", "values": ["aws:kms", "aws:kms:dsse", "AES256"], "control": "S3.17"},
+    {"id": "cloudfront-viewer-https", "resource_type": "AWS::CloudFront::Distribution", "path": "/properties/DistributionConfig/DefaultCacheBehavior/ViewerProtocolPolicy", "operator": "IN", "values": ["https-only", "redirect-to-https"], "control": "CloudFront.3"},
+    {"id": "cloudfront-oac-sign-always", "resource_type": "AWS::CloudFront::OriginAccessControl", "path": "/properties/OriginAccessControlConfig/SigningBehavior", "values": ["always"], "control": "CloudFront.13"},
+    {"id": "opensearch-encryption-at-rest", "resource_type": "AWS::OpenSearchService::Domain", "path": "/properties/EncryptionAtRestOptions/Enabled", "values": [true], "control": "Opensearch.1"},
+    {"id": "opensearch-node-to-node", "resource_type": "AWS::OpenSearchService::Domain", "path": "/properties/NodeToNodeEncryptionOptions/Enabled", "values": [true], "control": "Opensearch.3"},
+    {"id": "opensearch-enforce-https", "resource_type": "AWS::OpenSearchService::Domain", "path": "/properties/DomainEndpointOptions/EnforceHTTPS", "values": [true], "control": "Opensearch.8"},
+    {"id": "cloudtrail-log-file-validation", "resource_type": "AWS::CloudTrail::Trail", "path": "/properties/EnableLogFileValidation", "values": [true], "control": "CloudTrail.4"},
+    {"id": "cloudtrail-multi-region", "resource_type": "AWS::CloudTrail::Trail", "path": "/properties/IsMultiRegionTrail", "values": [true], "control": "CloudTrail.1"},
+    {"id": "rds-instance-storage-encrypted", "resource_type": "AWS::RDS::DBInstance", "path": "/properties/StorageEncrypted", "values": [true], "control": "RDS.3"},
+    {"id": "rds-instance-not-public", "resource_type": "AWS::RDS::DBInstance", "path": "/properties/PubliclyAccessible", "values": [false], "control": "RDS.2"},
+    {"id": "rds-cluster-storage-encrypted", "resource_type": "AWS::RDS::DBCluster", "path": "/properties/StorageEncrypted", "values": [true], "control": "RDS.4"},
+    {"id": "ebs-volume-encrypted", "resource_type": "AWS::EC2::Volume", "path": "/properties/Encrypted", "values": [true], "control": "EC2.3"},
+    {"id": "dynamodb-pitr", "resource_type": "AWS::DynamoDB::Table", "path": "/properties/PointInTimeRecoverySpecification/PointInTimeRecoveryEnabled", "values": [true], "control": "DynamoDB.2"},
+    {"id": "elasticache-at-rest", "resource_type": "AWS::ElastiCache::ReplicationGroup", "path": "/properties/AtRestEncryptionEnabled", "values": [true], "control": "ElastiCache.4"},
+    {"id": "elasticache-in-transit", "resource_type": "AWS::ElastiCache::ReplicationGroup", "path": "/properties/TransitEncryptionEnabled", "values": [true], "control": "ElastiCache.5"}
+  ]
+}

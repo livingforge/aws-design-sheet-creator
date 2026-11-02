@@ -1,0 +1,34 @@
+{
+  "template_version": "1",
+  "title": "3層のWebアプリケーション（利用者画面・業務処理・業務データ）",
+  "actors": [
+    {"id": "end-user", "name": "利用者", "kind": "USER"},
+    {"id": "operator", "name": "運用担当", "kind": "OPERATOR"}
+  ],
+  "boundaries": [
+    {"id": "acct-prod", "name": "本番アカウント", "kind": "ACCOUNT"},
+    {"id": "region-main", "name": "主リージョン", "kind": "REGION", "parent": "acct-prod"},
+    {"id": "app-network", "name": "アプリケーションのネットワーク", "kind": "NETWORK", "parent": "region-main"}
+  ],
+  "components": [
+    {"id": "user-interface", "name": "利用者向け画面", "kind": "INTERFACE", "boundary": "region-main"},
+    {"id": "business-logic", "name": "業務処理", "kind": "FUNCTION", "boundary": "app-network"},
+    {"id": "business-data", "name": "業務データ", "kind": "DATA_STORE", "boundary": "app-network"},
+    {"id": "monitoring", "name": "ログと監視", "kind": "OPERATIONS", "boundary": "region-main"}
+  ],
+  "flows": [
+    {"id": "user-request", "source": "end-user", "target": "user-interface", "data": "画面操作"},
+    {"id": "app-call", "source": "user-interface", "target": "business-logic", "data": "業務要求"},
+    {"id": "data-access", "source": "business-logic", "target": "business-data", "data": "業務データ"},
+    {"id": "logs", "source": "business-logic", "target": "monitoring", "data": "ログ・メトリクス"},
+    {"id": "operate", "source": "operator", "target": "monitoring", "data": "監視・運用操作"}
+  ],
+  "quality_targets": [
+    {"id": "qt-availability", "attribute": "AVAILABILITY", "target": "要確認"},
+    {"id": "qt-rpo", "attribute": "RPO", "target": "要確認", "applies_to": ["business-data"]},
+    {"id": "qt-rto", "attribute": "RTO", "target": "要確認"}
+  ],
+  "open_questions": [
+    {"id": "q-shape", "text": "この3層の形が対象システムに合っているか。合わない構成要素・流れは削除し、足りないものは追加する。", "about": []}
+  ]
+}

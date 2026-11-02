@@ -1,0 +1,393 @@
+{
+  "$defs": {
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "title": "Approved At",
+          "type": "string"
+        },
+        "approver": {
+          "title": "Approver",
+          "type": "string"
+        },
+        "delegation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Basis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "proposal_sha256": {
+          "title": "Proposal Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approver",
+        "approved_at",
+        "proposal_sha256"
+      ],
+      "title": "Approval",
+      "type": "object"
+    },
+    "Basis": {
+      "additionalProperties": false,
+      "description": "Why an agent could record a decision: the approved policy, the rule and what it rests on.",
+      "properties": {
+        "actors": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Actors",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_sha256",
+        "rule",
+        "actors"
+      ],
+      "title": "Basis",
+      "type": "object"
+    },
+    "Entry": {
+      "additionalProperties": false,
+      "properties": {
+        "decided": {
+          "default": "PROPOSED",
+          "enum": [
+            "PROPOSED",
+            "SET"
+          ],
+          "title": "Decided",
+          "type": "string"
+        },
+        "document_id": {
+          "title": "Document Id",
+          "type": "string"
+        },
+        "extraction_sha256": {
+          "title": "Extraction Sha256",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "family_basis": {
+          "enum": [
+            "DOCUMENT_CODE",
+            "FILE_NAME"
+          ],
+          "title": "Family Basis",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "related": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Related"
+        },
+        "signals": {
+          "$ref": "#/$defs/Signals"
+        },
+        "source_path": {
+          "title": "Source Path",
+          "type": "string"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "CURRENT",
+            "SUPERSEDED",
+            "REFERENCE",
+            "EXCLUDED",
+            "UNDECIDED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "source_path",
+        "source_sha256",
+        "extraction_sha256",
+        "family",
+        "family_basis",
+        "signals",
+        "status",
+        "reason"
+      ],
+      "title": "Entry",
+      "type": "object"
+    },
+    "ReferenceHint": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "FOLDER",
+            "ROLE",
+            "TITLE"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "word": {
+          "title": "Word",
+          "type": "string"
+        }
+      },
+      "required": [
+        "basis",
+        "word",
+        "text"
+      ],
+      "title": "ReferenceHint",
+      "type": "object"
+    },
+    "Signals": {
+      "additionalProperties": false,
+      "properties": {
+        "archive_folder": {
+          "default": false,
+          "title": "Archive Folder",
+          "type": "boolean"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "code_cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code Cell"
+        },
+        "reference": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ReferenceHint"
+          },
+          "title": "Reference",
+          "type": "array"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "role_cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role Cell"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "title_cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title Cell"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "version_basis": {
+          "anyOf": [
+            {
+              "enum": [
+                "CONTENT",
+                "FILE_NAME"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Basis"
+        },
+        "version_cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Cell"
+        }
+      },
+      "title": "Signals",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/source-set",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Approval"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/Entry"
+      },
+      "title": "Documents",
+      "type": "array"
+    },
+    "issues": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "proposal",
+        "approved"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "documents"
+  ],
+  "title": "SourceSet",
+  "type": "object"
+}

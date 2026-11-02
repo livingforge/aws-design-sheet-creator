@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "PacketRow": {
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Documents",
+          "type": "array"
+        },
+        "evidence": {
+          "default": "",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "evidence_at": {
+          "default": "",
+          "title": "Evidence At",
+          "type": "string"
+        },
+        "key": {
+          "pattern": "^r[0-9a-f]{12}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "property": {
+          "title": "Property",
+          "type": "string"
+        },
+        "resource_id": {
+          "title": "Resource Id",
+          "type": "string"
+        },
+        "resource_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Type"
+        },
+        "tier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tier"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "resource_id",
+        "property",
+        "value"
+      ],
+      "title": "PacketRow",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/review-packet",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "const": "review-packet/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "instructions": {
+      "title": "Instructions",
+      "type": "string"
+    },
+    "key_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Key Sha256",
+      "type": "string"
+    },
+    "pack_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pack Sha256",
+      "type": "string"
+    },
+    "rows": {
+      "items": {
+        "$ref": "#/$defs/PacketRow"
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "run": {
+      "title": "Run",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "run",
+    "pack_sha256",
+    "key_sha256",
+    "instructions",
+    "rows"
+  ],
+  "title": "Packet",
+  "type": "object"
+}

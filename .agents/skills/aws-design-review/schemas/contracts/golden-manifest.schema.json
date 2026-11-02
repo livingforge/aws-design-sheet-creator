@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "Case": {
+      "additionalProperties": false,
+      "properties": {
+        "dictionary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dictionary"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Document"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "extraction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extraction"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key"
+        },
+        "kind": {
+          "enum": [
+            "external-items",
+            "system-overview",
+            "agent-verdicts"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "min_agreement": {
+          "default": 0.95,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Min Agreement",
+          "type": "number"
+        },
+        "packet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Packet"
+        },
+        "structure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structure"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "expected"
+      ],
+      "title": "Case",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/golden-manifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/Case"
+      },
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "contract": {
+      "const": "golden-manifest/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "id",
+    "cases"
+  ],
+  "title": "GoldenManifest",
+  "type": "object"
+}

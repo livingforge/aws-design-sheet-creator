@@ -1,0 +1,286 @@
+{
+  "$defs": {
+    "Basis": {
+      "additionalProperties": false,
+      "description": "Why an agent could record a decision: the approved policy, the rule and what it rests on.",
+      "properties": {
+        "actors": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Actors",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_sha256",
+        "rule",
+        "actors"
+      ],
+      "title": "Basis",
+      "type": "object"
+    },
+    "Entry": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "minLength": 1,
+          "title": "Approved At",
+          "type": "string"
+        },
+        "approved_by": {
+          "minLength": 1,
+          "title": "Approved By",
+          "type": "string"
+        },
+        "convert": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean"
+          ],
+          "title": "Convert",
+          "type": "string"
+        },
+        "delegation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Basis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntryEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "labels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Labels",
+          "type": "array"
+        },
+        "paths": {
+          "items": {
+            "pattern": "^(/[^/]+)+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "resource_type": {
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "units": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Units",
+          "type": "array"
+        },
+        "value_map": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Value Map",
+          "type": "object"
+        },
+        "when": {
+          "items": {
+            "$ref": "#/$defs/When"
+          },
+          "title": "When",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "resource_type",
+        "labels",
+        "paths",
+        "convert",
+        "approved_by",
+        "approved_at"
+      ],
+      "title": "Entry",
+      "type": "object"
+    },
+    "EntryEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "title": "Document",
+          "type": "string"
+        },
+        "extraction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extraction Sha256",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "label_cells": {
+          "items": {
+            "pattern": "^s([1-9][0-9]{0,3})-([A-Z]{1,3})([1-9][0-9]{0,6})$",
+            "type": "string"
+          },
+          "title": "Label Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "document",
+        "extraction_sha256",
+        "item_id",
+        "label_cells"
+      ],
+      "title": "EntryEvidence",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "When": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "values"
+      ],
+      "title": "When",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/external-dictionary",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval_words": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "propertyNames": {
+        "enum": [
+          "APPROVED",
+          "IN_REVIEW",
+          "DRAFT",
+          "REJECTED"
+        ]
+      },
+      "title": "Approval Words",
+      "type": "object"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/Entry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "review_words": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "propertyNames": {
+        "enum": [
+          "ACCEPTED",
+          "CHANGES_REQUESTED",
+          "NOT_REVIEWED"
+        ]
+      },
+      "title": "Review Words",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state_words": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "propertyNames": {
+        "enum": [
+          "UNDECIDED",
+          "NOT_APPLICABLE",
+          "DEFAULT"
+        ]
+      },
+      "title": "State Words",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "Dictionary",
+  "type": "object"
+}

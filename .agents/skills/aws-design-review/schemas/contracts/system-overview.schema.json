@@ -1,0 +1,633 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "USER",
+          "enum": [
+            "USER",
+            "OPERATOR",
+            "EXTERNAL_SYSTEM"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Requirement Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "ArpOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "approval": {
+          "default": "proposed",
+          "title": "Approval",
+          "type": "string"
+        },
+        "basis": {
+          "default": "NOT_CHECKED",
+          "enum": [
+            "CURRENT",
+            "REFERENCE_ONLY",
+            "OLD_DOCUMENT",
+            "NOT_IN_SOURCE_SET",
+            "NOT_CHECKED",
+            "NO_EVIDENCE"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "documents": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Documents",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "module": {
+          "default": "",
+          "title": "Module",
+          "type": "string"
+        },
+        "statement_sha256": {
+          "default": "",
+          "title": "Statement Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "category"
+      ],
+      "title": "ArpOrigin",
+      "type": "object"
+    },
+    "Author": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor"
+      ],
+      "title": "Author",
+      "type": "object"
+    },
+    "Boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "OTHER",
+          "enum": [
+            "ACCOUNT",
+            "REGION",
+            "ENVIRONMENT",
+            "NETWORK",
+            "TRUST",
+            "OTHER"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Boundary",
+      "type": "object"
+    },
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "FUNCTION",
+          "enum": [
+            "FUNCTION",
+            "DATA_STORE",
+            "INTERFACE",
+            "SHARED_SERVICE",
+            "OPERATIONS"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "realized_by": {
+          "$ref": "#/$defs/Realization"
+        },
+        "requirement_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "status": {
+          "default": "DECIDED",
+          "enum": [
+            "DECIDED",
+            "UNDECIDED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "Flow": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "minLength": 1,
+          "title": "Data",
+          "type": "string"
+        },
+        "decision_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Decision Ids",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "protocol": {
+          "default": "",
+          "title": "Protocol",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "source": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "default": "DECIDED",
+          "enum": [
+            "DECIDED",
+            "UNDECIDED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "target",
+        "data"
+      ],
+      "title": "Flow",
+      "type": "object"
+    },
+    "OpenQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "about": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "About",
+          "type": "array"
+        },
+        "answer": {
+          "default": "",
+          "title": "Answer",
+          "type": "string"
+        },
+        "answered_by": {
+          "default": "",
+          "title": "Answered By",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "owner": {
+          "default": "",
+          "title": "Owner",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "OpenQuestion",
+      "type": "object"
+    },
+    "QualityTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "applies_to": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Applies To",
+          "type": "array"
+        },
+        "attribute": {
+          "enum": [
+            "AVAILABILITY",
+            "RPO",
+            "RTO",
+            "PERFORMANCE",
+            "CAPACITY",
+            "RETENTION",
+            "SECURITY",
+            "COMPLIANCE",
+            "COST",
+            "OTHER"
+          ],
+          "title": "Attribute",
+          "type": "string"
+        },
+        "decision_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Decision Ids",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "requirement_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Requirement Ids",
+          "type": "array"
+        },
+        "status": {
+          "default": "DECIDED",
+          "enum": [
+            "DECIDED",
+            "UNDECIDED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "attribute",
+        "target"
+      ],
+      "title": "QualityTarget",
+      "type": "object"
+    },
+    "Realization": {
+      "additionalProperties": false,
+      "properties": {
+        "decisions": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Resources",
+          "type": "array"
+        }
+      },
+      "title": "Realization",
+      "type": "object"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "arp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArpOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "UNCLASSIFIED",
+          "enum": [
+            "FUNCTIONAL",
+            "NON_FUNCTIONAL",
+            "CONSTRAINT",
+            "UNCLASSIFIED"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "status": {
+          "default": "DECIDED",
+          "enum": [
+            "DECIDED",
+            "UNDECIDED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "title": "Text",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "System": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "purpose": {
+          "default": "",
+          "title": "Purpose",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "System",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/system-overview",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actors": {
+      "items": {
+        "$ref": "#/$defs/Actor"
+      },
+      "title": "Actors",
+      "type": "array"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Author"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "boundaries": {
+      "items": {
+        "$ref": "#/$defs/Boundary"
+      },
+      "title": "Boundaries",
+      "type": "array"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/Component"
+      },
+      "title": "Components",
+      "type": "array"
+    },
+    "flows": {
+      "items": {
+        "$ref": "#/$defs/Flow"
+      },
+      "title": "Flows",
+      "type": "array"
+    },
+    "open_questions": {
+      "items": {
+        "$ref": "#/$defs/OpenQuestion"
+      },
+      "title": "Open Questions",
+      "type": "array"
+    },
+    "quality_targets": {
+      "items": {
+        "$ref": "#/$defs/QualityTarget"
+      },
+      "title": "Quality Targets",
+      "type": "array"
+    },
+    "required_attributes": {
+      "items": {
+        "enum": [
+          "AVAILABILITY",
+          "RPO",
+          "RTO",
+          "PERFORMANCE",
+          "CAPACITY",
+          "RETENTION",
+          "SECURITY",
+          "COMPLIANCE",
+          "COST",
+          "OTHER"
+        ],
+        "type": "string"
+      },
+      "title": "Required Attributes",
+      "type": "array"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/Requirement"
+      },
+      "title": "Requirements",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "system": {
+      "$ref": "#/$defs/System"
+    }
+  },
+  "required": [
+    "schema_version",
+    "system"
+  ],
+  "title": "Overview",
+  "type": "object"
+}

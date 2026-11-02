@@ -304,14 +304,22 @@ def render_basic_design(document):
                    ['方針トレース', f"{report['status']} / {report['assessment']}"], ['必要入力の充足', document.checklist.status],
                    ['案件方針', f'{document.project_policy.status} / {document.project_policy.assessment}'],
                    ['AWS静的評価', f'{document.evaluation_status} / {document.evaluation.assessment}']]), '',
-           '## システム構成', '']
+           '## システム構成', '',
+           '構成図は `architecture.drawio`（draw.io 形式、AWS 公式アイコン）にあります。宣言した配置と接続、設定が参照するリソースへの参照だけを描いた図です。', '']
     if spec.system.description:out += [spec.system.description, '']
     out += ['### 環境', '', *table(['環境ID', '名前', 'リージョン', '説明'], [[e.id, e.name, e.region, e.description] for e in spec.environments]), '',
             '### 構成リソース', '', *table(['リソースID', '名前', '種類', 'リージョン', '設計理由'],
             [[r.id, r.name, r.type, document.resource_regions.get(r.id, env.region), r.rationale] for r in spec.resources]), '']
+    actors = getattr(spec, 'actors', None) or []
+    if actors:
+        kinds = {'USER': '利用者', 'OPERATOR': '運用者', 'EXTERNAL_SYSTEM': '外部システム', 'AWS_SERVICE': 'AWS（入力でリソースとして扱えないサービス）'}
+        out += ['### 外部の相手', '', '設計入力でリソースとして扱わない相手です。設定値は持たず、接続の端としてだけ示します。', '',
+                *table(['ID', '名前', '種類', 'サービス・リージョン', '状態', '説明・理由'],
+                       [[a.id, a.name, kinds[a.kind], ' '.join(x for x in (a.service, a.region or (env.region if a.kind == 'AWS_SERVICE' else '')) if x),
+                         LABELS[a.status], ' '.join(x for x in (a.description, a.rationale) if x)] for a in actors]), '']
     if spec.connections:
-        nodes = {r.id: f'n{i}' for i, r in enumerate(spec.resources)}
-        names = {r.id: r.name for r in spec.resources}
+        nodes = {x.id: f'n{i}' for i, x in enumerate([*spec.resources, *actors])}
+        names = {x.id: x.name for x in [*spec.resources, *actors]}
         arrows = {'TRAFFIC': '-->', 'REFERENCE': '-.->', 'DEPENDENCY': '==>'}
         def label(value):return str(value).replace('"', "'").replace('\n', ' ')
         used = sorted({x for c in spec.connections for x in (c.source, c.target)}, key=list(nodes).index)

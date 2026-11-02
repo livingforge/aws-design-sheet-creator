@@ -1,6 +1,5 @@
 param(
     [switch]$Llm,
-    [switch]$Tests,
     [switch]$Force,
     [string]$Python = "python"
 )
@@ -25,11 +24,7 @@ $packageSpec = if ($Llm) { "${packageRoot}[llm]" } else { $packageRoot }
 $constraints = Join-Path $packageRoot "requirements.lock"
 & $venvPython -m pip --isolated install --index-url https://pypi.org/simple --constraint $constraints -e $packageSpec
 if ($LASTEXITCODE -ne 0) { throw "Package installation failed." }
-if ($Tests) {
-    & $venvPython -m pip --isolated install --index-url https://pypi.org/simple --constraint $constraints pytest
-    if ($LASTEXITCODE -ne 0) { throw "Test dependency installation failed." }
-}
 & $venvPython -m aws_design_sheet.schema_bootstrap --all-regions
 if ($LASTEXITCODE -ne 0) { throw "Schema setup failed; the environment and failed attempt are preserved. Retry with python -m aws_design_sheet.schema_bootstrap --all-regions." }
 Write-Host "Installed in $packageRoot"
-Write-Host "Run: $venvPython -m aws_design_sheet.document_cli --help"
+Write-Host "Run: $(Join-Path $venvDirectory 'Scripts\aws-design.exe') --help"

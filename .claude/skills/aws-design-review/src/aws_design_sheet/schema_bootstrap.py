@@ -333,7 +333,7 @@ def resolve_schema_dir(root, region=None):
     except (OSError, ValueError, KeyError, TypeError) as exc:
         if isinstance(exc, SchemaSetupError):
             raise
-        raise SchemaSetupError('Schema setup is missing or invalid. Run aws-design-bootstrap; existing files will be preserved.') from exc
+        raise SchemaSetupError('Schema setup is missing or invalid. Run aws-design bootstrap; existing files will be preserved.') from exc
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):

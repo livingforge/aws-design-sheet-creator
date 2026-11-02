@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "Basis": {
+      "additionalProperties": false,
+      "description": "Why an agent could record a decision: the approved policy, the rule and what it rests on.",
+      "properties": {
+        "actors": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Actors",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "rule": {
+          "enum": [
+            "source_set",
+            "overview",
+            "policy_pack",
+            "review",
+            "external_mapping"
+          ],
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_sha256",
+        "rule",
+        "actors"
+      ],
+      "title": "Basis",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/auto-decision",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One decision an agent recorded under the policy; the audit samples these.",
+  "properties": {
+    "basis": {
+      "$ref": "#/$defs/Basis"
+    },
+    "contract": {
+      "const": "auto-decision/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "decided_at": {
+      "title": "Decided At",
+      "type": "string"
+    },
+    "decided_by": {
+      "pattern": "^agent:.+",
+      "title": "Decided By",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[0-9]{4}-[a-z_]+$",
+      "title": "Id",
+      "type": "string"
+    },
+    "rule": {
+      "enum": [
+        "source_set",
+        "overview",
+        "policy_pack",
+        "review",
+        "external_mapping"
+      ],
+      "title": "Rule",
+      "type": "string"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "target_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "id",
+    "rule",
+    "decided_by",
+    "decided_at",
+    "basis",
+    "target",
+    "target_sha256",
+    "summary"
+  ],
+  "title": "AutoDecision",
+  "type": "object"
+}

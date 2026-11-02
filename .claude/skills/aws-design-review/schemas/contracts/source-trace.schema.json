@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "Row": {
+      "additionalProperties": true,
+      "properties": {
+        "item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Item Ids",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "CFN",
+            "APP"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "setting_id": {
+          "minLength": 1,
+          "title": "Setting Id",
+          "type": "string"
+        },
+        "source_snapshot": {
+          "additionalProperties": true,
+          "title": "Source Snapshot",
+          "type": "object"
+        }
+      },
+      "required": [
+        "setting_id",
+        "kind",
+        "source_snapshot"
+      ],
+      "title": "Row",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/source-trace",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "rows": {
+      "items": {
+        "$ref": "#/$defs/Row"
+      },
+      "maxItems": 10000,
+      "title": "Rows",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows"
+  ],
+  "title": "SourceTrace",
+  "type": "object"
+}

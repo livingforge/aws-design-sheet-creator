@@ -1,0 +1,34 @@
+{
+  "$id": "aws-design-sheet/delegation-approval",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approved_at": {
+      "title": "Approved At",
+      "type": "string"
+    },
+    "approver": {
+      "minLength": 1,
+      "title": "Approver",
+      "type": "string"
+    },
+    "contract": {
+      "const": "delegation-approval/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "policy_sha256",
+    "approver",
+    "approved_at"
+  ],
+  "title": "PolicyApproval",
+  "type": "object"
+}
