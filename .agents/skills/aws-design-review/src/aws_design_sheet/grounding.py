@@ -2,8 +2,10 @@
 
 For every decided literal setting (and each scalar leaf of a composite one), the citation is
 followed into the ARP4 extraction of the approved source set: a locator `DOCUMENT_ID#s1-C5`
-(or a range `s1-C5:D9`, several separated by commas) names cells, `DOCUMENT_ID#シート名` a
-sheet and a bare `DOCUMENT_ID` the whole document. A value is GROUNDED when its normalised
+(or a range `s1-C5:D9`, several separated by commas) names cells, `DOCUMENT_ID#s1-d4` a
+drawing by its text and alternative text, `DOCUMENT_ID#シート名` a sheet and a bare `DOCUMENT_ID`
+the whole document. A node or edge read from an image (`DOCUMENT_ID#v:VISUAL/n:NODE`) holds no
+words of the document, so a value cited to it is INTERPRETED. A value is GROUNDED when its normalised
 text, number or boolean word is in the cited cells and NOT_FOUND when it is not: a cell
 citation that does not hold its value fails. With only a sheet or document cited, the value is
 FOUND_IN_DOCUMENT or NOT_FOUND_IN_DOCUMENT, both weak: a converted value (a port from a
@@ -23,6 +25,8 @@ import unicodedata
 from .source_set import CITABLE, cell_texts, column
 
 CELL = re.compile(r'^s(\d+)-([A-Z]{1,3})(\d+)(?::([A-Z]{1,3})(\d+))?$')
+DRAWING = re.compile(r'^(?:s\d+-d\d+|a\d+)$')
+VISION = re.compile(r'^v:[^/,\s]+/(?:n:[^/,\s]+|e:\d+)$')
 TRUE_WORDS = {'true', 'yes', 'on', 'enable', 'enabled', '有効', '有', 'あり', '要', 'する', '使用', '使用する', '利用', '利用する', '○', '◯', '〇', 'はい'}
 FALSE_WORDS = {'false', 'no', 'off', 'disable', 'disabled', '無効', '無', 'なし', '不要', 'しない', '使用しない', '利用しない', '×', '✕', 'いいえ'}
 STRENGTH = {'GROUNDED': 5, 'TRACED': 5, 'DECISION': 4, 'INTERPRETED': 4, 'FOUND_IN_DOCUMENT': 3, 'NOT_FOUND_IN_DOCUMENT': 2, 'NOT_CHECKABLE': 1,
@@ -88,6 +92,9 @@ class Library:
     def __init__(self, documents=None, entries=None):
         self.entries = entries or {}
         self.cells = {d['document_id']: dict(cell_texts(d['extraction'])) for d in (documents or [])}
+        from .diagram_ledger import element_texts
+        # A drawing (`s1-d4`) holds its text and alternative text as a cell holds its value.
+        self.drawings = {d['document_id']: dict(element_texts(d['extraction'])) for d in (documents or [])}
         self.sheets = {d['document_id']: {norm(s.get('name', '')): n for n, s in enumerate(d['extraction'].get('sheets', []), 1)} for d in (documents or [])}
 
     @classmethod
@@ -102,6 +109,12 @@ class Library:
         entry = self.entries.get(document)
         if entry is None or document not in self.cells:return 'NOT_CHECKABLE', 'NOT_AN_ARP_DOCUMENT'
         if entry.status not in CITABLE:return 'CITES_NOT_CURRENT', entry.status
+        parts = [p.strip() for p in place.split(',')] if place else []
+        # What was read from an image holds no words of the document: a person reviews it.
+        if parts and all(VISION.match(p) for p in parts):return 'INTERPRETED', 'VISION_READING'
+        if parts and all(DRAWING.match(p) for p in parts):
+            texts = [self.drawings.get(document, {}).get(p, '') for p in parts]
+            return ('GROUNDED', ','.join(parts[:5])) if all(found(v, texts) for v in values) else ('NOT_FOUND', ','.join(parts[:5]))
         cells = expand(place) if place else None
         if cells is not None:
             texts = [self.cells[document][c] for c in cells if c in self.cells[document]]
@@ -131,8 +144,18 @@ def claimed(setting):
     if not isinstance(setting, dict) or setting.get('status', 'DECIDED') != 'DECIDED':return None
     if setting.get('mode') == 'LITERAL' and setting.get('value') is not None and not isinstance(setting.get('value'), (dict, list)):return [setting['value']]
     if setting.get('mode') in ('LITERAL', 'COMPOSITE') and isinstance(setting.get('value'), (dict, list)):
-        return [v for _, v in leaves(setting['value'])] or None
+        return list(composite_claims(setting['value'])) or None
     return None
+
+
+def composite_claims(value):
+    """Scalar leaves of a composite; an embedded `$design` setting claims what it would claim on its own, so a reference claims nothing."""
+    if isinstance(value, dict) and set(value) == {'$design'}:yield from claimed(value['$design']) or []
+    elif isinstance(value, dict):
+        for child in value.values():yield from composite_claims(child)
+    elif isinstance(value, list):
+        for child in value:yield from composite_claims(child)
+    elif value is not None:yield value
 
 
 def ground(design, library=None, trace_rows=None):

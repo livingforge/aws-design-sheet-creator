@@ -82,9 +82,13 @@ def generation_input(workspace, config):
 def fingerprint(workspace, config):
     """What a generation depends on; a run whose recorded fingerprint differs is stale."""
     found = decisions(workspace)
-    return {'input': sha(generation_input(workspace, config)), 'source_set': sha(at(workspace, 'sources/set.json')),
-            'source_trace': sha(at(workspace, config.get('source_trace'))), 'review_decisions': sha(found[-1]) if found else None,
-            'system_overview': sha(at(workspace, config.get('overview')))}
+    printed = {'input': sha(generation_input(workspace, config)), 'source_set': sha(at(workspace, 'sources/set.json')),
+               'source_trace': sha(at(workspace, config.get('source_trace'))), 'review_decisions': sha(found[-1]) if found else None,
+               'system_overview': sha(at(workspace, config.get('overview')))}
+    # The diagram ledger joins only workspaces that have one, so that earlier runs elsewhere stay current.
+    from .diagram_ledger import ledger_path
+    if ledger_path(workspace).is_file():printed['diagram_ledger'] = sha(ledger_path(workspace))
+    return printed
 
 
 def overview_stage(workspace, config, q):
@@ -145,6 +149,70 @@ def overview_stage(workspace, config, q):
     return stage('overview', 'WAITING_FOR_PERSON', 'システム概要を関係者で確かめて合意する。' + detail, command, '利用者が指名した合意者', refused=refused)
 
 
+def diagrams_stage(workspace, config, q):
+    """Every drawing of the CURRENT documents read by two independent workers, and the first reading reviewed."""
+    from .diagram_ledger import (InputError as LedgerError, LedgerReview, check, ledger_path, load, read_documents, review_path,
+                                 second_path, sha as raw_sha)
+    arp, approved = config.get('arp_root'), workspace / 'sources' / 'set.json'
+    if not arp or not approved.is_file():return stage('diagrams', 'SKIPPED', '承認済みの文書セットがない')
+    try:drawings = read_documents(Path(arp), approved.read_bytes())
+    except (LedgerError, ValueError) as exc:return stage('diagrams', 'TODO', f'文書の図形を読めない：{str(exc)[:200]}')
+    documents = {d: len(found.elements) for d, found in drawings.items() if found.elements}
+    first, second = ledger_path(workspace), second_path(workspace)
+    if not documents and not first.is_file():return stage('diagrams', 'SKIPPED', 'CURRENTの文書に図形・画像がない')
+    detail = f"図形・画像を含むCURRENTの文書 {len(documents)}件、要素 {sum(documents.values())}件"
+    view = f'aws-design diagram view --arp-root {q(arp)} --source-set {q(approved)}'
+    def checking(path):return f'aws-design diagram check --arp-root {q(arp)} --source-set {q(approved)} --ledger {q(path)}'
+    def worker(path, why, **more):
+        return stage('diagrams', 'WAITING_FOR_AGENT', why + detail, checking(path),
+                     agent=role('aws-design-author', 'diagram-extract-worker', 1,
+                                {'view': view, 'output': str(path), 'check': checking(path), 'arp_root': arp, 'source_set': str(approved), **more}))
+    if not first.is_file() and not second.is_file():
+        # Two independent readings at once: each run writes its own file and never reads the other's.
+        return stage('diagrams', 'WAITING_FOR_AGENT', '構成図の台帳がない。' + detail, checking(first),
+                     agent=role('aws-design-author', 'diagram-extract-worker', 2,
+                                {'view': view, 'arp_root': arp, 'source_set': str(approved),
+                                 'runs': [{'output': str(first), 'check': checking(first), 'actor': '作成担当の名前'},
+                                          {'output': str(second), 'check': checking(second), 'actor': '1つ目と異なる名前', 'must_not_read': str(first)}]}))
+    readings = []
+    for path, actor in ((first, {'actor': '作成担当の名前'}), (second, {'actor': '最初の作成担当と異なる名前', 'must_not_read': str(first)})):
+        if not path.is_file():
+            return worker(path, '構成図の台帳がない。' if path == first else '別の作成担当による独立した読み取りがない。', **actor)
+        try:ledger = load(path.read_bytes())
+        except LedgerError as exc:return worker(path, f'{path.name} が契約を満たさない（{str(exc)[:120]}）。', **actor)
+        found = check(ledger, drawings)
+        if found.status == 'FAIL':
+            return worker(path, f"{path.name} の検査が不合格：{'、'.join(sorted({r['code'] for r in found.rows if r['severity'] == 'FAIL'}))}。", **actor)
+        readings.append(ledger)
+    if readings[0].author.actor.strip() == readings[1].author.actor.strip():
+        return worker(second, '2つの読み取りが同じ作成担当による。', actor='最初の作成担当と異なる名前', must_not_read=str(first))
+    digest = raw_sha(first.read_bytes());record = review_path(workspace, digest)
+    reviewed = LedgerReview.model_validate_json(record.read_bytes()) if record.is_file() else None
+    if reviewed is not None and reviewed.decision == 'rejected':
+        return worker(first, f'レビューで差し戻し（{reviewed.actor}：{reviewed.reason[:120]}）。', actor=readings[0].author.actor)
+    if reviewed is None:
+        compare = f'aws-design diagram compare --ledger {q(first)} --ledger {q(second)}'
+        return stage('diagrams', 'WAITING_FOR_AGENT', f'{readings[0].author.actor} の台帳。独立レビュー（aws-design-checker、diagram-extract-reviewer）の受理が必要。' + detail,
+                     f'aws-design diagram review --arp-root {q(arp)} --source-set {q(approved)} --ledger {q(first)} --decision accepted '
+                     f'--actor <レビュー担当エージェント> --reason <確認した内容> --output {q(record)}',
+                     agent=role('aws-design-checker', 'diagram-extract-reviewer', 1,
+                                {'ledger': str(first), 'second_reading': str(second), 'compare': compare, 'view': view, 'output': str(record),
+                                 'arp_root': arp, 'source_set': str(approved), 'actor': '2人の作成担当と異なる名前'}))
+    unresolved = sum(e.disposition == 'UNRESOLVED' for d in readings[0].documents for e in d.elements)
+    return stage('diagrams', 'DONE', f'{readings[0].author.actor} の台帳を {reviewed.actor} が受理。' + detail
+                 + (f'。UNRESOLVED {unresolved}件は判断の台帳で人に確かめる' if unresolved else ''))
+
+
+def diagram_asks_missing(workspace):
+    """Asks the diagram ledger's UNRESOLVED elements name that the asks ledger does not hold."""
+    from .diagram_ledger import InputError as LedgerError, asks_state, ledger_path, load
+    if not ledger_path(workspace).is_file():return []
+    try:ledger = load(ledger_path(workspace).read_bytes())
+    except LedgerError:return []
+    held = asks_state(workspace)
+    return sorted({e.ask for d in ledger.documents for e in d.elements if e.disposition == 'UNRESOLVED' and e.ask not in held})
+
+
 def role(agent, name, count, handoff):
     """An agent run in a role: the role's instructions travel with the handoff, so two agents serve every role."""
     root = Path(__file__).resolve().parents[2]
@@ -193,6 +261,7 @@ def status(workspace):
                                 f'aws-design flow run scan --workspace {q(workspace)} --replace'))
     if config.get('overview'):stages.append(overview_stage(workspace, config, q))
     else:stages.append(stage('overview', 'SKIPPED', 'システム概要の指定なし'))
+    stages.append(diagrams_stage(workspace, config, q))
     source_input = at(workspace, config['input'])
     if source_input.is_file():stages.append(stage('input', 'DONE', f"{config['input']}"))
     else:stages.append(stage('input', 'TODO', '設計入力（1.1）がない。CURRENTの文書だけから書くか、外部シートを aws-design external build で変換する'
@@ -271,9 +340,11 @@ def asks_stage(workspace, config, q):
                      agent={'name': 'aws-design-review', 'count': 1,
                             'handoff': {'fix': 'UNDECIDED の各設定に cause、OWNER_DECISION・WAITS_FOR・EXTERNAL_DATA には ask も書いた入力の新しい写し（flow.json を向ける）',
                                         'list': f'aws-design asks start --workspace {q(workspace)}'}})
-    if nxt == 'NOTHING_TO_ASK':return stage('asks', 'DONE', '人に聞く判断はない。' + tail)
-    if nxt in ('DRAFT', 'FIX_LEDGER'):
-        why = '判断の台帳がない' if nxt == 'DRAFT' else ('レビューで差し戻し：' + report['rejected'] if report.get('rejected') else
+    missing = diagram_asks_missing(workspace)
+    if nxt == 'NOTHING_TO_ASK' and not missing:return stage('asks', 'DONE', '人に聞く判断はない。' + tail)
+    if nxt in ('DRAFT', 'FIX_LEDGER') or missing and nxt != 'REVIEW':
+        if missing and nxt not in ('DRAFT', 'FIX_LEDGER'):why = '構成図の UNRESOLVED 要素の判断が台帳にない：' + '、'.join(missing[:10])
+        else:why = '判断の台帳がない' if nxt == 'DRAFT' else ('レビューで差し戻し：' + report['rejected'] if report.get('rejected') else
                                                     '台帳の検査が不合格：' + '、'.join(sorted({f['code'] for f in report.get('findings', [])})))
         return stage('asks', 'WAITING_FOR_AGENT', f"{why}。作成担当エージェントが判断ごとに問い・背景・選択肢を書く。" + tail,
                      agent=role('aws-design-author', 'ask-drafter', 1,
@@ -326,7 +397,8 @@ def render(report):
     n = report['next']
     lines += ['', '次：' + (f"{n['stage']}（{n['state_ja']}）" + (f"\n\n    {n['command']}" if n.get('command') else '') +
                          (f"\n\n担当：{n['person']}" if n.get('person') else '') +
-                         (f"\n\nエージェント：{n['agent']['name']} ×{n['agent']['count']}（" + '、'.join(f'{k}={v}' for k, v in n['agent']['handoff'].items()) + '）'
+                         (f"\n\nエージェント：{n['agent']['name']} ×{n['agent']['count']}（" + '、'.join(f'{k}={v}' for k, v in n['agent']['handoff'].items() if k != 'runs') + '）'
+                          + ''.join(f"\n- {i}：" + '、'.join(f'{k}={v}' for k, v in run.items()) for i, run in enumerate(n['agent']['handoff'].get('runs', []), 1))
                           if n.get('agent') else '') +
                          (f"\n\n委任されない理由：{'、'.join(n['delegation_refused'])}" if n.get('delegation_refused') else '') if n else 'なし'), '', report['notice']]
     return '\n'.join(lines) + '\n'

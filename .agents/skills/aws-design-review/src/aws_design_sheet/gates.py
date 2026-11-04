@@ -4,7 +4,8 @@ Each generation writes runs/NNN/gates.json. The gates are: every handover file s
 contract; the approved source set still matches ARP4 and the design cites only citable
 documents; every value the design takes from a document is found where it cites it, and a
 planted value is not (the grounding self-test); the system overview has no conflict; the
-generation itself completed. FAIL stops the workflow until the input is fixed; WARN lets it
+generation itself completed; every drawing of the CURRENT documents has a reviewed disposition and the design
+input maps what the diagrams draw (the diagram coverage). FAIL stops the workflow until the input is fixed; WARN lets it
 continue and the warnings stay on the review pack. A gate result is about the agents'
 handover, never about whether the AWS design is good.
 """
@@ -17,9 +18,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-GATES = ('contracts', 'source_set', 'grounding', 'grounding_self_test', 'overview', 'generation')
+GATES = ('contracts', 'source_set', 'grounding', 'grounding_self_test', 'diagram_coverage', 'overview', 'generation')
 GATES_JA = {'contracts': '契約（スキーマ）', 'source_set': '根拠文書セット', 'grounding': '引用の裏付け', 'grounding_self_test': '裏付け検査の自己試験',
-            'overview': 'システム概要の矛盾', 'generation': '生成の完了'}
+            'diagram_coverage': '構成図の対比カバレッジ', 'overview': 'システム概要の矛盾', 'generation': '生成の完了'}
 State = Literal['PASS', 'WARN', 'FAIL', 'SKIPPED']
 
 
@@ -56,8 +57,9 @@ def overall(gates):
     return 'FAIL' if 'FAIL' in states else 'WARN' if 'WARN' in states else 'PASS'
 
 
-def evaluate(workspace, run=None):
-    """Gate report for the workspace as it stands, attributed to a run folder when given."""
+def evaluate(workspace, run=None, *, keep=None):
+    """Gate report for the workspace as it stands, attributed to a run folder when given. `keep` receives the
+    diagram coverage report, which the run folder holds beside the gates."""
     from . import flow
     from .contracts import validate_workspace
     from .document_normalize import InputError as ParseError, parse
@@ -101,6 +103,7 @@ def evaluate(workspace, run=None):
     else:
         gates.append(Gate(id='grounding', status='FAIL', detail='design input missing or unreadable'))
         gates.append(Gate(id='grounding_self_test', status='SKIPPED', detail='no design input'))
+    gates.append(diagram_gate(workspace, config, design, keep))
     overview_path = flow.at(workspace, config.get('overview'))
     if overview_path and overview_path.is_file():
         from .system_overview import check as check_overview, load as load_overview
@@ -121,10 +124,31 @@ def evaluate(workspace, run=None):
                       inputs={'design_input': sha(design_path), 'source_set': sha(set_path), 'system_overview': sha(overview_path)})
 
 
+def diagram_gate(workspace, config, design, keep=None):
+    """Every drawing of the CURRENT documents has a reviewed disposition, and the input maps what the diagrams draw."""
+    set_path = Path(workspace) / 'sources' / 'set.json'
+    if not config.get('arp_root') or not set_path.is_file():return Gate(id='diagram_coverage', status='SKIPPED', detail='no approved source set')
+    from .diagram_ledger import InputError as LedgerError, workspace_report
+    try:report = workspace_report(workspace, Path(config['arp_root']), set_path.read_bytes(), design if isinstance(design, dict) else {})
+    except (LedgerError, ValueError) as exc:return Gate(id='diagram_coverage', status='FAIL', detail=str(exc).split(':', 1)[0][:120])
+    if report is None:return Gate(id='diagram_coverage', status='SKIPPED', detail='no drawings in the CURRENT documents')
+    if keep is not None:keep['diagram_coverage'] = report
+    counts = {k: v for k, v in report['counts'].items() if v}
+    ordered = [f for f in report['findings'] if f['severity'] == 'FAIL'] + [f for f in report['findings'] if f['severity'] == 'WARN']
+    return Gate(id='diagram_coverage', status=report['status'], counts=counts,
+                detail=f"coverage {report['coverage_percent']}%, findings {len(report['findings'])}",
+                items=[{k: f.get(k) for k in ('code', 'severity', 'document', 'ref', 'target')} for f in ordered][:50])
+
+
 def write(workspace, run):
-    report = evaluate(workspace, run)
-    path = Path(workspace) / 'runs' / run / 'gates.json'
-    path.write_text(json.dumps(report.model_dump(), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    kept = {}
+    report = evaluate(workspace, run, keep=kept)
+    folder = Path(workspace) / 'runs' / run
+    (folder / 'gates.json').write_text(json.dumps(report.model_dump(), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    if 'diagram_coverage' in kept:
+        from .diagram_ledger import render as render_coverage
+        (folder / 'diagram-coverage.json').write_text(json.dumps(kept['diagram_coverage'], ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        (folder / 'diagram-coverage.md').write_text(render_coverage(kept['diagram_coverage']), encoding='utf-8')
     return report
 
 

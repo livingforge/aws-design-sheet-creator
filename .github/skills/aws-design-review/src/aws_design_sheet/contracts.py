@@ -19,7 +19,7 @@ EXPORT_DIR = Path(__file__).resolve().parents[2] / 'schemas' / 'contracts'
 # Workspace folders whose JSON files are handover contracts; tool reports in runs/NNN are outputs, not handovers.
 WORKSPACE_GLOBS = ('flow.json', 'sources/*.json', 'input/*.json', 'input/*.yaml', 'input/*.yml', 'reviews/*.json', 'delegation/*.json',
                    'delegation/log/*.json', 'delegation/audits/*.json', 'runs/*/gates.json', 'runs/*/agent-review/*.json',
-                   'asks/ledger.json', 'asks/review-*.json', 'asks/records/*.json', 'asks/batches/*/manifest.json')
+                   'asks/ledger.json', 'asks/review-*.json', 'asks/records/*.json', 'asks/batches/*/manifest.json', 'diagrams/*.json')
 
 
 class InputError(ValueError):
@@ -48,6 +48,7 @@ def models():
     """Contract name → Pydantic model, for every contract with a static schema."""
     from .asks import AskReview, Batch, Ledger, Records
     from .delegation import AutoDecision, Calibration, Policy, PolicyApproval
+    from .diagram_ledger import Ledger as DiagramLedger, LedgerReview as DiagramReview
     from .external_sheet import Dictionary, ItemsFile, Review
     from .flow import FlowConfig
     from .gates import GateReport
@@ -63,13 +64,15 @@ def models():
             'delegation-policy': Policy, 'delegation-approval': PolicyApproval, 'delegation-calibration': Calibration,
             'auto-decision': AutoDecision, 'audit-record': AuditRecord, 'gate-report': GateReport,
             'golden-manifest': GoldenManifest, 'golden-report': GoldenReport, 'source-trace': source_trace_model(),
-            'ask-ledger': Ledger, 'ask-review': AskReview, 'ask-records': Records, 'ask-batch': Batch}
+            'ask-ledger': Ledger, 'ask-review': AskReview, 'ask-records': Records, 'ask-batch': Batch,
+            'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview}
 
 
 KINDS = ('design-input', *('flow-config', 'source-set', 'system-overview', 'overview-review', 'overview-approval', 'external-items',
                           'external-dictionary', 'external-review', 'review-decisions', 'review-packet', 'agent-verdicts', 'agent-escalation',
                           'delegation-policy', 'delegation-approval', 'delegation-calibration', 'auto-decision', 'audit-record', 'gate-report',
-                          'golden-manifest', 'golden-report', 'source-trace', 'ask-ledger', 'ask-review', 'ask-records', 'ask-batch'))
+                          'golden-manifest', 'golden-report', 'source-trace', 'ask-ledger', 'ask-review', 'ask-records', 'ask-batch',
+                          'diagram-ledger', 'diagram-review'))
 
 
 def detect(data):
@@ -120,7 +123,12 @@ def check(raw, kind=None):
             if kind == 'source-set' and data.get('kind') == 'approved':
                 from .source_set import load_approved
                 load_approved(raw)
-    except ValidationError as exc:return kind, errors_of(exc)
+    except ValidationError as exc:
+        if kind in ('diagram-ledger', 'diagram-review'):
+            # The ledger's rules state what is wrong without quoting the drawings, so their message is kept.
+            from .diagram_ledger import problems
+            return kind, problems(exc)
+        return kind, errors_of(exc)
     except ValueError as exc:
         # Cross-reference errors carry a code before the colon; anything after it may name IDs, never values.
         return kind, [{'loc': [], 'type': str(exc).split(':', 1)[0][:80] or type(exc).__name__}]

@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "Author": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor"
+      ],
+      "title": "Author",
+      "type": "object"
+    },
+    "Element": {
+      "additionalProperties": false,
+      "description": "What one element of a drawing is to the design. The reference names it; its text stays in ARP4.",
+      "properties": {
+        "actor_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "USER",
+                "OPERATOR",
+                "EXTERNAL_SYSTEM",
+                "AWS_SERVICE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor Kind"
+        },
+        "ask": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ask"
+        },
+        "boundary": {
+          "anyOf": [
+            {
+              "enum": [
+                "ACCOUNT",
+                "ENVIRONMENT",
+                "REGION",
+                "AZ",
+                "VPC",
+                "SUBNET",
+                "ON_PREMISES",
+                "OTHER"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary"
+        },
+        "disposition": {
+          "enum": [
+            "RESOURCE",
+            "ACTOR",
+            "BOUNDARY",
+            "CONNECTION",
+            "ANNOTATION",
+            "LEGEND",
+            "DUPLICATE",
+            "OUT_OF_SCOPE",
+            "UNRESOLVED",
+            "EXPANDED",
+            "GROUP"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "duplicate_of": {
+          "anyOf": [
+            {
+              "pattern": "^(?:s[1-9][0-9]{0,3}-d[1-9][0-9]{0,5}|a[1-9][0-9]{0,5}|v:[^/#,\\s]+/(?:n:[^/#,\\s]+|e:[1-9][0-9]{0,5}))$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Of"
+        },
+        "ends": {
+          "items": {
+            "pattern": "^(?:s[1-9][0-9]{0,3}-d[1-9][0-9]{0,5}|a[1-9][0-9]{0,5}|v:[^/#,\\s]+/(?:n:[^/#,\\s]+|e:[1-9][0-9]{0,5}))$",
+            "type": "string"
+          },
+          "title": "Ends",
+          "type": "array"
+        },
+        "inside": {
+          "anyOf": [
+            {
+              "pattern": "^(?:s[1-9][0-9]{0,3}-d[1-9][0-9]{0,5}|a[1-9][0-9]{0,5}|v:[^/#,\\s]+/(?:n:[^/#,\\s]+|e:[1-9][0-9]{0,5}))$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inside"
+        },
+        "legend": {
+          "anyOf": [
+            {
+              "pattern": "^(?:s[1-9][0-9]{0,3}-d[1-9][0-9]{0,5}|a[1-9][0-9]{0,5}|v:[^/#,\\s]+/(?:n:[^/#,\\s]+|e:[1-9][0-9]{0,5}))$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Legend"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "enum": [
+                "PRIMARY",
+                "SECONDARY",
+                "FUTURE",
+                "OTHER"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "purpose": {
+          "default": "",
+          "title": "Purpose",
+          "type": "string"
+        },
+        "reading": {
+          "default": "parser",
+          "enum": [
+            "parser",
+            "vision"
+          ],
+          "title": "Reading",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "ref": {
+          "pattern": "^(?:s[1-9][0-9]{0,3}-d[1-9][0-9]{0,5}|a[1-9][0-9]{0,5}|v:[^/#,\\s]+/(?:n:[^/#,\\s]+|e:[1-9][0-9]{0,5}))$",
+          "title": "Ref",
+          "type": "string"
+        },
+        "service": {
+          "default": "",
+          "title": "Service",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "title": "Value",
+          "type": "string"
+        },
+        "visual": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visual"
+        }
+      },
+      "required": [
+        "ref",
+        "disposition"
+      ],
+      "title": "Element",
+      "type": "object"
+    },
+    "LedgerDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "contains_architecture": {
+          "title": "Contains Architecture",
+          "type": "boolean"
+        },
+        "document": {
+          "minLength": 1,
+          "title": "Document",
+          "type": "string"
+        },
+        "elements": {
+          "items": {
+            "$ref": "#/$defs/Element"
+          },
+          "maxItems": 20000,
+          "title": "Elements",
+          "type": "array"
+        },
+        "extraction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extraction Sha256",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "structure_content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structure Content Hash"
+        }
+      },
+      "required": [
+        "document",
+        "extraction_sha256",
+        "contains_architecture",
+        "reason"
+      ],
+      "title": "LedgerDocument",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/diagram-ledger",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "author": {
+      "$ref": "#/$defs/Author"
+    },
+    "contract": {
+      "const": "diagram-ledger/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/LedgerDocument"
+      },
+      "minItems": 1,
+      "title": "Documents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "author",
+    "documents"
+  ],
+  "title": "Ledger",
+  "type": "object"
+}

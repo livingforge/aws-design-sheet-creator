@@ -21,6 +21,7 @@
             "source_set",
             "grounding",
             "grounding_self_test",
+            "diagram_coverage",
             "overview",
             "generation"
           ],

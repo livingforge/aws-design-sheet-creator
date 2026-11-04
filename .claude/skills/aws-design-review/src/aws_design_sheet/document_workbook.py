@@ -60,6 +60,8 @@ def workbook(document, *, services=None, service_only=False, optional=None):
     layout=dict(LAYOUT)
     if document.model_version=='1.1' and not service_only:
         layout['地域別資源']=(['資源ID','リージョン','公式スキーマSHA-256','公式取得元'],[36,24,70,100])
+        if getattr(document.design,'accounts',None):
+            layout['アカウント配置']=(['資源・アカウントID','アカウント','用途','アカウント番号','出典'],[36,36,22,20,40])
         if document.review_report:
             layout['原資料状態']=(['原資料設定ID','区分','元の状態','元の検証状態','生成項目ID','原資料位置','原本のレビュー結果'],[24,15,36,30,60,55,24])
             layout['実行サマリ根拠']=(['記録ID','区分','JSON'],[32,30,120])
@@ -154,11 +156,18 @@ def workbook(document, *, services=None, service_only=False, optional=None):
     if document.model_version=='1.1':
         add('概要',[IMPORT_KEY,'修正案の取込キー',{'format_version':'1.0','input_sha256':document.input_sha256,
             'environment_id':document.environment_id,'edit_columns':list(EDIT_COLUMNS)}])
+    accounts={a.id:a for a in getattr(d,'accounts',None) or []}
+    if accounts and not service_only:
+        # The accounts first, then each resource's placement; the account number stays open unless a document gives it.
+        for a in accounts.values():add('アカウント配置',[a.id,a.name,a.purpose,a.account_id or '未決定',', '.join(a.sources)])
     for r in d.resources:
         if document.model_version=='1.1' and not service_only:
             region=document.resource_regions.get(r.id,env.region)
             origin=document.regional_catalog_provenance.get(region,document.catalog_provenance)
             add('地域別資源',[r.id,region,origin['zip_sha256'],origin['source']])
+            if accounts:
+                placed=document.resource_accounts.get(r.id)
+                add('アカウント配置',[r.id,accounts[placed].name+' / '+placed if placed else '未決定','','',''])
         state=document.resource_comparisons[r.id]
         add('構成一覧',[r.id,r.name,r.type,r.cfn_logical_id or '未対応付け',state,r.rationale,', '.join(r.sources)])
         if state!='PRESENT':add('差異',[r.id,state,r.type,r.cfn_logical_id or '',r.rationale])

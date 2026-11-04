@@ -253,7 +253,7 @@ def evaluate(document):
     evaluation.stages['declared_dependencies']={'status':'COMPLETE','scope':'explicit logical graph only; no CFN stack inference'}
     from .document_regions import inspect_placement
     evaluation.results.extend({**r,'stage':'declared_regions'} for r in inspect_placement(document))
-    evaluation.stages['declared_regions']={'status':'COMPLETE','scope':'explicit regional placement and decided literal ARN regions only'}
+    evaluation.stages['declared_regions']={'status':'COMPLETE','scope':'explicit regional and account placement and decided literal ARN regions only'}
     unknown_resources = {r['resource_id'] for r in evaluation.coverage if r['kind'] == 'BRIDGE_UNKNOWN_VALUE'}
     for name, runner in [('checker', run_checker), ('cfn_lint', run_linter)]:
         try:

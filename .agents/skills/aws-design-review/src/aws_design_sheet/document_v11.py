@@ -90,6 +90,23 @@ class SchemaResource(Resource):
     type: str = Field(json_schema_extra={'enum':input_type_inventory()})
     settings: dict[str,SchemaSetting]=Field(default_factory=dict)
     region: str | None = Field(default=None, pattern=r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$')
+    # The declared account it is placed in; omitted, the environment's account.
+    account: ID | None = None
+    # The environments it exists in; empty, every environment.
+    environments: list[ID] = Field(default_factory=list)
+
+
+class Account(StrictModel):
+    """An AWS account the design places resources in, by a stable ID. `account_id` is the 12-digit ID only when a
+    document gives it; it is never invented."""
+    id: ID
+    name: str = Field(min_length=1)
+    purpose: Literal['WORKLOAD','MANAGEMENT','SECURITY','LOG_ARCHIVE','NETWORK','SHARED_SERVICES','BACKUP','OTHER'] = 'WORKLOAD'
+    account_id: str | None = Field(default=None, pattern=r'^\d{12}$')
+    description: str = ''
+    rationale: str = ''
+    status: Status = 'DECIDED'
+    sources: list[ID] = Field(default_factory=list)
 
 
 class Actor(StrictModel):
@@ -101,6 +118,7 @@ class Actor(StrictModel):
     kind: Literal['USER','OPERATOR','EXTERNAL_SYSTEM','AWS_SERVICE']
     service: str = ''
     region: str | None = Field(default=None, pattern=r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$')
+    account: ID | None = None
     description: str = ''
     rationale: str = ''
     status: Status = 'DECIDED'
@@ -109,7 +127,7 @@ class Actor(StrictModel):
     @model_validator(mode='after')
     def placed(self):
         if self.kind=='AWS_SERVICE' and not self.service.strip():raise ValueError('an AWS_SERVICE actor names its service')
-        if self.kind!='AWS_SERVICE' and (self.service or self.region):raise ValueError('only an AWS_SERVICE actor has a service and region')
+        if self.kind!='AWS_SERVICE' and (self.service or self.region or self.account):raise ValueError('only an AWS_SERVICE actor has a service, region and account')
         return self
 
 
@@ -119,6 +137,10 @@ class SchemaOverride(Override):
 
 class SchemaEnvironment(Environment):
     overrides: list[SchemaOverride]=Field(default_factory=list)
+    # The declared account its resources are placed in unless they name another.
+    account: ID | None = None
+    # Where the documents state the environment, such as the frame a diagram draws around it.
+    sources: list[ID] = Field(default_factory=list)
 
 
 class SchemaInput(DocumentInput):
@@ -128,6 +150,7 @@ class SchemaInput(DocumentInput):
     design_outline: list[Section] | None = None
     decisions: list[Decision]=Field(default_factory=list)
     actors: list[Actor]=Field(default_factory=list)
+    accounts: list[Account]=Field(default_factory=list)
     # Approved workbook changes, appended by aws-design changes apply.
     change_log: list[ChangeRecord]=Field(default_factory=list)
 
@@ -136,7 +159,7 @@ class SchemaInput(DocumentInput):
         validate_requirements(self)
         validate_decisions(self)
         if len({c.change_id for c in self.change_log})!=len(self.change_log):raise ValueError('duplicate change ID')
-        objects=[self.system,*self.environments,*self.sources,*self.resources,*self.actors,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
+        objects=[self.system,*self.environments,*self.sources,*self.resources,*self.actors,*self.accounts,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
         ids=[x.id for x in objects]
         if len(ids)!=len(set(ids)):raise ValueError('duplicate stable ID')
         resources={r.id:r for r in self.resources};sources={s.id for s in self.sources}
@@ -152,19 +175,33 @@ class SchemaInput(DocumentInput):
             # One verified catalog per region for the whole input, not one lookup per resource and environment.
             if region not in cats:cats[region]=catalog(region)
             return cats[region]
-        def validate(resource,values,cat):
+        def validate(resource,values,cat,absent=frozenset()):
             if resource.type not in cat.schemas:raise ValueError('resource is outside the regional service catalog')
             for name,setting in values.items():
                 if name not in cat.writable(resource.type):raise ValueError('unknown or read-only top-level property')
-                visit_setting(setting,resource.type,[name],resources,provenance,cat=cat)
+                visit_setting(setting,resource.type,[name],resources,provenance,cat=cat,absent=absent)
         for resource in self.resources:provenance(resource)
+        accounts={a.id for a in self.accounts};environments={e.id for e in self.environments}
+        for x in [*self.accounts,*self.environments]:provenance(x)
+        if any(x.account is not None and x.account not in accounts for x in [*self.environments,*self.resources,*self.actors]):
+            raise ValueError('unknown account')
+        for resource in self.resources:
+            if len(resource.environments)!=len(set(resource.environments)) or set(resource.environments)-environments:
+                raise ValueError('invalid resource environment')
         for env in self.environments:
-            for resource in self.resources:validate(resource,resource.settings,regional(resource.region or env.region))
+            # A resource absent from an environment has no settings there, and nothing present may reference it.
+            absent=frozenset(r.id for r in self.resources if not present(r,env.id))
+            for resource in self.resources:
+                if resource.id not in absent:validate(resource,resource.settings,regional(resource.region or env.region),absent)
             if len({o.resource_id for o in env.overrides})!=len(env.overrides):raise ValueError('duplicate environment override')
             for o in env.overrides:
                 if o.resource_id not in resources:raise ValueError('invalid override resource')
+                if o.resource_id in absent:raise ValueError('override for a resource absent from the environment')
                 resource=resources[o.resource_id]
-                validate(resource,o.settings,regional(resource.region or env.region))
+                validate(resource,o.settings,regional(resource.region or env.region),absent)
+            for conn in self.connections:
+                ends=[e for e in (conn.source,conn.target) if e in resources]
+                if any(e in absent for e in ends) and any(e not in absent for e in ends):raise ValueError('connection to a resource absent from the environment')
         for note in [*self.requirements,*self.operations,*self.issues]:
             provenance(note)
             if any(r not in resources for r in note.resources):raise ValueError('invalid note resource')
@@ -186,14 +223,21 @@ class SchemaInput(DocumentInput):
         for d in self.decisions:
             for e in d.expansions:
                 for env in self.environments:
+                    absent=frozenset(r.id for r in self.resources if not present(r,env.id))
                     for rid in expansion_targets(self,d,e,env.id):
-                        resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},regional(resource.region or env.region))
+                        if rid in absent:continue
+                        resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},regional(resource.region or env.region),absent)
         from .document_policy_model import validate_policies
         validate_policies(self)
         return self
 
 
-def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None):
+def present(resource,environment):
+    """Whether a resource exists in an environment: one that names no environments exists in all."""
+    return not getattr(resource,'environments',None) or environment in resource.environments
+
+
+def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None,absent=frozenset()):
     """Validate typed decision nodes and preserve their original representation."""
     cat=cat or catalog();provenance(setting)
     if cat.readonly(kind,parts) or not cat.at(kind,parts):raise ValueError('unknown or read-only nested property')
@@ -203,6 +247,7 @@ def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None)
     if sensitive(kind,parts) and setting.mode!='SECRET_REF':raise ValueError('sensitive input requires SECRET_REF')
     if setting.mode=='RESOURCE_REF':
         refs=setting.ref if isinstance(setting.ref,list) else [setting.ref]
+        if any(r in absent for r in refs):raise ValueError('reference to a resource absent from the environment')
         if any(r not in resources for r in refs) or len(refs)!=len(set(refs)):raise ValueError('invalid internal reference')
         for i,r in enumerate(refs):
             targets=cat.reference_targets(kind,[*parts,i] if isinstance(setting.ref,list) else parts)
@@ -214,7 +259,7 @@ def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None)
         return
     def walk(value,path,composite):
         if composite and isinstance(value,dict) and set(value)=={'$design'}:
-            visit_setting(SchemaSetting.model_validate(value['$design']),kind,path,resources,provenance,trace,cat=cat);return
+            visit_setting(SchemaSetting.model_validate(value['$design']),kind,path,resources,provenance,trace,cat=cat,absent=absent);return
         if sensitive(kind,path):raise ValueError('sensitive input requires a typed secret reference')
         if secret_literal(value) and not isinstance(value,(dict,list)):raise ValueError('secret-like literal')
         cat.shape(kind,path,value)
@@ -328,12 +373,31 @@ class SchemaDocument(Document):
     resource_services: dict[str,str]
     read_only_omissions: list[str]
     resource_regions: dict[str,str]=Field(default_factory=dict)
+    # Declared accounts of the resources that have one, and the resources absent from this environment.
+    resource_accounts: dict[str,str]=Field(default_factory=dict)
+    absent_resources: list[str]=Field(default_factory=list)
     regional_catalog_provenance: dict[str,dict]=Field(default_factory=dict)
     review_report: dict=Field(default_factory=dict)
     # Local, non-secret values for EXTERNAL_REF settings; evaluation input only.
     external_bindings: dict=Field(default_factory=dict)
     decision_trace: dict=Field(default_factory=dict)
     decision_expansions: list[dict]=Field(default_factory=list)
+
+
+def for_environment(spec,environment):
+    """The input as it stands in one environment, with the IDs of the resources absent from it. Absent resources
+    leave with their connections, the requirements, policies and checklist entries that target them, and their
+    mentions in notes; the input validator has already refused anything present that references them."""
+    absent=sorted(r.id for r in spec.resources if not present(r,environment))
+    if not absent:return spec,[]
+    gone=set(absent);policies=[p for p in spec.project_policies if p.resource_id not in gone];kept={p.id for p in policies}
+    def notes(items):return [n.model_copy(update={'resources':[r for r in n.resources if r not in gone]}) for n in items]
+    return spec.model_copy(update={
+        'resources':[r for r in spec.resources if r.id not in gone],
+        'connections':[c for c in spec.connections if c.source not in gone and c.target not in gone],
+        'requirements':notes(spec.requirements),'operations':notes(spec.operations),'issues':notes(spec.issues),
+        'required_inputs':[q for q in spec.required_inputs if q.resource_id not in gone],
+        'project_policies':policies,'policy_exceptions':[x for x in spec.policy_exceptions if x.policy_id in kept]}),absent
 
 
 def normalize_schema(raw,environment,cfn_raw=None,*,parsed=None):
@@ -351,9 +415,12 @@ def normalize_schema(raw,environment,cfn_raw=None,*,parsed=None):
     spec=SchemaInput.model_validate(parsed);del parsed   # the validated model replaces the raw tree
     env=next((e for e in spec.environments if e.id==environment),None)
     if env is None:raise InputError('unknown environment')
+    full=spec;spec,absent=for_environment(spec,env.id)
     cats={region:catalog(region) for region in {env.region,*[r.region or env.region for r in spec.resources]}}
     if cfn_raw and len({r.region or env.region for r in spec.resources})>1:
         raise InputError('a single comparison CFN cannot assert multi-region deployment scope')
+    if cfn_raw and len({r.account or env.account for r in spec.resources})>1:
+        raise InputError('a single comparison CFN cannot assert multi-account deployment scope')
     template=parse(cfn_raw) if cfn_raw else None;notices=[];omissions=[]
     if template is not None:
         if not isinstance(template,dict) or not isinstance(template.get('Resources'),dict):raise InputError('CFN Resources mapping required')
@@ -433,6 +500,7 @@ def normalize_schema(raw,environment,cfn_raw=None,*,parsed=None):
                     elif all(isinstance(v,dict) and set(v)=={'Ref'} and v['Ref'] in {r.cfn_logical_id for r in resources.values()} for v in values):result='DIFFERENT'
                     else:result='UNRESOLVED'
         connections[conn.id]='REFERENCE_MATCH' if result=='MATCH' else result
+    if absent:notices.append(f'{len(absent)} resources are declared absent from environment {env.id} and are left out of it: '+', '.join(absent))
     notices+=['Required-input checklist evaluates bounded schema obligations separately. General enum/range semantics and deployment validity remain unevaluated.',
               'Array item IDs are JSON pointers: reordering arrays changes index-based leaf paths.',
               'Write-only metadata does not by itself classify an input as secret. Secret values require references.']
@@ -446,13 +514,19 @@ def normalize_schema(raw,environment,cfn_raw=None,*,parsed=None):
             notices.append(f"Schema {region} was acquired after the reviewed release and differs from it "
                            f"(added {drift['added']}, changed {drift['changed']}, removed {drift['removed']} types). "
                            'Rules for changed types are reconciled as review-required; drifted types are not treated as reviewed.')
-    document=attach(SchemaDocument(environment_id=env.id,input_sha256=hashlib.sha256(raw).hexdigest(),
-        cfn_sha256=hashlib.sha256(cfn_raw).hexdigest() if cfn_raw else None,design=spec,items=items,
+    document=SchemaDocument(environment_id=env.id,input_sha256=hashlib.sha256(raw).hexdigest(),
+        cfn_sha256=hashlib.sha256(cfn_raw).hexdigest() if cfn_raw else None,design=full,items=items,
         resource_comparisons=resource_comparisons,connection_comparisons=connections,notices=notices,
         catalog_provenance=provenance[env.region],regional_catalog_provenance=provenance,
         resource_regions={r.id:r.region or env.region for r in spec.resources},
+        resource_accounts={r.id:r.account or env.account for r in spec.resources if r.account or env.account},
+        absent_resources=absent,
         resource_services={r.id:cats[r.region or env.region].services[r.type] for r in spec.resources},read_only_omissions=omissions,
-        decision_expansions=expansion_records))
+        decision_expansions=expansion_records)
+    # The document holds the environment's view of the input. That view need not validate as an input of its own
+    # (a decision may name only resources absent here), so it replaces the validated whole after construction.
+    document.design=spec
+    document=attach(document)
     from .document_decisions import trace
     document.decision_trace=trace(document)
     return document

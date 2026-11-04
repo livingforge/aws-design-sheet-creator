@@ -159,8 +159,10 @@ def generate(input_path,environment,output,cfn_path=None,volume_size=10,*,evalua
         (output/'review-report.md').write_text(render_report(document.review_report),encoding='utf-8')
         from .document_decisions import render_basic_design
         (output/'basic-design.md').write_text(render_basic_design(document),encoding='utf-8')
-        from .document_diagram import render_drawio
-        (output/'architecture.drawio').write_text(render_drawio(document),encoding='utf-8')
+        from .document_diagram import render_pages
+        # Each other environment gets a page of its own, drawn from its own effective settings.
+        others=[normalize(raw,e.id) for e in document.design.environments if e.id!=document.environment_id]
+        (output/'architecture.drawio').write_text(render_pages(document,others),encoding='utf-8')
         if document.decision_trace['status']!='NOT_CHECKED':
             (output/'decision-trace.json').write_text(json.dumps(document.decision_trace,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         if source_trace is not None:

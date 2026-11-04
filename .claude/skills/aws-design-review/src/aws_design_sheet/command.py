@@ -12,6 +12,7 @@ COMMANDS = {
     'flow': ('flow', 'the next step of a workspace; run all, people, inbox, decide'),
     'sources': ('source_set', 'scan, show and approve the documents a design may cite'),
     'system': ('system_overview', 'system overview: draft, check and agree'),
+    'diagram': ('diagram_ledger', 'every drawing of the documents: ledger, review and coverage'),
     'document': ('document_cli', 'generate the design workbooks, review pack, basic design and diagram'),
     'gate': ('gates', 'machine checks of a run and of a design input'),
     'contract': ('contracts', 'list and validate handover file contracts'),

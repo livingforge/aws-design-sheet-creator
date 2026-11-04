@@ -123,6 +123,7 @@ WATCHED = {('AWS::CloudWatch::Alarm', 'Dimensions'), ('AWS::CloudWatch::Alarm', 
 
 GROUP = 'sketch=0;outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;collapsible=0;shape=mxgraph.aws4.group;verticalAlign=top;align=left;spacingLeft=30;'
 STYLES = {'cloud': GROUP + 'grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=none;fontColor=#232F3E;dashed=0;',
+          'account': GROUP + 'grIcon=mxgraph.aws4.group_account;strokeColor=#CD2264;fillColor=none;fontColor=#CD2264;dashed=0;',
           'region': GROUP + 'grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=none;fontColor=#147EBA;dashed=1;',
           'vpc': GROUP + 'grIcon=mxgraph.aws4.group_vpc2;strokeColor=#8C4FFF;fillColor=none;fontColor=#8C4FFF;dashed=0;',
           # draw.io's subnet frames: neutral when the input routes nothing for the subnet, else public or private.
@@ -685,15 +686,74 @@ def layout(box, lines, far):
 
 
 def render_drawio(document):
+    """The draw.io file of one page: the whole environment."""
+    env = next(e for e in document.design.environments if e.id == document.environment_id)
+    root = ET.Element('mxfile', host='aws-design-sheet')
+    root.append(page(document, 'architecture', f'{env.name}（{env.id}）'))
+    ET.indent(root)
+    return ET.tostring(root, encoding='unicode') + '\n'
+
+
+def render_pages(document, others=()):
+    """The draw.io file of the environment: the whole environment first, then, when there are two or more, a page
+    for each declared account and each region with only the resources placed there, and a whole page for each
+    other environment's document in `others`. Cells of the later pages carry a page prefix, so that an ID names one
+    cell in the file."""
     spec = document.design;env = next(e for e in spec.environments if e.id == document.environment_id)
+    root = ET.Element('mxfile', host='aws-design-sheet')
+    root.append(page(document, 'architecture', f'{env.name}（{env.id}）'))
+    pages = []
+    accounts = {a.id: a for a in getattr(spec, 'accounts', None) or []}
+    placed = getattr(document, 'resource_accounts', None) or {}
+    held = sorted({placed.get(r.id) for r in spec.resources}, key=lambda a:(a is None, a or ''))
+    if len(held) > 1:
+        for a in held:
+            name = f'{accounts[a].name}（{a}）' if a else 'アカウント未決定'
+            pages.append((f'account-{a or "undecided"}', f'アカウント：{name}', {r.id for r in spec.resources if placed.get(r.id) == a},
+                          f'このページはアカウント「{name}」に置いたリソースだけを描きます。'))
+    regional = {r.id: document.resource_regions.get(r.id, env.region) for r in spec.resources if r.type.split('::')[1] not in GLOBAL}
+    if len(set(regional.values())) > 1:
+        for name in sorted(set(regional.values()), key=lambda x:(x != env.region, x)):
+            pages.append((f'region-{name}', f'リージョン：{name}', {r for r, at in regional.items() if at == name},
+                          f'このページはリージョン {name} に置いたリソースだけを描きます（グローバルなサービスを除く）。'))
+    for ident, title, keep, scope in pages:root.append(prefixed(page(document, ident, title, keep, scope), ident))
+    for other in others:
+        there = next(e for e in other.design.environments if e.id == other.environment_id)
+        ident = f'environment-{there.id}'
+        root.append(prefixed(page(other, ident, f'環境：{there.name}（{there.id}）'), ident))
+    ET.indent(root)
+    return ET.tostring(root, encoding='unicode') + '\n'
+
+
+def prefixed(diagram, prefix):
+    """The page with its cell IDs, and the parents, sources and targets naming them, prefixed."""
+    for cell in diagram.iter('mxCell'):
+        for key in ('id', 'parent', 'source', 'target'):
+            if cell.get(key) not in (None, '0', '1'):cell.set(key, f'{prefix}:{cell.get(key)}')
+    return diagram
+
+
+def page(document, ident, title, keep=None, scope=''):
+    """One page: the environment, or with `keep` only those resources, the actors their connections reach and the
+    lines among them."""
+    spec = document.design;env = next(e for e in spec.environments if e.id == document.environment_id)
+    items = document.items
+    if keep is not None:
+        ends = {e for c in spec.connections if c.source in keep or c.target in keep for e in (c.source, c.target)}
+        kept = [a for a in getattr(spec, 'actors', None) or [] if a.id in ends]
+        spec = spec.model_copy(update={'resources': [r for r in spec.resources if r.id in keep], 'actors': kept,
+                                       'connections': [c for c in spec.connections
+                                                       if all(e in keep or e in {a.id for a in kept} for e in (c.source, c.target))]})
+        items = [i for i in items if i.resource_id in keep]
     resources = {r.id: r for r in spec.resources};types = {r.id: r.type for r in spec.resources}
     refs = {r.id: [] for r in spec.resources};literal, undecided = {}, set()
     # Actors hold no settings: a type of their own kind, no references, and a name like a resource's.
     actors = {a.id: a for a in getattr(spec, 'actors', None) or []}
     names = {**{r.id: r.name for r in spec.resources}, **{a.id: a.name for a in actors.values()}}
     for a in actors.values():types[a.id] = 'ACTOR::' + a.kind;refs[a.id] = []
-    for item in document.items:
-        refs[item.resource_id] += references(item.expected)
+    for item in items:
+        # On a page of some resources, references to the others leave the picture.
+        refs[item.resource_id] += [x for x in references(item.expected) if x in resources]
         if item.expected.status == 'DECIDED' and item.expected.mode == 'LITERAL':literal[item.resource_id, item.name] = item.expected.value
         if item.expected.status == 'UNDECIDED':undecided.add((item.resource_id, item.name))
     def linked(rid, kind):return [x for x in refs[rid] if types[x] == kind]
@@ -728,7 +788,7 @@ def render_drawio(document):
     # the setting names what is watched or where logs go.
     joined, shown = {(c.source, c.target) for c in spec.connections}, set(drawn)
     derived = []
-    for item in document.items:
+    for item in items:
         for path, target in leaves(item.expected):
             pair = (item.resource_id, target)
             if (target in shown and item.resource_id in shown and target != item.resource_id and pair not in joined
@@ -750,7 +810,7 @@ def render_drawio(document):
     # The environment's effective settings, in the order the input writes them, so that a listener's load balancer
     # comes before its certificate.
     effective = {}
-    for item in document.items:effective.setdefault(item.resource_id, []).append(item)
+    for item in items:effective.setdefault(item.resource_id, []).append(item)
     def written(m):
         order = list(resources[m].settings)
         return sorted(effective.get(m, []), key=lambda i:order.index(i.name) if i.name in order else len(order))
@@ -773,7 +833,14 @@ def render_drawio(document):
     # FAN or more resources of one type in one region, whose only line is the same setting naming the same target,
     # sit together in a dashed frame from which one line leaves: a row of alarms sends one line to its topic.
     count, fans = Counter(x for c in [*spec.connections, *derived] for x in (c.source, c.target)), {}
-    def home_of(rid):return 'cloud' if types[rid].split('::')[1] in GLOBAL else document.resource_regions.get(rid, env.region)
+    # With declared accounts, each account is a frame inside AWS Cloud holding its regions and global services.
+    placement = getattr(document, 'resource_accounts', None) or {}
+    framed = any(r in placement for r in resources)
+    def account_of(rid):
+        if rid in actors:return actors[rid].account or env.account
+        return placement.get(rid)
+    def home_of(rid):
+        return (account_of(rid), 'cloud' if types[rid].split('::')[1] in GLOBAL else document.resource_regions.get(rid, env.region))
     for r in derived:
         if count[r.source] == 1 and container(r.source) is None:fans.setdefault((r.target, r.name, types[r.source], home_of(r.source)), []).append(r)
     groups = {f'{refs[0].source}.group': (refs, key) for key, refs in fans.items() if len(refs) >= FAN}
@@ -794,11 +861,20 @@ def render_drawio(document):
         if types[rid] == 'AWS::ElasticLoadBalancingV2::LoadBalancer' and literal.get((rid, 'Type')) in LOAD_BALANCERS:
             name = LOAD_BALANCERS[literal[rid, 'Type']]
         return name, color
-    cloud = frame('cloud', 'cloud', 'AWS Cloud');boxes = {};regions = {};parent = {}
-    def region(name):
-        if name not in regions:regions[name] = frame('region-' + name, 'region', name)
-        return regions[name]
-    region(env.region)
+    cloud = frame('cloud', 'cloud', 'AWS Cloud');boxes = {};regions = {};parent = {};frames = {}
+    declared = {a.id: a for a in getattr(spec, 'accounts', None) or []}
+    def account(a):
+        if a not in frames:
+            name = (f'{declared[a].name}（{a}' + (f'・{declared[a].account_id}' if declared[a].account_id else '') + '）') if a else 'アカウント未決定'
+            frames[a] = frame(f'account-{a or "undecided"}', 'account', name)
+        return frames[a]
+    def outer_of(a):return account(a) if framed else cloud
+    def region(name, a=None):
+        key = (a if framed else None, name)
+        if key not in regions:regions[key] = frame('region-' + (f'{a or "undecided"}-' if framed else '') + name, 'region', name)
+        return regions[key]
+    # Without accounts the environment's region frame is drawn even when empty, as it always was.
+    if not framed:region(env.region)
     # Resource cells get a prefix so that a resource ID never collides with a frame, line or note.
     def cell(rid):return 'resource-' + rid
     index = {rid: i for i, rid in enumerate(drawn)}
@@ -815,10 +891,11 @@ def render_drawio(document):
     if canvas:canvas.items.append(cloud);parent['cloud'] = 'canvas'
     for rid in drawn:
         if rid in actors:
-            home = canvas if actors[rid].kind != 'AWS_SERVICE' else region(actors[rid].region or env.region)
-        elif types[rid] == VPC:home = region(document.resource_regions.get(rid, env.region))
+            home = canvas if actors[rid].kind != 'AWS_SERVICE' else region(actors[rid].region or env.region, account_of(rid))
+        elif types[rid] == VPC:home = region(document.resource_regions.get(rid, env.region), account_of(rid))
         elif types[rid] == SUBNET:
-            owner = vpc_of(rid);home = boxes[owner] if owner in boxes else region(document.resource_regions.get(rid, env.region))
+            owner = vpc_of(rid)
+            home = boxes[owner] if owner in boxes else region(document.resource_regions.get(rid, env.region), account_of(rid))
             # Subnets whose availability zone is decided sit in a frame for that zone inside their VPC.
             if owner in boxes and zone_of(rid):
                 if (owner, zone_of(rid)) not in zones:
@@ -826,16 +903,16 @@ def render_drawio(document):
                     home.items.append(zone);parent[zone.id] = home.id
                 home = zones[owner, zone_of(rid)]
         elif rid in grouped:
-            gid = grouped[rid];members, (_, name, kind, where) = groups[gid]
+            gid = grouped[rid];members, (_, name, kind, (owner, where)) = groups[gid]
             if gid not in fanned:
-                outer = cloud if where == 'cloud' else region(where)
+                outer = outer_of(owner) if where == 'cloud' else region(where, owner)
                 fanned[gid] = frame(cell(gid), 'group', f"{' '.join(kind.split('::')[1:])} {len(members)}件（{name}）", gid, (1, '', '', index[rid]))
                 outer.items.append(fanned[gid]);parent[fanned[gid].id] = outer.id
             home = fanned[gid]
         else:
             owner = container(rid)
-            home = (boxes[owner] if owner in boxes else cloud if types[rid].split('::')[1] in GLOBAL
-                    else region(document.resource_regions.get(rid, env.region)))
+            home = (boxes[owner] if owner in boxes else outer_of(account_of(rid)) if types[rid].split('::')[1] in GLOBAL
+                    else region(document.resource_regions.get(rid, env.region), account_of(rid)))
         # Items without lines are listed by icon colour and type, so that alike resources sit together.
         home.items.append(boxes.get(rid) or Box(rid, 'leaf', '', rid, (0, icon(rid)[1], types[rid], index[rid])))
         parent[cell(rid)] = home.id
@@ -848,9 +925,17 @@ def render_drawio(document):
             lines = wrap(names[rid]);name = lines[0] if len(lines) == 1 else lines[0][:-1] + '…'
             tag = Box(f'placement-{s}-{rid}', 'tag', text(name), None, (2, index[rid]));tag.of = rid
             tag.w, tag.h = units(name) * 6 + 20, TAG_H;boxes[s].items.append(tag)
-    main = regions[env.region];main.rank = (1, '', '', -1)
-    cloud.items += [main, *[regions[r] for r in sorted(regions) if r != env.region]]
-    for r in regions.values():parent[r.id] = 'cloud'
+    if framed:
+        # The environment's account and region first, then the others by ID; an undecided account last.
+        def first(key, own):return (key != own, key is None, key or '')
+        for (a, name), box in sorted(regions.items(), key=lambda kv:(first(kv[0][0], env.account), first(kv[0][1], env.region))):
+            box.rank = (1, '', '', -1) if name == env.region else ();account(a).items.append(box);parent[box.id] = account(a).id
+        for i, a in enumerate(sorted(frames, key=lambda a:first(a, env.account))):
+            frames[a].rank = (1, '', '', i - len(frames));cloud.items.append(frames[a]);parent[frames[a].id] = 'cloud'
+    else:
+        main = regions[None, env.region];main.rank = (1, '', '', -1)
+        cloud.items += [main, *[regions[k] for k in sorted(regions, key=lambda k:k[1]) if k[1] != env.region]]
+        for r in regions.values():parent[r.id] = 'cloud'
 
     def ancestors(ident):
         found, current = set(), parent.get(ident)
@@ -869,8 +954,7 @@ def render_drawio(document):
             if item.rid:far[item.rid] = (x + item.w // 2, y + (ICON // 2 if item.kind == 'leaf' else item.h // 2))
     measure(top, 0, 0);layout(top, pairs, far)
 
-    root = ET.Element('mxfile', host='aws-design-sheet')
-    diagram = ET.SubElement(root, 'diagram', id='architecture', name=f'{env.name}（{env.id}）')
+    diagram = ET.Element('diagram', id=ident, name=title)
     model = ET.SubElement(diagram, 'mxGraphModel', grid='1', gridSize='10', guides='1', tooltips='1', connect='1', arrows='1',
                           fold='1', page='0', pageScale='1', math='0', shadow='0')
     cells = ET.SubElement(model, 'root')
@@ -964,7 +1048,8 @@ def render_drawio(document):
         if sum(steps):geometry.set('x', str(round(2 * (sum(steps[:at]) + steps[at] * where) / sum(steps) - 1, 3)))
 
     listed = '、'.join(f'{text(r)}（{text(types[r])}）' for r in omitted)
-    note = [f'{text(spec.system.name)} の構成図（環境：{text(env.name)}）。設計入力から生成しました。修正は入力ファイルに行い、再生成してください。',
+    note = [f'{text(spec.system.name)} の構成図（環境：{text(env.name)}）。設計入力から生成しました。修正は入力ファイルに行い、再生成してください。'
+            + (text(scope) + 'ほかのリソースとの線は省いています。' if scope else ''),
             '線は宣言した接続と、設定が参照するリソースへの参照（点線）です。参照の線は、枠で示す VPC・サブネットと、枠への配置を決めるのに使うセキュリティグループ・サブネットグループ、'
             '多くのリソースが共通に参照する KMS キー・ロググループ・IAM ロールへのもの、アラームの監視対象やログの出力先を指すものを省きます。'
             '図に出さないリソース（リスナー、ドメイン、ルートテーブルなど）が図上の2つのリソースを参照するときは、その名前を「経由：」に添えた点線で結びます。'
@@ -977,6 +1062,7 @@ def render_drawio(document):
             'ネットワークを参照しない DB インスタンスは、参照する DB クラスターと同じ枠に置きます。'
             '複数のサブネットを参照するリソースは VPC の直下に置き、参照する各サブネットに点線の札で名前を示します。'
             'AZ の点線の枠は、サブネットの AZ が決定済みのときだけ描きます。'
+            + ('アカウントの枠は、各リソースに宣言したアカウント（宣言がなければ環境のアカウント）で決めています。' if framed else '') +
             'インターネットゲートウェイへの経路を持つルートテーブルを関連付けたサブネットは緑（パブリック）、それ以外のルートテーブルを関連付けたサブネットは青（プライベート）、'
             'ルートテーブルの関連付けが入力にないサブネットは灰色で示します。'
             '外部の相手のうち、利用者・運用者・外部システムは AWS Cloud の枠の外に、入力でリソースとして扱えない AWS サービスはリージョンの枠の中に描きます。外部の相手は設定値を持ちません。'
@@ -984,5 +1070,4 @@ def render_drawio(document):
             f'図に出していないリソース：{listed}' if omitted else '図に出していないリソース：なし']
     width = max(top.w, 800);rows = sum(-(-units(line) * 6 // width) for line in note)
     vertex('note', '<br>'.join(note), NOTE_STYLE, '1', 0, top.h + 20, width, rows * 15 + 10)
-    ET.indent(root)
-    return ET.tostring(root, encoding='unicode') + '\n'
+    return diagram

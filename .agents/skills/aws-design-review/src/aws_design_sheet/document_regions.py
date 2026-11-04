@@ -17,7 +17,29 @@ def inspect_placement(document):
             'reason':'Explicit CLOUDFRONT Scope requires declared region us-east-1; no account, deployment or other WAF conditions verified',
             'source_checked_at':'2026-10-13','source_urls':[
                 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-wafv2-webacl.html']})
-    return rows+literal_arn_regions(document,resources,env)
+    return rows+literal_arn_regions(document,resources,env)+cross_account_references(document)
+
+
+def cross_account_references(document):
+    """References from a resource to one placed in another declared account. CloudFormation cannot reference
+    across accounts, so each needs sharing, a resource policy or a value passed in; the design is not refused."""
+    from .document_diagram import leaves
+    accounts=getattr(document,'resource_accounts',None) or {}
+    rows=[]
+    for item in document.items:
+        own=accounts.get(item.resource_id)
+        if own is None or item.origin=='cfn_only':continue
+        for path,target in leaves(item.expected):
+            other=accounts.get(target)
+            if other is None or other==own:continue
+            rows.append({'rule_id':'DOCUMENT_CROSS_ACCOUNT_REFERENCE','rule_version':'1.0','resource_id':item.resource_id,
+                'path':'/properties/'+'/'.join([item.name,*map(str,path)]),'verdict':'NEEDS_REVIEW','severity':'WARNING',
+                'authority':'AWS_SPEC','expected':own,'actual':f'{target} ({other})','evidence_ids':[],
+                'reason':'The reference names a resource in another declared account; confirm how it is shared '
+                         '(resource policy, AWS RAM, a value passed in). Account identity and sharing are not verified',
+                'source_checked_at':'2026-11-03','source_urls':[
+                    'https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html']})
+    return rows
 
 
 ARN_SOURCES=['https://docs.aws.amazon.com/IAM/latest/UserGuide/reference-arns.html',

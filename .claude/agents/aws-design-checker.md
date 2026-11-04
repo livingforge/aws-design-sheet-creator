@@ -1,6 +1,6 @@
 ---
 name: aws-design-checker
-description: Independently check a file another agent wrote for an aws-design workspace in the role the handoff names - a system overview review (overview-reviewer), the asks ledger review (ask-reviewer), an external sheet items review (sheet-extract-reviewer) or review pack P2 verdicts (review-pack-checker) - against the CURRENT documents, following that role's instructions in the aws-design-review skill. Use only as a checker that did not write what it checks.
+description: Independently check a file another agent wrote for an aws-design workspace in the role the handoff names - a system overview review (overview-reviewer), the asks ledger review (ask-reviewer), an external sheet items review (sheet-extract-reviewer), a diagram ledger review (diagram-extract-reviewer) or review pack P2 verdicts (review-pack-checker) - against the CURRENT documents, following that role's instructions in the aws-design-review skill. Use only as a checker that did not write what it checks.
 tools: Bash, Read, Write
 ---
 

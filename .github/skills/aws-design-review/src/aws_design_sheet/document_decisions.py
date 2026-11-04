@@ -89,7 +89,9 @@ def expanded_setting(decision, expansion):
 def scope_targets(spec, decision, environment):
     scope = decision.applies_to
     if scope is None or scope.environments and environment not in scope.environments:return []
-    return sorted({*scope.resources, *[r.id for r in spec.resources if r.type in scope.types]})
+    # Named resources absent from this environment's input are not targets there.
+    present = {r.id for r in spec.resources}
+    return sorted({*[r for r in scope.resources if r in present], *[r.id for r in spec.resources if r.type in scope.types]})
 
 
 def expansion_targets(spec, decision, expansion, environment):
@@ -202,7 +204,7 @@ def trace(document):
     for d in spec.decisions:
         own = by_decision[d.id]; scope = d.applies_to
         in_env = scope is None or not scope.environments or env in scope.environments
-        targets = sorted({*scope.resources, *[r.id for r in spec.resources if r.type in scope.types]}) if scope and in_env else []
+        targets = scope_targets(spec, d, env) if scope and in_env else []
         covered = sorted({l['resource_id'] for l in own if l['status'] == 'DECIDED' and l['resource_id'] in targets})
         pending = sorted({l['resource_id'] for l in own if l['status'] == 'UNDECIDED'} & set(targets) - set(covered))
         if d.status == 'NOT_APPLICABLE':state = 'NOT_APPLICABLE'
@@ -307,9 +309,22 @@ def render_basic_design(document):
            '## システム構成', '',
            '構成図は `architecture.drawio`（draw.io 形式、AWS 公式アイコン）にあります。宣言した配置と接続、設定が参照するリソースへの参照だけを描いた図です。', '']
     if spec.system.description:out += [spec.system.description, '']
-    out += ['### 環境', '', *table(['環境ID', '名前', 'リージョン', '説明'], [[e.id, e.name, e.region, e.description] for e in spec.environments]), '',
-            '### 構成リソース', '', *table(['リソースID', '名前', '種類', 'リージョン', '設計理由'],
-            [[r.id, r.name, r.type, document.resource_regions.get(r.id, env.region), r.rationale] for r in spec.resources]), '']
+    accounts = {a.id: a for a in getattr(spec, 'accounts', None) or []}
+    if accounts:
+        # Declared accounts change the environment and resource tables only when there are any.
+        out += ['### アカウント', '', *table(['アカウントID', '名前', '用途', 'アカウント番号', '説明'],
+                [[a.id, a.name, a.purpose, a.account_id or '未決定', a.description] for a in accounts.values()]), '',
+                '### 環境', '', *table(['環境ID', '名前', 'リージョン', 'アカウント', '説明'],
+                [[e.id, e.name, e.region, e.account or '未決定', e.description] for e in spec.environments]), '',
+                '### 構成リソース', '', *table(['リソースID', '名前', '種類', 'アカウント', 'リージョン', '設計理由'],
+                [[r.id, r.name, r.type, document.resource_accounts.get(r.id, '未決定'), document.resource_regions.get(r.id, env.region), r.rationale]
+                 for r in spec.resources]), '']
+    else:
+        out += ['### 環境', '', *table(['環境ID', '名前', 'リージョン', '説明'], [[e.id, e.name, e.region, e.description] for e in spec.environments]), '',
+                '### 構成リソース', '', *table(['リソースID', '名前', '種類', 'リージョン', '設計理由'],
+                [[r.id, r.name, r.type, document.resource_regions.get(r.id, env.region), r.rationale] for r in spec.resources]), '']
+    absent = getattr(document, 'absent_resources', None) or []
+    if absent:out += [f'この環境に存在しないと宣言したリソース（{len(absent)}件）は、上の表と図から除いています：' + '、'.join(f'`{r}`' for r in absent), '']
     actors = getattr(spec, 'actors', None) or []
     if actors:
         kinds = {'USER': '利用者', 'OPERATOR': '運用者', 'EXTERNAL_SYSTEM': '外部システム', 'AWS_SERVICE': 'AWS（入力でリソースとして扱えないサービス）'}
