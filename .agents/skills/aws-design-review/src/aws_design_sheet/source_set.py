@@ -41,7 +41,11 @@ DATE = re.compile(r'(?<!\d)(20\d{2})[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[
 # A document whose folder, role cell or title holds one of these words may be a proposal, estimate or
 # other reference rather than a design basis: its single or newest version goes to the approver
 # as UNDECIDED (POSSIBLY_REFERENCE) instead of CURRENT. Matched as substrings after norm().
-REFERENCE_WORDS = ('参考', '提案', '見積', '受注前', '他社', '他案件', 'proposal', 'reference', 'estimate', 'quotation', 'rfp', 'rfi')
+REFERENCE_WORDS = ('参考', '提案', '見積', '受注前', '他社', '他案件', 'proposal', 'reference', 'estimate', 'quotation', 'rfp', 'rfi',
+                   # Working material that sits beside design documents but does not decide the design. Minutes are left out:
+                   # they often record the decisions a design rests on.
+                   '課題管理', '課題一覧', '検討メモ', '検討資料', '作業用', '作業メモ',
+                   '製品資料', '製品カタログ', '製品マニュアル', 'キャプチャ', 'スクリーンショット', 'screenshot', 'datasheet', 'whitepaper')
 ROLE_LABELS = {'種別', '文書種別', '資料種別', '位置付け', '位置づけ', '文書区分', '資料区分', '分類', '用途',
                'documenttype', 'doctype', 'category', 'purpose'}
 COVER_CELLS = 40
@@ -479,7 +483,7 @@ def reference_note(entry):
     """Why a document may be a reference, for the approver."""
     where = {'FOLDER': 'フォルダ', 'ROLE': '位置付け', 'TITLE': '表題'}
     found = '、'.join(f"{where[h.basis]}{' ' + h.cell if h.cell else ''}「{h.word}」" for h in entry.signals.reference)
-    return f'参考資料・提案書の可能性：{found}。設計の根拠なら CURRENT、そうでなければ REFERENCE か EXCLUDED を --set で指定'
+    return f'参考資料・提案書・課題表・作業用資料・製品資料などの可能性：{found}。設計の根拠なら CURRENT、そうでなければ REFERENCE か EXCLUDED を --set で指定'
 
 
 def render_diff(report):

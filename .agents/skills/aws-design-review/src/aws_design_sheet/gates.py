@@ -5,7 +5,9 @@ contract; the approved source set still matches ARP4 and the design cites only c
 documents; every value the design takes from a document is found where it cites it, and a
 planted value is not (the grounding self-test); the system overview has no conflict; the
 generation itself completed; every drawing of the CURRENT documents has a reviewed disposition and the design
-input maps what the diagrams draw (the diagram coverage). FAIL stops the workflow until the input is fixed; WARN lets it
+input maps what the diagrams draw (the diagram coverage); every AWS service the CURRENT documents name in their
+cells and drawings is in the input, or a note or decision of the input cites where it is named (the service
+mentions). FAIL stops the workflow until the input is fixed; WARN lets it
 continue and the warnings stay on the review pack. A gate result is about the agents'
 handover, never about whether the AWS design is good.
 """
@@ -18,9 +20,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-GATES = ('contracts', 'source_set', 'grounding', 'grounding_self_test', 'diagram_coverage', 'overview', 'generation')
+GATES = ('contracts', 'source_set', 'grounding', 'grounding_self_test', 'diagram_coverage', 'service_mentions', 'overview', 'generation')
 GATES_JA = {'contracts': '契約（スキーマ）', 'source_set': '根拠文書セット', 'grounding': '引用の裏付け', 'grounding_self_test': '裏付け検査の自己試験',
-            'diagram_coverage': '構成図の対比カバレッジ', 'overview': 'システム概要の矛盾', 'generation': '生成の完了'}
+            'diagram_coverage': '構成図の対比カバレッジ', 'service_mentions': '文書が名指すサービス', 'overview': 'システム概要の矛盾', 'generation': '生成の完了'}
 State = Literal['PASS', 'WARN', 'FAIL', 'SKIPPED']
 
 
@@ -104,6 +106,7 @@ def evaluate(workspace, run=None, *, keep=None):
         gates.append(Gate(id='grounding', status='FAIL', detail='design input missing or unreadable'))
         gates.append(Gate(id='grounding_self_test', status='SKIPPED', detail='no design input'))
     gates.append(diagram_gate(workspace, config, design, keep))
+    gates.append(mentions_gate(design, library, keep))
     overview_path = flow.at(workspace, config.get('overview'))
     if overview_path and overview_path.is_file():
         from .system_overview import check as check_overview, load as load_overview
@@ -140,6 +143,20 @@ def diagram_gate(workspace, config, design, keep=None):
                 items=[{k: f.get(k) for k in ('code', 'severity', 'document', 'ref', 'target')} for f in ordered][:50])
 
 
+def mentions_gate(design, library, keep=None):
+    """Every AWS service the CURRENT documents name is in the input, or the input notes why not."""
+    if library is None:return Gate(id='service_mentions', status='SKIPPED', detail='no approved source set')
+    if not isinstance(design, dict):return Gate(id='service_mentions', status='SKIPPED', detail='no design input')
+    from .service_mentions import report
+    found = report(design, library)
+    if keep is not None:keep['service_mentions'] = found
+    c = found['counts']
+    missing = [s for s in found['services'] if s['status'] == 'NOT_IN_DESIGN']
+    return Gate(id='service_mentions', status=found['status'], counts={k: v for k, v in c.items() if v},
+                detail=f"services {c['services_named']}, in design {c['IN_DESIGN']}, noted {c['NOTED']}, not in design {c['NOT_IN_DESIGN']}",
+                items=[{'code': 'SERVICE_NOT_IN_DESIGN', 'service': s['label'], 'mentions': s['mentions'], 'refs': s['refs'][:3]} for s in missing][:50])
+
+
 def write(workspace, run):
     kept = {}
     report = evaluate(workspace, run, keep=kept)
@@ -149,6 +166,10 @@ def write(workspace, run):
         from .diagram_ledger import render as render_coverage
         (folder / 'diagram-coverage.json').write_text(json.dumps(kept['diagram_coverage'], ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         (folder / 'diagram-coverage.md').write_text(render_coverage(kept['diagram_coverage']), encoding='utf-8')
+    if 'service_mentions' in kept:
+        from .service_mentions import render as render_mentions
+        (folder / 'service-mentions.json').write_text(json.dumps(kept['service_mentions'], ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        (folder / 'service-mentions.md').write_text(render_mentions(kept['service_mentions']), encoding='utf-8')
     return report
 
 

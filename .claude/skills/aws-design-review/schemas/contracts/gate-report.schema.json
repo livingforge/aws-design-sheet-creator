@@ -22,6 +22,7 @@
             "grounding",
             "grounding_self_test",
             "diagram_coverage",
+            "service_mentions",
             "overview",
             "generation"
           ],
