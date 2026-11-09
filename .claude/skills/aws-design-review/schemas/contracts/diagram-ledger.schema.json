@@ -243,6 +243,15 @@
           "title": "Reason",
           "type": "string"
         },
+        "scope": {
+          "default": "ELEMENTS",
+          "enum": [
+            "ELEMENTS",
+            "NOT_ARCHITECTURE"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
         "structure_content_hash": {
           "anyOf": [
             {

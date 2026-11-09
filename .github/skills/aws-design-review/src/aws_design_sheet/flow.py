@@ -86,8 +86,10 @@ def fingerprint(workspace, config):
                'source_trace': sha(at(workspace, config.get('source_trace'))), 'review_decisions': sha(found[-1]) if found else None,
                'system_overview': sha(at(workspace, config.get('overview')))}
     # The diagram ledger joins only workspaces that have one, so that earlier runs elsewhere stay current.
-    from .diagram_ledger import ledger_path
-    if ledger_path(workspace).is_file():printed['diagram_ledger'] = sha(ledger_path(workspace))
+    from .diagram_ledger import ledger_files, single
+    files = ledger_files(workspace)
+    if files and single(workspace):printed['diagram_ledger'] = sha(files[0])
+    elif files:printed['diagram_ledger'] = hashlib.sha256(json.dumps([[f.parent.name, sha(f)] for f in files]).encode()).hexdigest()
     return printed
 
 
@@ -149,68 +151,129 @@ def overview_stage(workspace, config, q):
     return stage('overview', 'WAITING_FOR_PERSON', 'システム概要を関係者で確かめて合意する。' + detail, command, '利用者が指名した合意者', refused=refused)
 
 
+# What each staleness of a ledger document means and who settles it: the worker re-reads, or ARP4 accepts a structure.
+STALE_HELP = {
+    'LEDGER_STALE': 'ARP4で文書が取り込み直された。view を取り直し、その文書の extraction_sha256 と全要素を読み直す',
+    'STRUCTURE_STALE': 'ARP4で構造が受理し直された（古いのは台帳の側で、構造の再レビューは不要）。view を取り直し、'
+                       'その文書の structure_content_hash と v: で始まる参照を新しい構造に合わせる',
+    'LEDGER_NOT_CURRENT': '文書がCURRENTでなくなった。その文書を台帳から外す',
+    'STRUCTURE_NOT_ACCEPTED': '画像に頼る要素がある文書のARP4構造レビューが未受理。作成担当ではなくARP4で、'
+                              '範囲の描画（arp4 spec structure render）、vision読み取り、構造レビューの受理と保存を済ませてから作成担当に戻す',
+}
+
+
 def diagrams_stage(workspace, config, q):
-    """Every drawing of the CURRENT documents read by two independent workers, and the first reading reviewed."""
-    from .diagram_ledger import (InputError as LedgerError, LedgerReview, check, ledger_path, load, read_documents, review_path,
-                                 second_path, sha as raw_sha)
+    """Every drawing of the CURRENT documents read by two independent workers and the first reading reviewed, part by
+    part: each document has its own readings and review, so one document is read again without the others."""
+    from .diagram_ledger import (InputError as LedgerError, check, load, load_review, parts as find_parts, preflight,
+                                 read_documents, sha as raw_sha, single)
     arp, approved = config.get('arp_root'), workspace / 'sources' / 'set.json'
     if not arp or not approved.is_file():return stage('diagrams', 'SKIPPED', '承認済みの文書セットがない')
     try:drawings = read_documents(Path(arp), approved.read_bytes())
     except (LedgerError, ValueError) as exc:return stage('diagrams', 'TODO', f'文書の図形を読めない：{str(exc)[:200]}')
     documents = {d: len(found.elements) for d, found in drawings.items() if found.elements}
-    first, second = ledger_path(workspace), second_path(workspace)
-    if not documents and not first.is_file():return stage('diagrams', 'SKIPPED', 'CURRENTの文書に図形・画像がない')
+    found_parts = find_parts(workspace, drawings)
+    if not documents and not any(p.first.is_file() for p in found_parts):return stage('diagrams', 'SKIPPED', 'CURRENTの文書に図形・画像がない')
+    whole = single(workspace)
     detail = f"図形・画像を含むCURRENTの文書 {len(documents)}件、要素 {sum(documents.values())}件"
-    view = f'aws-design diagram view --arp-root {q(arp)} --source-set {q(approved)}'
-    def checking(path):return f'aws-design diagram check --arp-root {q(arp)} --source-set {q(approved)} --ledger {q(path)}'
-    def worker(path, why, **more):
-        return stage('diagrams', 'WAITING_FOR_AGENT', why + detail, checking(path),
-                     agent=role('aws-design-author', 'diagram-extract-worker', 1,
-                                {'view': view, 'output': str(path), 'check': checking(path), 'arp_root': arp, 'source_set': str(approved), **more}))
-    if not first.is_file() and not second.is_file():
-        # Two independent readings at once: each run writes its own file and never reads the other's.
-        return stage('diagrams', 'WAITING_FOR_AGENT', '構成図の台帳がない。' + detail, checking(first),
-                     agent=role('aws-design-author', 'diagram-extract-worker', 2,
-                                {'view': view, 'arp_root': arp, 'source_set': str(approved),
-                                 'runs': [{'output': str(first), 'check': checking(first), 'actor': '作成担当の名前'},
-                                          {'output': str(second), 'check': checking(second), 'actor': '1つ目と異なる名前', 'must_not_read': str(first)}]}))
-    readings = []
-    for path, actor in ((first, {'actor': '作成担当の名前'}), (second, {'actor': '最初の作成担当と異なる名前', 'must_not_read': str(first)})):
-        if not path.is_file():
-            return worker(path, '構成図の台帳がない。' if path == first else '別の作成担当による独立した読み取りがない。', **actor)
-        try:ledger = load(path.read_bytes())
-        except LedgerError as exc:return worker(path, f'{path.name} が契約を満たさない（{str(exc)[:120]}）。', **actor)
-        found = check(ledger, drawings)
-        if found.status == 'FAIL':
-            return worker(path, f"{path.name} の検査が不合格：{'、'.join(sorted({r['code'] for r in found.rows if r['severity'] == 'FAIL'}))}。", **actor)
-        readings.append(ledger)
-    if readings[0].author.actor.strip() == readings[1].author.actor.strip():
-        return worker(second, '2つの読み取りが同じ作成担当による。', actor='最初の作成担当と異なる名前', must_not_read=str(first))
-    digest = raw_sha(first.read_bytes());record = review_path(workspace, digest)
-    reviewed = LedgerReview.model_validate_json(record.read_bytes()) if record.is_file() else None
-    if reviewed is not None and reviewed.decision == 'rejected':
-        return worker(first, f'レビューで差し戻し（{reviewed.actor}：{reviewed.reason[:120]}）。', actor=readings[0].author.actor)
-    if reviewed is None:
-        compare = f'aws-design diagram compare --ledger {q(first)} --ledger {q(second)}'
-        return stage('diagrams', 'WAITING_FOR_AGENT', f'{readings[0].author.actor} の台帳。独立レビュー（aws-design-checker、diagram-extract-reviewer）の受理が必要。' + detail,
-                     f'aws-design diagram review --arp-root {q(arp)} --source-set {q(approved)} --ledger {q(first)} --decision accepted '
-                     f'--actor <レビュー担当エージェント> --reason <確認した内容> --output {q(record)}',
-                     agent=role('aws-design-checker', 'diagram-extract-reviewer', 1,
-                                {'ledger': str(first), 'second_reading': str(second), 'compare': compare, 'view': view, 'output': str(record),
-                                 'arp_root': arp, 'source_set': str(approved), 'actor': '2人の作成担当と異なる名前'}))
-    unresolved = sum(e.disposition == 'UNRESOLVED' for d in readings[0].documents for e in d.elements)
-    return stage('diagrams', 'DONE', f'{readings[0].author.actor} の台帳を {reviewed.actor} が受理。' + detail
-                 + (f'。UNRESOLVED {unresolved}件は判断の台帳で人に確かめる' if unresolved else ''))
+    common = f'--arp-root {q(arp)} --source-set {q(approved)}'
+    before = f'aws-design diagram preflight {common}'
+    def scope(part):return ''.join(f' --for-document {q(d)}' for d in part.documents or [])
+    def viewing(part):return f'aws-design diagram view {common}' + (f' --document {q(part.documents[0])}' if part.documents else '')
+    def checking(part, path):return f'aws-design diagram check {common} --ledger {q(path)}' + scope(part)
+
+    def state(part):
+        """('runs', [worker runs]) | ('todo', why, command) | ('review', handoff) | ('done', ledger, review) for one part."""
+        first, second = part.first, part.second
+        label = {'document': part.documents[0]} if part.documents else {}
+        def run(path, why, **more):return {**label, 'why': why, 'output': str(path), 'check': checking(part, path), 'view': viewing(part), **more}
+        if not first.is_file() and not second.is_file():
+            # Two independent readings at once: each run writes its own file and never reads the other's.
+            return 'runs', [run(first, '構成図の台帳がない', actor='作成担当の名前'),
+                            run(second, '独立した読み取りがない', actor='1つ目と異なる名前', must_not_read=str(first))]
+        readings = []
+        for path, actor in ((first, {'actor': '作成担当の名前'}), (second, {'actor': '最初の作成担当と異なる名前', 'must_not_read': str(first)})):
+            if not path.is_file():
+                return 'runs', [run(path, '構成図の台帳がない' if path == first else '別の作成担当による独立した読み取りがない', **actor)]
+            try:ledger = load(path.read_bytes())
+            except LedgerError as exc:return 'runs', [run(path, f'{path.name} が契約を満たさない（{str(exc)[:120]}）', **actor)]
+            found = check(ledger, drawings, part.documents)
+            if found.status == 'FAIL':
+                failing = {r['code'] for r in found.rows if r['severity'] == 'FAIL'}
+                stale = {code: sorted({r['document'] for r in found.rows if r['code'] == code}) for code in STALE_HELP if code in failing}
+                if 'STRUCTURE_NOT_ACCEPTED' in stale:
+                    # Only ARP4 accepts a structure; sending the worker back would not change it.
+                    why = f"{path.name}：{STALE_HELP['STRUCTURE_NOT_ACCEPTED']}（{'、'.join(stale['STRUCTURE_NOT_ACCEPTED'][:5])}）"
+                    return 'todo', why, f'{before} --ledger {q(path)}'
+                help_ = ''.join(f"{code}（{'、'.join(docs[:5])}）：{STALE_HELP[code]}。" for code, docs in stale.items())
+                return 'runs', [run(path, f"{path.name} の検査が不合格：{'、'.join(sorted(failing))}。{help_}", **actor,
+                                    **({'stale_documents': stale} if stale else {}))]
+            readings.append(ledger)
+        if readings[0].author.actor.strip() == readings[1].author.actor.strip():
+            return 'runs', [run(second, '2つの読み取りが同じ作成担当による', actor='最初の作成担当と異なる名前', must_not_read=str(first))]
+        digest = raw_sha(first.read_bytes());record = part.review(digest)
+        reviewed = load_review(record.read_bytes()) if record.is_file() else None
+        if reviewed is not None and reviewed.decision == 'rejected':
+            return 'runs', [run(first, f'レビューで差し戻し（{reviewed.actor}：{reviewed.reason[:120]}）', actor=readings[0].author.actor)]
+        if reviewed is None:
+            return 'review', {**label, 'why': f'{readings[0].author.actor} の台帳', 'ledger': str(first), 'second_reading': str(second),
+                              'compare': f'aws-design diagram compare --ledger {q(first)} --ledger {q(second)}', 'view': viewing(part),
+                              'output': str(record), 'actor': '2人の作成担当と異なる名前',
+                              'review': f'aws-design diagram review {common} --ledger {q(first)}{scope(part)} --decision accepted '
+                                        f'--actor <レビュー担当エージェント> --reason <確認した内容> --output {q(record)}'}
+        return 'done', readings[0], reviewed
+
+    states = [(part, state(part)) for part in found_parts]
+    done = [s for _, s in states if s[0] == 'done']
+    progress = '' if whole else f'。部分台帳 {len(found_parts)}件のうち受理済み {len(done)}件'
+    todo = next((s for _, s in states if s[0] == 'todo'), None)
+    if todo:return stage('diagrams', 'TODO', f'{todo[1]}。' + detail + progress, todo[2])
+    runs = [r for _, s in states if s[0] == 'runs' for r in s[1]]
+    if runs:
+        fresh = [part for part, s in states if s[0] == 'runs' and not part.first.is_file() and not part.second.is_file()]
+        notes = []
+        if fresh:
+            # What the reading will need is known before it starts; a ledger that would outgrow its limit is not started.
+            pre = preflight({d: f for d, f in drawings.items() if any(p.documents is None or d in p.documents for p in fresh)})
+            over = any(f['code'] == 'DOCUMENT_OVER_LIMIT' or whole and f['code'] == 'SINGLE_LEDGER_OVER_LIMIT' for f in pre['findings'])
+            if over:
+                return stage('diagrams', 'TODO', f"台帳の推定サイズが上限 {pre['ledger_limit']}バイトを超える。"
+                             '構成を描かない文書を文書セットから外してから読む。' + detail, before)
+            unread = [f for f in pre['findings'] if f['code'] == 'PICTURE_WITHOUT_GRAPH']
+            if unread:notes.append(f"作成担当を起動する前に：文字・代替テキスト・グラフのない画像 {sum(f['count'] for f in unread)}件（文書{len(unread)}件）を開き、"
+                                   '構成を描くものはARP4で描画・vision読み取り・構造レビューを済ませる')
+            if n := sum(f['code'] == 'STRUCTURE_NOT_ACCEPTED' for f in pre['findings']):notes.append(f'ARP4の構造レビューが未受理の文書 {n}件')
+        base = {'preflight': before, 'arp_root': arp, 'source_set': str(approved)}
+        if len(runs) == 1:
+            why = runs[0].pop('why');handoff = {**base, **runs[0]}
+        else:
+            why = '構成図の台帳がない' if len(fresh) == len(found_parts) else f'作成担当の読み取り {len(runs)}件が必要'
+            handoff = {**base, 'view': f'aws-design diagram view {common}', 'runs': runs}
+        return stage('diagrams', 'WAITING_FOR_AGENT', f'{why}。' + detail + progress + ''.join(f'。{n}' for n in notes), runs[0]['check'],
+                     agent=role('aws-design-author', 'diagram-extract-worker', len(runs), handoff))
+    reviews = [s[1] for _, s in states if s[0] == 'review']
+    if reviews:
+        base = {'arp_root': arp, 'source_set': str(approved)}
+        handoff = {**base, **{k: v for k, v in reviews[0].items() if k not in ('why', 'review')}} if len(reviews) == 1 else {**base, 'runs': reviews}
+        why = f"{reviews[0]['why']}。" if len(reviews) == 1 else f'部分台帳 {len(reviews)}件。'
+        return stage('diagrams', 'WAITING_FOR_AGENT', why + '独立レビュー（aws-design-checker、diagram-extract-reviewer）の受理が必要。' + detail + progress,
+                     reviews[0]['review'], agent=role('aws-design-checker', 'diagram-extract-reviewer', len(reviews), handoff))
+    unresolved = sum(e.disposition == 'UNRESOLVED' for _, ledger, _ in done for d in ledger.documents for e in d.elements)
+    head = f'{done[0][1].author.actor} の台帳を {done[0][2].actor} が受理。' if whole else f'部分台帳 {len(done)}件すべてを独立レビューが受理。'
+    return stage('diagrams', 'DONE', head + detail + (f'。UNRESOLVED {unresolved}件は判断の台帳で人に確かめる' if unresolved else ''))
 
 
 def diagram_asks_missing(workspace):
     """Asks the diagram ledger's UNRESOLVED elements name that the asks ledger does not hold."""
-    from .diagram_ledger import InputError as LedgerError, asks_state, ledger_path, load
-    if not ledger_path(workspace).is_file():return []
-    try:ledger = load(ledger_path(workspace).read_bytes())
-    except LedgerError:return []
+    from .diagram_ledger import InputError as LedgerError, asks_state, ledger_files, load
+    named = set()
+    for path in ledger_files(workspace):
+        try:ledger = load(path.read_bytes())
+        except LedgerError:continue
+        named |= {e.ask for d in ledger.documents for e in d.elements if e.disposition == 'UNRESOLVED'}
+    if not named:return []
     held = asks_state(workspace)
-    return sorted({e.ask for d in ledger.documents for e in d.elements if e.disposition == 'UNRESOLVED' and e.ask not in held})
+    return sorted(a for a in named if a not in held)
 
 
 def role(agent, name, count, handoff):

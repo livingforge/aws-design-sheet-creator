@@ -1,0 +1,134 @@
+{
+  "$id": "aws-design-sheet/diagram-adoption",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A reading taken out of use (RETIRE), or the independent reading made the one the design uses (ADOPT): which\nbytes, whose, where the retired file went, who decided and why. Nothing is overwritten or deleted.",
+  "properties": {
+    "action": {
+      "enum": [
+        "ADOPT",
+        "RETIRE"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "adopted_author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adopted Author"
+    },
+    "adopted_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Adopted Sha256"
+    },
+    "contract": {
+      "const": "diagram-adoption/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "document": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Document"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recorded_at": {
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "retired_author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retired Author"
+    },
+    "retired_reading": {
+      "anyOf": [
+        {
+          "enum": [
+            "ledger",
+            "reading-2"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retired Reading"
+    },
+    "retired_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retired Sha256"
+    },
+    "retired_to": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retired To"
+    }
+  },
+  "required": [
+    "contract",
+    "action",
+    "actor",
+    "reason",
+    "recorded_at"
+  ],
+  "title": "Adoption",
+  "type": "object"
+}

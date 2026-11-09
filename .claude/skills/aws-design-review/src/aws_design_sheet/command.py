@@ -38,7 +38,17 @@ def usage():
         '\n\nRun aws-design SUBCOMMAND --help for its arguments.\n'
 
 
+def utf8_streams():
+    """Every subcommand writes UTF-8, whether it prints text or writes bytes. Without this a pipe on Windows gets the
+    ANSI code page from print() and UTF-8 from the byte writers, and Japanese document IDs read back garbled."""
+    for stream, errors in ((sys.stdout, 'strict'), (sys.stderr, 'backslashreplace')):
+        if (getattr(stream, 'encoding', '') or '').lower().replace('-', '') == 'utf8' or not hasattr(stream, 'reconfigure'):continue
+        try:stream.reconfigure(encoding='utf-8', errors=errors)
+        except (ValueError, OSError):pass
+
+
 def main(argv=None):
+    utf8_streams()
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] in ('-h', '--help'):
         (sys.stdout if argv else sys.stderr).write(usage());return 0 if argv else 2

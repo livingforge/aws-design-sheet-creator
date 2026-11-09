@@ -582,12 +582,98 @@ def approve(raw, approver, *, now=None, delegation=None):
                             accepted_findings=report['summary']['codes'], delegation=delegation).model_dump(exclude_none=True)
 
 
+DRAFT_FILE = 'system-overview.draft.drawio'
+
+
+def open_items(overview):
+    """What the overview leaves open, counted: undecided components, flows and quality targets, unanswered questions."""
+    return {'undecided_components': sum(c.status == 'UNDECIDED' for c in overview.components),
+            'undecided_flows': sum(f.status == 'UNDECIDED' for f in overview.flows),
+            'undecided_quality_targets': sum(t.status == 'UNDECIDED' for t in overview.quality_targets),
+            'open_questions': sum(not q.answer.strip() for q in overview.open_questions)}
+
+
+def draft_drawio(overview, raw):
+    """A draft draw.io picture of the overview, to look at before the design input exists: boundaries nested as frames,
+    components inside them, actors on the left and the data flows (dashed while undecided). It says DRAFT with the
+    overview's hash and its open items on the picture and in the file, and is never architecture.drawio: generation
+    draws that from the design input and reads nothing back from this one."""
+    from xml.sax.saxutils import quoteattr
+    digest, counts = sha(raw), open_items(overview)
+    W, H, PAD, HEAD, GAP, ROW = 170, 60, 20, 30, 24, 4
+    children, members = {}, {}
+    for b in overview.boundaries:children.setdefault(b.parent, []).append(b)
+    for c in overview.components:members.setdefault(c.boundary, []).append(c)
+    known = {b.id for b in overview.boundaries}
+    roots = [b for b in overview.boundaries if b.parent not in known]
+    loose = [c for c in overview.components if c.boundary not in known]
+    sizes = {}
+
+    def rows(items):return [items[i:i + ROW] for i in range(0, len(items), ROW)]
+    def size(item):
+        if isinstance(item, Component):return W, H
+        if item.id in sizes:return sizes[item.id]
+        inner = [*children.get(item.id, []), *members.get(item.id, [])]
+        width, height = W + 2 * PAD, HEAD + PAD
+        for row in rows(inner):
+            dims = [size(x) for x in row]
+            width = max(width, 2 * PAD + sum(w for w, _ in dims) + GAP * (len(row) - 1));height += max(h for _, h in dims) + GAP
+        sizes[item.id] = (width, max(height, HEAD + H))
+        return sizes[item.id]
+
+    cells = []
+    shape = {'DATA_STORE': 'shape=cylinder3;boundedLbl=1;size=8;', 'INTERFACE': 'rounded=1;arcSize=40;', 'SHARED_SERVICE': 'shape=process;',
+             'OPERATIONS': 'shape=parallelogram;'}
+    frame = {'ACCOUNT': '#232F3E', 'REGION': '#147EBA', 'ENVIRONMENT': '#7AA116', 'NETWORK': '#8C4FFF', 'TRUST': '#DD344C', 'OTHER': '#879196'}
+    def vertex(ident, parent, value, style, x, y, w, h):
+        cells.append(f'<mxCell id={quoteattr(ident)} value={quoteattr(value)} style={quoteattr(style)} vertex="1" parent={quoteattr(parent)}>'
+                     f'<mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell>')
+    def place(item, parent, x, y):
+        w, h = size(item)
+        if isinstance(item, Component):
+            dashed = 'dashed=1;' if item.status != 'DECIDED' else ''
+            vertex(f'c:{item.id}', parent, item.name, f'whiteSpace=wrap;html=1;{shape.get(item.kind, "rounded=0;")}{dashed}', x, y, w, h)
+            return
+        color = frame[item.kind]
+        vertex(f'b:{item.id}', parent, item.name, f'container=1;collapsible=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;'
+               f'fillColor=none;strokeColor={color};fontColor={color};fontStyle=1;', x, y, w, h)
+        cy = HEAD
+        for row in rows([*children.get(item.id, []), *members.get(item.id, [])]):
+            cx = PAD
+            for child in row:place(child, f'b:{item.id}', cx, cy);cx += size(child)[0] + GAP
+            cy += max(size(c)[1] for c in row) + GAP
+
+    open_total = sum(counts.values())
+    vertex('draft', '1', f'DRAFT 暫定図：{overview.system.name}（システム概要 sha256 {digest[:12]}、未確定 {open_total}件）。'
+           'システム概要から描いた確認用の図で、正式な構成図（architecture.drawio）ではない',
+           'text;html=1;whiteSpace=wrap;align=left;fontSize=14;fontStyle=1;fontColor=#B85450;', 20, 10, 900, 40)
+    for n, actor in enumerate(overview.actors):
+        vertex(f'a:{actor.id}', '1', actor.name, 'shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;', 40, 90 + n * 110, 40, 70)
+    x, y = 200, 80
+    for row in rows([*roots, *loose]):
+        for item in row:place(item, '1', x, y);x += size(item)[0] + GAP * 2
+        x, y = 200, y + max(size(i)[1] for i in row) + GAP * 2
+    drawn = {c.id: f'c:{c.id}' for c in overview.components} | {a.id: f'a:{a.id}' for a in overview.actors} | {b.id: f'b:{b.id}' for b in overview.boundaries}
+    for flow in overview.flows:
+        if flow.source not in drawn or flow.target not in drawn:continue
+        caption = flow.data + (f'（{flow.protocol}）' if flow.protocol else '')
+        dashed = 'dashed=1;' if flow.status != 'DECIDED' else ''
+        cells.append(f'<mxCell id={quoteattr("f:" + flow.id)} value={quoteattr(caption)} style={quoteattr("edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" + dashed)} '
+                     f'edge="1" parent="1" source={quoteattr(drawn[flow.source])} target={quoteattr(drawn[flow.target])}><mxGeometry relative="1" as="geometry"/></mxCell>')
+    meta = ' '.join(f'{k}="{v}"' for k, v in counts.items())
+    return (f'<mxfile host="aws-design-sheet" draft="true" overview_sha256="{digest}" {meta}>'
+            f'<diagram id="system-overview-draft" name={quoteattr("DRAFT " + overview.system.name)}><mxGraphModel><root>'
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' + ''.join(cells) + '</root></mxGraphModel></diagram></mxfile>\n')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='aws-design system', description='System overview above AWS resources: check, draw and agree it before design sheets')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('schema', help='JSON Schema of the overview')
     p = sub.add_parser('check', help='check an overview and write system-overview.md');p.add_argument('overview')
     p.add_argument('--design', help='1.1 design input to check realization against');p.add_argument('--output', help='fresh directory for the Markdown and JSON')
+    p = sub.add_parser('diagram', help='a DRAFT draw.io picture of the overview, apart from the formal architecture.drawio')
+    p.add_argument('overview');p.add_argument('--output', required=True, help='fresh directory')
     p = sub.add_parser('compare', help='two independent drafts: where they place requirements differently');p.add_argument('first');p.add_argument('second')
     p = sub.add_parser('review', help='record an independent review of a drafted overview');p.add_argument('overview')
     p.add_argument('--decision', choices=['accepted', 'rejected'], required=True);p.add_argument('--actor', required=True)
@@ -644,6 +730,13 @@ def main(argv=None):
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             print(json.dumps({'approval': str(output), 'assessment': record['assessment']}, ensure_ascii=False));return 0
+        if args.command == 'diagram':
+            out = Path(args.output)
+            if out.exists():raise InputError('output directory already exists; use a fresh destination')
+            overview = load(raw);out.mkdir(parents=True)
+            (out / DRAFT_FILE).write_text(draft_drawio(overview, raw), encoding='utf-8')
+            print(json.dumps({'draft': str(out / DRAFT_FILE), 'overview_sha256': sha(raw), 'open_items': open_items(overview)}, ensure_ascii=False))
+            return 0
         import yaml
         overview = load(raw)
         design = yaml.safe_load(Path(args.design).read_bytes()) if args.design else None

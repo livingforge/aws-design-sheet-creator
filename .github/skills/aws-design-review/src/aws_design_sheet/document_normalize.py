@@ -53,8 +53,17 @@ def aliased(node):
     return False
 
 
-def parse(raw):
-    if len(raw)>2_000_000:raise InputError('input exceeds v1 size limit')
+LIMIT=2_000_000
+
+
+class InputTooLarge(InputError):
+    """A file over its byte limit, reported apart from a syntax error: its size and the limit, never its content."""
+    def __init__(self,size,limit):
+        super().__init__(f'INPUT_TOO_LARGE: {size} bytes, over the limit of {limit}');self.size,self.limit=size,limit
+
+
+def parse(raw,limit=LIMIT):
+    if len(raw)>limit:raise InputTooLarge(len(raw),limit)
     try:
         text=raw.decode('utf-8-sig')
         loader=LOADER(text)

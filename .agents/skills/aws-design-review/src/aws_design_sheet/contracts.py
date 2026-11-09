@@ -10,6 +10,7 @@ input's schema depends on the regional CloudFormation catalog and is printed by
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -19,7 +20,8 @@ EXPORT_DIR = Path(__file__).resolve().parents[2] / 'schemas' / 'contracts'
 # Workspace folders whose JSON files are handover contracts; tool reports in runs/NNN are outputs, not handovers.
 WORKSPACE_GLOBS = ('flow.json', 'sources/*.json', 'input/*.json', 'input/*.yaml', 'input/*.yml', 'reviews/*.json', 'delegation/*.json',
                    'delegation/log/*.json', 'delegation/audits/*.json', 'runs/*/gates.json', 'runs/*/agent-review/*.json',
-                   'asks/ledger.json', 'asks/review-*.json', 'asks/records/*.json', 'asks/batches/*/manifest.json', 'diagrams/*.json')
+                   'asks/ledger.json', 'asks/review-*.json', 'asks/records/*.json', 'asks/batches/*/manifest.json', 'diagrams/*.json',
+                   'diagrams/adoptions/*.json', 'diagrams/parts/*/*.json', 'diagrams/parts/*/adoptions/*.json')
 
 
 class InputError(ValueError):
@@ -48,7 +50,7 @@ def models():
     """Contract name → Pydantic model, for every contract with a static schema."""
     from .asks import AskReview, Batch, Ledger, Records
     from .delegation import AutoDecision, Calibration, Policy, PolicyApproval
-    from .diagram_ledger import Ledger as DiagramLedger, LedgerReview as DiagramReview
+    from .diagram_ledger import Adoption as DiagramAdoption, Ledger as DiagramLedger, LedgerReview as DiagramReview
     from .external_sheet import Dictionary, ItemsFile, Review
     from .flow import FlowConfig
     from .gates import GateReport
@@ -65,14 +67,14 @@ def models():
             'auto-decision': AutoDecision, 'audit-record': AuditRecord, 'gate-report': GateReport,
             'golden-manifest': GoldenManifest, 'golden-report': GoldenReport, 'source-trace': source_trace_model(),
             'ask-ledger': Ledger, 'ask-review': AskReview, 'ask-records': Records, 'ask-batch': Batch,
-            'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview}
+            'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview, 'diagram-adoption': DiagramAdoption}
 
 
 KINDS = ('design-input', *('flow-config', 'source-set', 'system-overview', 'overview-review', 'overview-approval', 'external-items',
                           'external-dictionary', 'external-review', 'review-decisions', 'review-packet', 'agent-verdicts', 'agent-escalation',
                           'delegation-policy', 'delegation-approval', 'delegation-calibration', 'auto-decision', 'audit-record', 'gate-report',
                           'golden-manifest', 'golden-report', 'source-trace', 'ask-ledger', 'ask-review', 'ask-records', 'ask-batch',
-                          'diagram-ledger', 'diagram-review'))
+                          'diagram-ledger', 'diagram-review', 'diagram-adoption'))
 
 
 def detect(data):
@@ -101,15 +103,39 @@ def detect(data):
 def errors_of(exc):return [{'loc': [str(x) for x in e['loc']], 'type': e['type']} for e in exc.errors(include_input=False, include_context=False)]
 
 
+# Contracts whose commands read them with a loader of their own; the check uses that loader, so a file passes here
+# exactly when the commands accept it, under the same byte limit. Each always declares its contract.
+CLAIM = re.compile(rb'"contract"\s*:\s*"(diagram-ledger|diagram-review)/')
+
+
+def too_large(exc):return {'loc': [], 'type': 'INPUT_TOO_LARGE', 'size': exc.size, 'limit': exc.limit}
+
+
+def check_own(raw, kind):
+    from . import diagram_ledger
+    model, limit = {'diagram-ledger': (diagram_ledger.Ledger, diagram_ledger.LEDGER_LIMIT),
+                    'diagram-review': (diagram_ledger.LedgerReview, diagram_ledger.REVIEW_LIMIT)}[kind]
+    try:model.model_validate(diagram_ledger.read_json(raw, limit))
+    except diagram_ledger.InputTooLarge as exc:return [too_large(exc)]
+    except diagram_ledger.InputError:return [{'loc': [], 'type': 'NOT_JSON'}]
+    # The ledger's rules state what is wrong without quoting the drawings, so their message is kept.
+    except ValidationError as exc:return diagram_ledger.problems(exc)
+    return []
+
+
 def check(raw, kind=None):
     """(kind, errors): errors is empty when the bytes satisfy the contract."""
-    from .document_normalize import InputError as ParseError, parse
+    from .document_normalize import InputError as ParseError, InputTooLarge, parse
+    if kind is None and (claim := CLAIM.search(raw)):kind = claim.group(1).decode()
+    if kind in ('diagram-ledger', 'diagram-review'):return kind, check_own(raw, kind)
     try:data = parse(raw)
+    except InputTooLarge as exc:return kind, [too_large(exc)]
     except ParseError:return kind, [{'loc': [], 'type': 'NOT_JSON_OR_YAML'}]
     found = detect(data)
     if kind is None:kind = found
     if kind is None:return None, [{'loc': [], 'type': 'UNKNOWN_CONTRACT'}]
     if kind not in KINDS:raise InputError(f'UNKNOWN_KIND: {kind}')
+    if kind in ('diagram-ledger', 'diagram-review'):return kind, check_own(raw, kind)
     try:
         if kind == 'design-input':
             from .document_model import DocumentInput
@@ -124,10 +150,6 @@ def check(raw, kind=None):
                 from .source_set import load_approved
                 load_approved(raw)
     except ValidationError as exc:
-        if kind in ('diagram-ledger', 'diagram-review'):
-            # The ledger's rules state what is wrong without quoting the drawings, so their message is kept.
-            from .diagram_ledger import problems
-            return kind, problems(exc)
         return kind, errors_of(exc)
     except ValueError as exc:
         # Cross-reference errors carry a code before the colon; anything after it may name IDs, never values.
