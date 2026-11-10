@@ -653,8 +653,12 @@ def status(workspace, today=None):
     if checked['status'] == 'FAIL':return {**report, 'next': 'FIX_LEDGER'}
     review = review_path(workspace, sha(raw))
     reviewed = json.loads(review.read_text(encoding='utf-8')) if review.is_file() else None
-    if not reviewed or reviewed.get('ledger_sha256') != sha(raw):return {**report, 'next': 'REVIEW', 'author': ledger.author.actor if ledger.author else None}
-    if reviewed['decision'] == 'rejected':return {**report, 'next': 'FIX_LEDGER', 'rejected': reviewed['reason']}
+    current = reviewed is not None and reviewed.get('ledger_sha256') == sha(raw)
+    # A draft asks once from a ledger that passes its check; the independent review belongs to the final mode,
+    # though a review recorded for these bytes still counts, a rejection included.
+    if config.get('mode') == 'draft' and not current:report['unreviewed'] = True
+    elif not current:return {**report, 'next': 'REVIEW', 'author': ledger.author.actor if ledger.author else None}
+    elif reviewed['decision'] == 'rejected':return {**report, 'next': 'FIX_LEDGER', 'rejected': reviewed['reason']}
     if any(f['state'] == 'ANSWERED' for f in found.values()):return {**report, 'next': 'APPLY'}
     if any(f['state'] == 'READY' for f in found.values()):return {**report, 'next': 'SHEET'}
     if any(f['state'] == 'SENT' for f in found.values()):return {**report, 'next': 'WAIT_FOR_ANSWERS'}

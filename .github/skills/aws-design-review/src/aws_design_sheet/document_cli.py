@@ -210,8 +210,11 @@ def main(argv=None):
         print(json.dumps({'generation_status':'POLICY_CONFIGURATION_ERROR','error_code':exc.code}));return 2
     except ValidationError as exc:
         policy_error=any(e['loc'] and e['loc'][0] in ('project_policies','policy_exceptions') for e in exc.errors(include_input=False,include_context=False))
+        errors=exc.errors(include_input=False,include_context=False)
+        # The input's own rules (value_error) name the IDs at fault and never a value; other errors give a location only.
+        messages=[{'loc':[str(x) for x in e['loc']],'message':e['msg'].removeprefix('Value error, ')[:300]} for e in errors if e['type']=='value_error'][:20]
         print(json.dumps({'generation_status':'POLICY_CONFIGURATION_ERROR' if policy_error else 'STRUCTURE_ERROR','error_count':exc.error_count(),
-                          'error_types':sorted({e['type'] for e in exc.errors(include_input=False,include_context=False)})}));return 2
+                          'error_types':sorted({e['type'] for e in errors}),**({'messages':messages} if messages else {})},ensure_ascii=False));return 2
     except (InputError,OSError,ValueError,RecursionError):
         # No exception repr, raw source, parser excerpt or secret payload is logged.
         print(json.dumps({'generation_status':'STRUCTURE_ERROR','message':'Input or output validation failed; no source values logged.'}));return 2

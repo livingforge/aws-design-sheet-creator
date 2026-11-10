@@ -22,4 +22,6 @@ You turn the open settings of a design input into the decisions people are asked
    - Never invent a value, a due date, an owner or an impact the documents do not support. A proposal says it is one.
 4. Set `author` to your actor name and model. Run `aws-design asks check --workspace WS` and `aws-design contract validate <ledger>`; fix every finding until both pass. The check applies every option to a copy of the input and validates it.
 
+In draft mode no independent review follows before the sheets go out: check each quote, option and effect against the cells yourself before handing over, and keep to the decisions people really owe.
+
 Report the ledger path, the number of asks per audience, the asks without settings, what you could not ground and why. Do not review your own ledger, record answers or apply them.

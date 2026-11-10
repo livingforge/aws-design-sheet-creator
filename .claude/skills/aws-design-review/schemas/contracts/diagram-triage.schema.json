@@ -1,0 +1,265 @@
+{
+  "$defs": {
+    "Look": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "ARCHITECTURE",
+            "NETWORK",
+            "SCREENSHOT",
+            "TABLE",
+            "PHOTO",
+            "LOGO",
+            "OTHER",
+            "UNVIEWABLE"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Note",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "services": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 60,
+          "title": "Services",
+          "type": "array"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "kind",
+        "actor",
+        "recorded_at"
+      ],
+      "title": "Look",
+      "type": "object"
+    },
+    "Picture": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "skipped": {
+          "anyOf": [
+            {
+              "enum": [
+                "HAS_TEXT",
+                "READ_IN_ARP4",
+                "NO_FILE",
+                "SMALL",
+                "DUPLICATE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skipped"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "title": "Picture",
+      "type": "object"
+    },
+    "TriageDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "SIGNALS",
+            "PICTURES",
+            "NOTHING"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "ARCHITECTURE",
+            "NOT_ARCHITECTURE",
+            "PENDING"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "document": {
+          "title": "Document",
+          "type": "string"
+        },
+        "elements": {
+          "title": "Elements",
+          "type": "integer"
+        },
+        "extraction_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extraction Sha256",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "pictures": {
+          "items": {
+            "$ref": "#/$defs/Picture"
+          },
+          "title": "Pictures",
+          "type": "array"
+        },
+        "readable": {
+          "default": false,
+          "title": "Readable",
+          "type": "boolean"
+        },
+        "signs": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Signs",
+          "type": "object"
+        }
+      },
+      "required": [
+        "document",
+        "extraction_sha256",
+        "elements",
+        "decision",
+        "basis"
+      ],
+      "title": "TriageDocument",
+      "type": "object"
+    }
+  },
+  "$id": "aws-design-sheet/diagram-triage",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "const": "diagram-triage/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/TriageDocument"
+      },
+      "title": "Documents",
+      "type": "array"
+    },
+    "looks": {
+      "items": {
+        "$ref": "#/$defs/Look"
+      },
+      "title": "Looks",
+      "type": "array"
+    },
+    "source_set_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Set Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "source_set_sha256",
+    "documents"
+  ],
+  "title": "Triage",
+  "type": "object"
+}

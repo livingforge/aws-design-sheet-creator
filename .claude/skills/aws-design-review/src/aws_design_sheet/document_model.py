@@ -154,7 +154,7 @@ class DocumentInput(StrictModel):
                  *self.connections,*self.operations,*self.issues]
         ids=[x.id for x in objects]
         if len(ids)!=len(set(ids)):
-            raise ValueError('duplicate stable ID')
+            raise ValueError('duplicate stable ID: '+', '.join(sorted({i for i in ids if ids.count(i)>1}))[:300])
         resources={r.id:r for r in self.resources}; sources={s.id for s in self.sources}
         logical=[r.cfn_logical_id for r in self.resources if r.cfn_logical_id]
         if len(logical)!=len(set(logical)):

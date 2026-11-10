@@ -32,6 +32,19 @@ NOT_SECRET_PATHS={
 SECRET_NAME=re.compile(r'(?:password|secretstring|secretbinary|secretaccesskey|privatekey|token|clientsecret|accesskeyid|accesskey|apikey|secret|credentials?)$',re.I)
 
 
+def twice(values):
+    """The values that occur more than once, sorted."""
+    seen,again=set(),set()
+    for v in values:(again if v in seen else seen).add(v)
+    return sorted(again,key=str)
+
+
+def named(ids,limit=10):
+    """IDs for an error message: sorted, distinct, and at most `limit` of them."""
+    ids=sorted({str(i) for i in ids});more=len(ids)-limit
+    return ', '.join(ids[:limit])+(f' and {more} more' if more>0 else '')
+
+
 def closed(kind,parts):
     """Whether the schema lets the property hold only a flag, a number or one of listed words, which cannot carry a secret."""
     try:cat=catalog()
@@ -158,63 +171,64 @@ class SchemaInput(DocumentInput):
     def integrity(self):
         validate_requirements(self)
         validate_decisions(self)
-        if len({c.change_id for c in self.change_log})!=len(self.change_log):raise ValueError('duplicate change ID')
+        # Messages name the IDs at fault (identifiers the author chose, never setting values), so that an author can fix them.
+        if twice(c.change_id for c in self.change_log):raise ValueError('duplicate change ID: '+named(twice(c.change_id for c in self.change_log)))
         objects=[self.system,*self.environments,*self.sources,*self.resources,*self.actors,*self.accounts,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
-        ids=[x.id for x in objects]
-        if len(ids)!=len(set(ids)):raise ValueError('duplicate stable ID')
+        if twice(x.id for x in objects):raise ValueError('duplicate stable ID: '+named(twice(x.id for x in objects)))
         resources={r.id:r for r in self.resources};sources={s.id for s in self.sources}
         bindings=[r.cfn_logical_id for r in self.resources if r.cfn_logical_id]
-        if len(bindings)!=len(set(bindings)):raise ValueError('duplicate CFN binding')
+        if twice(bindings):raise ValueError('duplicate CFN binding: '+named(twice(bindings)))
         decisions={d.id for d in self.decisions}
         def provenance(obj):
-            if any(s not in sources for s in obj.sources):raise ValueError('invalid source reference')
+            where=f' in {obj.id}' if isinstance(getattr(obj,'id',None),str) else ''
+            if any(s not in sources for s in obj.sources):raise ValueError(f'invalid source reference{where}: '+named(s for s in obj.sources if s not in sources))
             links=getattr(obj,'decision_ids',[])
-            if len(links)!=len(set(links)) or set(links)-decisions:raise ValueError('invalid decision reference')
+            if len(links)!=len(set(links)) or set(links)-decisions:raise ValueError(f'invalid decision reference{where}')
         cats={}
         def regional(region):
             # One verified catalog per region for the whole input, not one lookup per resource and environment.
             if region not in cats:cats[region]=catalog(region)
             return cats[region]
         def validate(resource,values,cat,absent=frozenset()):
-            if resource.type not in cat.schemas:raise ValueError('resource is outside the regional service catalog')
+            if resource.type not in cat.schemas:raise ValueError(f'resource is outside the regional service catalog: {resource.id}')
             for name,setting in values.items():
-                if name not in cat.writable(resource.type):raise ValueError('unknown or read-only top-level property')
+                if name not in cat.writable(resource.type):raise ValueError(f'unknown or read-only top-level property: {resource.id} {name}')
                 visit_setting(setting,resource.type,[name],resources,provenance,cat=cat,absent=absent)
         for resource in self.resources:provenance(resource)
         accounts={a.id for a in self.accounts};environments={e.id for e in self.environments}
         for x in [*self.accounts,*self.environments]:provenance(x)
         if any(x.account is not None and x.account not in accounts for x in [*self.environments,*self.resources,*self.actors]):
-            raise ValueError('unknown account')
+            raise ValueError('unknown account in '+named(x.id for x in [*self.environments,*self.resources,*self.actors] if x.account is not None and x.account not in accounts))
         for resource in self.resources:
             if len(resource.environments)!=len(set(resource.environments)) or set(resource.environments)-environments:
-                raise ValueError('invalid resource environment')
+                raise ValueError(f'invalid resource environment: {resource.id}')
         for env in self.environments:
             # A resource absent from an environment has no settings there, and nothing present may reference it.
             absent=frozenset(r.id for r in self.resources if not present(r,env.id))
             for resource in self.resources:
                 if resource.id not in absent:validate(resource,resource.settings,regional(resource.region or env.region),absent)
-            if len({o.resource_id for o in env.overrides})!=len(env.overrides):raise ValueError('duplicate environment override')
+            if twice(o.resource_id for o in env.overrides):raise ValueError(f'duplicate environment override in {env.id}: '+named(twice(o.resource_id for o in env.overrides)))
             for o in env.overrides:
-                if o.resource_id not in resources:raise ValueError('invalid override resource')
-                if o.resource_id in absent:raise ValueError('override for a resource absent from the environment')
+                if o.resource_id not in resources:raise ValueError(f'invalid override resource in {env.id}: {o.resource_id}')
+                if o.resource_id in absent:raise ValueError(f'override for a resource absent from the environment {env.id}: {o.resource_id}')
                 resource=resources[o.resource_id]
                 validate(resource,o.settings,regional(resource.region or env.region),absent)
             for conn in self.connections:
                 ends=[e for e in (conn.source,conn.target) if e in resources]
-                if any(e in absent for e in ends) and any(e not in absent for e in ends):raise ValueError('connection to a resource absent from the environment')
+                if any(e in absent for e in ends) and any(e not in absent for e in ends):raise ValueError(f'connection to a resource absent from the environment {env.id}: {conn.id}')
         for note in [*self.requirements,*self.operations,*self.issues]:
             provenance(note)
-            if any(r not in resources for r in note.resources):raise ValueError('invalid note resource')
+            if any(r not in resources for r in note.resources):raise ValueError(f'invalid note resource in {note.id}: '+named(r for r in note.resources if r not in resources))
         actors={a.id for a in self.actors}
         for actor in self.actors:
             provenance(actor)
             # A service the catalog holds is modelled as a resource, so its settings are checked.
             if actor.kind=='AWS_SERVICE' and any(actor.service.strip() in regional(actor.region or e.region).schemas for e in self.environments):
-                raise ValueError('an AWS service in the catalog is a resource, not an actor')
+                raise ValueError(f'an AWS service in the catalog is a resource, not an actor: {actor.id}')
         for conn in self.connections:
             provenance(conn)
-            if any(e not in resources and e not in actors for e in (conn.source,conn.target)):raise ValueError('invalid connection endpoint')
-            if (conn.source in actors or conn.target in actors) and conn.kind!='TRAFFIC':raise ValueError('only traffic connections reach an actor')
+            if any(e not in resources and e not in actors for e in (conn.source,conn.target)):raise ValueError(f'invalid connection endpoint in {conn.id}: '+named(e for e in (conn.source,conn.target) if e not in resources and e not in actors))
+            if (conn.source in actors or conn.target in actors) and conn.kind!='TRAFFIC':raise ValueError(f'only traffic connections reach an actor: {conn.id}')
             if conn.kind=='REFERENCE':
                 source=resources[conn.source]
                 if any(conn.property not in regional(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError('unknown connection property')

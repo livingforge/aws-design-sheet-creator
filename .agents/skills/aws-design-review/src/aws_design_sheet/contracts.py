@@ -51,6 +51,7 @@ def models():
     from .asks import AskReview, Batch, Ledger, Records
     from .delegation import AutoDecision, Calibration, Policy, PolicyApproval
     from .diagram_ledger import Adoption as DiagramAdoption, Ledger as DiagramLedger, LedgerReview as DiagramReview
+    from .diagram_triage import Triage as DiagramTriage
     from .external_sheet import Dictionary, ItemsFile, Review
     from .flow import FlowConfig
     from .gates import GateReport
@@ -67,14 +68,15 @@ def models():
             'auto-decision': AutoDecision, 'audit-record': AuditRecord, 'gate-report': GateReport,
             'golden-manifest': GoldenManifest, 'golden-report': GoldenReport, 'source-trace': source_trace_model(),
             'ask-ledger': Ledger, 'ask-review': AskReview, 'ask-records': Records, 'ask-batch': Batch,
-            'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview, 'diagram-adoption': DiagramAdoption}
+            'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview, 'diagram-adoption': DiagramAdoption,
+            'diagram-triage': DiagramTriage}
 
 
 KINDS = ('design-input', *('flow-config', 'source-set', 'system-overview', 'overview-review', 'overview-approval', 'external-items',
                           'external-dictionary', 'external-review', 'review-decisions', 'review-packet', 'agent-verdicts', 'agent-escalation',
                           'delegation-policy', 'delegation-approval', 'delegation-calibration', 'auto-decision', 'audit-record', 'gate-report',
                           'golden-manifest', 'golden-report', 'source-trace', 'ask-ledger', 'ask-review', 'ask-records', 'ask-batch',
-                          'diagram-ledger', 'diagram-review', 'diagram-adoption'))
+                          'diagram-ledger', 'diagram-review', 'diagram-adoption', 'diagram-triage'))
 
 
 def detect(data):
@@ -100,7 +102,11 @@ def detect(data):
     return None
 
 
-def errors_of(exc):return [{'loc': [str(x) for x in e['loc']], 'type': e['type']} for e in exc.errors(include_input=False, include_context=False)]
+def errors_of(exc):
+    """Validation errors by location and type. A contract's own rule (value_error) adds its message, which names IDs
+    and never a value, so that the author learns which object to fix."""
+    return [{'loc': [str(x) for x in e['loc']], 'type': e['type'], **({'message': e['msg'].removeprefix('Value error, ')[:300]} if e['type'] == 'value_error' else {})}
+            for e in exc.errors(include_input=False, include_context=False)]
 
 
 # Contracts whose commands read them with a loader of their own; the check uses that loader, so a file passes here

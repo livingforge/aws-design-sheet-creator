@@ -1,6 +1,6 @@
 ---
 name: aws-design-author
-description: Write one handover file of an aws-design workspace in the role the handoff names - a system overview draft (overview-drafter), the asks ledger (ask-drafter), an external sheet's items file (sheet-extract-worker) or a diagram ledger (diagram-extract-worker) - following that role's instructions in the aws-design-review skill. Use when aws-design flow or the skill asks for aws-design-author; never to review, approve, answer or record decisions.
+description: Write one handover file of an aws-design workspace in the role the handoff names - a system overview draft (overview-drafter), the asks ledger (ask-drafter), an external sheet's items file (sheet-extract-worker), a diagram ledger (diagram-extract-worker) or the picture triage of a draft (diagram-triager) - following that role's instructions in the aws-design-review skill. Use when aws-design flow or the skill asks for aws-design-author; never to review, approve, answer or record decisions.
 tools: Bash, Read, Write
 ---
 

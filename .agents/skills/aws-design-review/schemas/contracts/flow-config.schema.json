@@ -47,6 +47,15 @@
       "default": null,
       "title": "Library"
     },
+    "mode": {
+      "default": "final",
+      "enum": [
+        "draft",
+        "final"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
     "overview": {
       "anyOf": [
         {

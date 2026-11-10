@@ -44,6 +44,12 @@ class FlowConfig(BaseModel):
     asks: bool = False
     library: str | None = None
     people: dict[Literal['approver', 'architect', 'adopter', 'reviewer'], str] | None = None
+    # draft: run all settles what a person would decide as a marked draft and asks nothing until the draft is out;
+    # final: every decision goes to a person or the delegation policy. A flow.json without it is final.
+    mode: Literal['draft', 'final'] = 'final'
+
+
+def is_draft(config):return config.get('mode') == 'draft'
 
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest() if path and Path(path).is_file() else None
@@ -112,6 +118,9 @@ def overview_stage(workspace, config, q):
     detail = f"判定 {report['assessment']}" + (f"（{'、'.join(f'{k} {v}' for k, v in codes.items())}）" if codes else '')
     if report['assessment'] == 'CONFLICTS_FOUND':
         return stage('overview', 'TODO', 'システム概要に矛盾がある。' + detail + f' aws-design system check {q(path)} --output <新しいフォルダ> で内容を確かめて直す')
+    if is_draft(config):
+        # One draft is enough for a draft design; the second draft, the review and the agreement belong to the final mode.
+        return stage('overview', 'DONE', '下書き（独立した2つ目の下書き・レビュー・合意は確定モードで行う）。' + detail)
     digest = sha(path)
     overview = load(raw)
     approval = workspace / 'sources' / f'overview-approval-{digest[:12]}.json'
@@ -175,6 +184,10 @@ def diagrams_stage(workspace, config, q):
     found_parts = find_parts(workspace, drawings)
     if not documents and not any(p.first.is_file() for p in found_parts):return stage('diagrams', 'SKIPPED', 'CURRENTの文書に図形・画像がない')
     whole = single(workspace)
+    if is_draft(config) and not whole:
+        # A draft triages pictures first and reads only the documents that draw the system, once each.
+        from .diagram_triage import flow_stage
+        return flow_stage(workspace, config, q, drawings, approved)
     detail = f"図形・画像を含むCURRENTの文書 {len(documents)}件、要素 {sum(documents.values())}件"
     common = f'--arp-root {q(arp)} --source-set {q(approved)}'
     before = f'aws-design diagram preflight {common}'
@@ -303,9 +316,18 @@ def status(workspace):
     q = lambda p: f'"{p}"'
     arp = config.get('arp_root')
     proposal, approved = workspace / 'sources' / 'proposal.json', workspace / 'sources' / 'set.json'
+    draft = is_draft(config)
+    from .draft_mode import is_draft_set
     if not arp:stages.append(stage('sources', 'SKIPPED', 'ARP4のルートが設定されていない'))
     elif not approved.is_file() and not proposal.is_file():
         stages.append(stage('sources', 'TODO', '根拠文書セットの提案がない', f'aws-design flow run scan --workspace {q(workspace)}'))
+    elif not approved.is_file() and draft:
+        stages.append(stage('sources', 'TODO', '下書きモード：提案を仮の文書セットにする（未決の文書は規則で決め、人に聞かない）',
+                            f'aws-design flow run all --workspace {q(workspace)}', action='draft-sources'))
+    elif not draft and is_draft_set(approved):
+        # A draft set is no approval: the final mode scans again and asks the approver.
+        stages.append(stage('sources', 'STALE', '下書きで作った仮の文書セット。確定モードでは走査し直して承認者が承認する',
+                            f'aws-design flow run scan --workspace {q(workspace)} --replace'))
     elif not approved.is_file():
         from .autopilot import plan_sources
         plan, refused = plan_sources(workspace, config)
@@ -317,7 +339,8 @@ def status(workspace):
     else:
         from .source_set import check
         report = check(Path(arp), approved.read_bytes())
-        if report['status'] == 'PASS':stages.append(stage('sources', 'DONE', f"承認者 {report['approval']['approver']}、文書 {report['documents']}"))
+        if report['status'] == 'PASS' and is_draft_set(approved):stages.append(stage('sources', 'DONE', f"下書きの仮の文書セット、文書 {report['documents']}"))
+        elif report['status'] == 'PASS':stages.append(stage('sources', 'DONE', f"承認者 {report['approval']['approver']}、文書 {report['documents']}"))
         else:
             codes = sorted({e['code'] for e in report['errors']})
             stages.append(stage('sources', 'STALE', '承認後にARP4の文書が変わった：' + '、'.join(codes),
@@ -333,7 +356,16 @@ def status(workspace):
         policy_input = at(workspace, config['policy_input'])
         command = (f"aws-design policy-pack apply {q(source_input)} --pack {config['policy_pack']}" + (f" --library {q(config['library'])}" if config.get('library') else '')
                    + f" --adopted-by <採用者> --output {q(policy_input)}")
-        if not policy_input.is_file():
+        from .draft_mode import is_draft_policy_input
+        if not policy_input.is_file() and draft:
+            stages.append(stage('policy', 'TODO',
+                                f"下書きモード：方針パック {config['policy_pack']} を未採用の候補（UNCONFIRMED）として適用する",
+                                f'aws-design flow run all --workspace {q(workspace)}' if source_input.is_file() else None,
+                                action='draft-policy' if source_input.is_file() else None))
+        elif not draft and policy_input.is_file() and is_draft_policy_input(policy_input, config['policy_pack']):
+            stages.append(stage('policy', 'STALE', '下書きで未採用の候補として適用した方針パック。確定モードでは採用者が採用する。'
+                                '古いファイルを消して適用し直す', command, '利用者が指名した採用者'))
+        elif not policy_input.is_file():
             from .autopilot import plan_policy
             plan, refused = plan_policy(workspace, config) if source_input.is_file() else (None, ['NO_INPUT'])
             if plan:stages.append(stage('policy', 'DELEGATED', f"方針パック {config['policy_pack']} は委任方針で採用できる。run all がエージェント名で採用する",
@@ -351,12 +383,13 @@ def status(workspace):
         stages.append(stage('generate', 'STALE', f'{latest.name} の後に入力・文書セット・判定が変わった', None if blocked else f'aws-design flow run generate --workspace {q(workspace)}'))
     else:stages.append(stage('generate', 'DONE', f'{latest.name}（{run_meta.get("exit_code")}）'))
     generated = latest is not None and stages[-1]['state'] == 'DONE'
-    stages.append(gates_stage(workspace, latest, q) if generated else stage('gates', 'TODO', '最新の生成がない'))
+    stages.append(gates_stage(workspace, latest, q, draft) if generated else stage('gates', 'TODO', '最新の生成がない'))
     passed = generated and stages[-1]['state'] == 'DONE'
     if not config.get('asks'):stages.append(stage('asks', 'SKIPPED', '判断の台帳を使わない設定（flow.json の asks が false）'))
     elif passed:stages.append(asks_stage(workspace, config, q))
     else:stages.append(stage('asks', 'TODO', 'ゲートが合格していない' if generated else '最新の生成がない'))
-    if passed:stages.append(review_stage(workspace, config, latest, q))
+    if draft:stages.append(stage('review', 'SKIPPED', '下書きモード：レビューパックは作るが、P1・P2の判定は確定モードで人が行う'))
+    elif passed:stages.append(review_stage(workspace, config, latest, q))
     else:stages.append(stage('review', 'TODO', 'ゲートが合格していない' if generated else '最新の生成がない'))
     # Names the user registered for each role fill the commands; the decision guard still asks before they run.
     people = config.get('people') or {}
@@ -366,19 +399,27 @@ def status(workspace):
     nxt = next((s for s in stages if s['state'] in OPEN), None)
     from .delegation import effective
     _, digest, suspended, problem = effective(workspace)
-    return {'workspace': str(workspace), 'stages': stages, 'next': nxt,
+    return {'workspace': str(workspace), 'mode': config.get('mode', 'final'), 'stages': stages, 'next': nxt,
             'latest_run': latest.name if latest else None,
+            **({'draft_ready': generated and nxt is None} if draft else {}),
             'delegation': {'in_force': problem is None, 'problem': problem, 'policy_sha256': digest, 'suspended': sorted(suspended)},
             'notice': '完了はファイルがそろったことを表し、設計の承認ではない。人の判断待ちの手順はエージェントが代行しない。'
                       '委任方針で記録した判断はエージェント名と方針のハッシュを持ち、人の承認とは区別される。'}
 
 
-def gates_stage(workspace, latest, q):
+# A draft stops only where the draft itself is broken: a handover file that breaks its contract or a failed generation.
+DRAFT_BLOCKING_GATES = ('contracts', 'generation')
+
+
+def gates_stage(workspace, latest, q, draft=False):
     if not (latest / 'gates.json').is_file():
         return stage('gates', 'TODO', f'{latest.name} のゲートを評価していない', f'aws-design gate run --workspace {q(workspace)} --run {latest.name}')
     from .gates import GATES_JA, load as load_gates
     report = load_gates(latest / 'gates.json')
     failing = [g for g in report.gates if g.status == 'FAIL']
+    if draft and failing and not any(g.id in DRAFT_BLOCKING_GATES for g in failing):
+        return stage('gates', 'DONE', '下書き：不合格のゲートがある（確定の前に直す。draft-report.md に一覧）：'
+                     + '、'.join(f'{GATES_JA[g.id]}（{g.detail}）' for g in failing))
     if failing:
         # Agents fix their handover; nothing downstream may be decided on a failing gate.
         return stage('gates', 'WAITING_FOR_AGENT', 'ゲート不合格：' + '、'.join(f'{GATES_JA[g.id]}（{g.detail}）' for g in failing)
@@ -422,6 +463,11 @@ def asks_stage(workspace, config, q):
     if nxt == 'SHEET':
         return stage('asks', 'TODO', f'聞ける判断を順番に、宛先ごとの質問票と会議の議題にする（{counts}）{overdue}',
                      f'aws-design asks sheet --workspace {q(workspace)}', action='sheet')
+    unreviewed = '（下書き：台帳の独立レビューは確定モードで行う）' if report.get('unreviewed') else ''
+    if nxt == 'WAIT_FOR_ANSWERS' and is_draft(config):
+        # The draft is out; answers improve it later and never hold it back.
+        return stage('asks', 'DONE', f'質問票（asks/batches）を作成済み。回答待ちだが下書きは止めない（{counts}）{overdue}{unreviewed}。'
+                     '回答は --dry-run で言い換えを確かめてから記録する。' + tail)
     if nxt == 'WAIT_FOR_ANSWERS':
         return stage('asks', 'WAITING_FOR_PERSON', f'質問票（asks/batches）の回答待ち（{counts}）{overdue}。回答は --dry-run で言い換えを確かめてから記録する',
                      f'aws-design asks record --workspace {q(workspace)} --workbook <回答済みの質問票>', '質問票の宛先（回答者の名前は質問票に書く）')
@@ -484,11 +530,17 @@ def run_scan(workspace, replace=False):
 def run_all(workspace, limit=16):
     """Perform every step that needs neither a person nor an agent's work: scans, generation, gates and
     the decisions an approved delegation policy covers. Stops at the first step that needs someone."""
+    from . import draft_mode
     done = []
     for _ in range(limit):
         nxt = status(workspace)['next']
         if nxt is None:break
-        if nxt['stage'] == 'sources' and nxt['state'] in ('TODO', 'STALE'):
+        if nxt.get('action') == 'draft-sources':done.append(draft_mode.do_sources(workspace, load(workspace)))
+        elif nxt.get('action') == 'draft-policy':done.append(draft_mode.do_policy(workspace, load(workspace)))
+        elif nxt.get('action') == 'triage':
+            from .diagram_triage import build
+            done.append(build(workspace))
+        elif nxt['stage'] == 'sources' and nxt['state'] in ('TODO', 'STALE'):
             result = run_scan(workspace, replace=nxt['state'] == 'STALE');done.append({'step': 'scan', 'undecided': result['undecided']})
         elif nxt['state'] == 'DELEGATED':done.append(delegated(workspace, nxt))
         elif nxt['stage'] == 'generate' and nxt.get('command'):
@@ -505,6 +557,7 @@ def run_all(workspace, limit=16):
             latest = runs(workspace)[-1]
             done.append({'step': 'gates', 'run': latest.name, 'status': write(workspace, latest.name).status})
         else:break
+    if is_draft(load(workspace)) and (path := draft_mode.write_report(workspace)):done.append({'step': 'draft-report', 'report': str(path)})
     return done
 
 
@@ -579,12 +632,19 @@ def main(argv=None):
     p.add_argument('--overview', action='store_true', help='agree a system overview (input/system-overview.json) before the design input')
     p.add_argument('--no-asks', dest='asks', action='store_false', help='do not ask people the open decisions through an asks ledger (asks/)')
     p.add_argument('--library', help='organisation library folder (dictionary, policy packs, overview templates)')
+    p.add_argument('--mode', choices=['draft', 'final'], default='draft',
+                   help='draft (default): settle what a person would decide as a marked draft and ask only after the draft is out; '
+                        'final: every decision goes to a person or the delegation policy')
 
     def role_args(p):
         p.add_argument('--approver', help='source-set approver the user names');p.add_argument('--architect', help='system-overview agreer the user names')
         p.add_argument('--adopter', help='policy-pack adopter the user names');p.add_argument('--reviewer', help='review-pack reviewer the user names')
     role_args(p)
     p = sub.add_parser('people', help='register the people the user names for each role');p.add_argument('--workspace', required=True);role_args(p)
+    p = sub.add_parser('mode', help='switch between draft and final; to final, the draft source set and candidate policy input go aside')
+    p.add_argument('--workspace', required=True);p.add_argument('--set', dest='mode', required=True, choices=['draft', 'final'])
+    p = sub.add_parser('draft-report', help='print the draft report (draft-report.md) of the workspace as it stands')
+    p.add_argument('--workspace', required=True)
     p = sub.add_parser('inbox', help='one workbook with every decision the workspace waits for');p.add_argument('--workspace', required=True)
     p.add_argument('--output', required=True, help='fresh folder')
     p = sub.add_parser('decide', help='record the decisions written in an inbox workbook, by the people named there or registered')
@@ -605,9 +665,17 @@ def main(argv=None):
                       'policy_input': 'input/design-with-policies.json' if args.policy_pack else None,
                       'source_trace': args.source_trace, 'evaluate': args.evaluate,
                       'overview': 'input/system-overview.json' if args.overview else None, 'asks': args.asks, 'library': args.library,
-                      'people': {r: getattr(args, r).strip() for r in ROLES if getattr(args, r) and getattr(args, r).strip()} or None}
+                      'people': {r: getattr(args, r).strip() for r in ROLES if getattr(args, r) and getattr(args, r).strip()} or None,
+                      'mode': args.mode}
             (workspace / CONFIG).write_text(json.dumps({k: v for k, v in config.items() if v not in (None, False)}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-            print(json.dumps({'workspace': str(workspace), 'next': status(workspace)['next']}, ensure_ascii=False));return 0
+            print(json.dumps({'workspace': str(workspace), 'mode': args.mode, 'next': status(workspace)['next']}, ensure_ascii=False));return 0
+        if args.command == 'mode':
+            from .draft_mode import switch
+            result = switch(workspace, args.mode)
+            print(json.dumps({**result, 'next': status(workspace)['next']}, ensure_ascii=False));return 0
+        if args.command == 'draft-report':
+            from .draft_mode import report as draft_report
+            load(workspace);sys.stdout.buffer.write(draft_report(workspace).encode('utf-8'));return 0
         if args.command == 'status':
             report = status(workspace)
             text = render(report) if args.markdown else json.dumps(report, ensure_ascii=False, indent=2) + '\n'

@@ -50,6 +50,29 @@ ROLE_LABELS = {'種別', '文書種別', '資料種別', '位置付け', '位置
                'documenttype', 'doctype', 'category', 'purpose'}
 COVER_CELLS = 40
 COPY_MARK = re.compile(r'[(（]\s*\d{1,2}\s*[)）]|\s*-\s*コピー|\s*のコピー|\bcopy(?:\s*of)?\b', re.I)
+# What kind of document it is, from the first of its role cell, title, file name and folders (innermost first) that holds
+# one of these words; the kinds are tried in this order. ASCII words match at the start of a word only.
+Kind = Literal['MINUTES', 'REQUIREMENTS', 'ARCHITECTURE', 'OPERATIONS', 'TEST', 'PROJECT', 'APPLICATION', 'DESIGN']
+KIND_WORDS = (
+    ('MINUTES', ('議事録', '議事メモ', '打合せ', '打ち合わせ', 'ミーティング', 'minutes')),
+    ('REQUIREMENTS', ('要件', '要求仕様', '要求定義', 'requirement')),
+    ('ARCHITECTURE', ('方式', '基盤', 'インフラ', '構成図', 'システム構成', '環境構成', 'ネットワーク', 'アーキテクチャ', 'パラメータシート',
+                      'パラメーターシート', '環境定義', 'セキュリティ設計', 'architecture', 'infrastructure', 'network')),
+    ('OPERATIONS', ('運用', '監視', '保守', 'バックアップ', '移行', '障害対応', 'operation', 'runbook')),
+    ('TEST', ('テスト', '試験', 'test')),
+    ('PROJECT', ('計画書', 'wbs', '体制', 'スケジュール', '工程表', '進捗')),
+    ('APPLICATION', ('画面', '帳票', 'テーブル', 'データ項目', 'コード定義', 'メッセージ定義', '機能一覧', '機能仕様', 'モジュール', '処理仕様',
+                     '共通部品', 'プログラム', 'クラス図', 'er図', 'インターフェース仕様', 'インタフェース仕様')),
+    ('DESIGN', ('設計', 'design', 'spec')),
+)
+KIND_PATTERNS = [(kind, [(w, re.compile((r'(?<![a-z])' if w.isascii() else '') + re.escape(w))) for w in words]) for kind, words in KIND_WORDS]
+# Kinds that hold what an AWS design rests on whatever their cells say.
+PRIMARY_KINDS = {'MINUTES', 'REQUIREMENTS', 'ARCHITECTURE', 'OPERATIONS'}
+# Words of infrastructure in a cell; a document with INFRA_CELLS such cells, or one AWS service named, is PRIMARY.
+INFRA_WORDS = re.compile(r'(?<![A-Za-z])(?:VPC|CIDR|RPO|RTO|AWS|VPN|DNS|WAF|SSO|IAM)(?![A-Za-z])|サブネット|ネットワーク|冗長|可用性|バックアップ|'
+                         r'監視|暗号化|セキュリティグループ|ファイアウォール|ロードバランサ|サーバ|インスタンス|リージョン|アベイラビリティ|'
+                         r'クラウド|オンプレ|閉域|専用線|証明書|認証基盤|非機能|災害対策|稼働率|ログ保[管存]')
+INFRA_CELLS = 3
 
 
 class Strict(BaseModel):
@@ -58,6 +81,13 @@ class Strict(BaseModel):
 
 class ReferenceHint(Strict):
     basis: Literal['FOLDER', 'ROLE', 'TITLE']
+    word: str
+    text: str
+    cell: str | None = None
+
+
+class KindHint(Strict):
+    basis: Literal['ROLE', 'TITLE', 'FILE_NAME', 'FOLDER']
     word: str
     text: str
     cell: str | None = None
@@ -75,6 +105,11 @@ class Signals(Strict):
     version_basis: Literal['CONTENT', 'FILE_NAME'] | None = None
     version_cell: str | None = None
     archive_folder: bool = False
+    kind: Kind | None = None
+    kind_hint: KindHint | None = None
+    # Distinct AWS services its cells and drawings name, and cells holding an infrastructure word.
+    aws_services: int = 0
+    infra_cells: int = 0
 
 
 class Entry(Strict):
@@ -88,7 +123,11 @@ class Entry(Strict):
     status: Status
     reason: str
     related: str | None = None
-    decided: Literal['PROPOSED', 'SET'] = 'PROPOSED'
+    # DRAFT: a draft settled an UNDECIDED document by rule (draft-mode.md); a person never did.
+    decided: Literal['PROPOSED', 'SET', 'DRAFT'] = 'PROPOSED'
+    # PRIMARY documents hold what an AWS design rests on; PERIPHERAL ones (screens, tables, plans, tests) are read
+    # when a value is looked for. Advice for reading, never a status: both stay citable when CURRENT.
+    relevance: Literal['PRIMARY', 'PERIPHERAL'] = 'PRIMARY'
 
 
 class Approval(Strict):
@@ -97,6 +136,8 @@ class Approval(Strict):
     proposal_sha256: str
     # Set only when an agent approved under a delegation policy; a person's approval has none.
     delegation: Basis | None = None
+    # A draft set: run all made it in draft mode, settling UNDECIDED documents by rule. No one approved it.
+    draft: bool = False
 
 
 class SourceSet(Strict):
@@ -192,6 +233,36 @@ def name_signals(document_id):
     return signals, '-'.join(tokens) + path.suffix.lower()
 
 
+def document_kind(document_id, signals):
+    """(kind, hint) from the first of the role cell, title, file name and folders that names a kind, or (None, None)."""
+    path = PurePosixPath(document_id)
+    texts = [('ROLE', signals.get('role'), signals.get('role_cell')), ('TITLE', signals.get('title'), signals.get('title_cell')),
+             ('FILE_NAME', path.stem, None)] + [('FOLDER', p, None) for p in reversed(path.parts[:-1])]
+    for basis, text, cell in texts:
+        if not text:continue
+        plain = unicodedata.normalize('NFKC', str(text)).lower()
+        for kind, patterns in KIND_PATTERNS:
+            for word, pattern in patterns:
+                if pattern.search(plain):return kind, KindHint(basis=basis, word=word, text=clip(text), cell=cell)
+    return None, None
+
+
+def infra_signals(extraction):
+    """(distinct AWS services named, cells holding an infrastructure word) over a document's cells and drawing texts."""
+    from .service_mentions import detect
+    texts = [t for _, t in cell_texts(extraction)]
+    for sheet in extraction.get('sheets', []) or []:
+        for drawing in sheet.get('drawings', []) or []:
+            texts += [str(drawing[k]) for k in ('text', 'description') if drawing.get(k)]
+    # One pass over the joined text: the service dictionary has hundreds of patterns, a document thousands of cells.
+    return len(detect('\n'.join(texts))), sum(1 for t in texts if INFRA_WORDS.search(t))
+
+
+def relevance(signals):
+    if signals.kind in PRIMARY_KINDS or signals.aws_services or signals.infra_cells >= INFRA_CELLS:return 'PRIMARY'
+    return 'PERIPHERAL'
+
+
 def read_arp(root):
     """Adopted documents with their records; issues about originals and pending re-imports."""
     import yaml
@@ -231,12 +302,15 @@ def propose(documents):
     for d in documents:
         named, base = name_signals(d['document_id'])
         found = content_signals(d['extraction'])
+        kind, hint = document_kind(d['document_id'], found)
+        services, infra = infra_signals(d['extraction'])
         signals = Signals(**{**named, **found, 'archive_folder': named['archive_folder'],
-                             'reference': found.get('reference', []) + named.get('reference', [])})
+                             'reference': found.get('reference', []) + named.get('reference', [])},
+                          kind=kind, kind_hint=hint, aws_services=services, infra_cells=infra)
         family, basis = (('code:' + norm(signals.code), 'DOCUMENT_CODE') if signals.code else ('name:' + base, 'FILE_NAME'))
         entry = Entry(document_id=d['document_id'], source_path=d['source_path'], source_sha256=d['source_sha256'],
                       extraction_sha256=d['extraction_sha256'], family=family, family_basis=basis, signals=signals,
-                      status='UNDECIDED', reason='')
+                      status='UNDECIDED', reason='', relevance=relevance(signals))
         entries.append(entry);families.setdefault(family, []).append(entry)
     for members in families.values():
         by_content = {}
@@ -305,6 +379,31 @@ def approve(root, proposal_raw, approver, settings, *, now=None, delegation=None
     stamp = (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
     return SourceSet(schema_version='1', kind='approved', documents=list(entries.values()), issues=fresh.issues,
                      approval=Approval(approver=approver.strip(), approved_at=stamp, proposal_sha256=sha(proposal_raw), delegation=delegation))
+
+
+# How a draft settles each reason a document is UNDECIDED (draft-mode.md 3.1); a version family whose order is unknown
+# keeps every member CURRENT until a person picks one.
+DRAFT_RULES = {'POSSIBLY_REFERENCE': 'REFERENCE', 'ARCHIVE_FOLDER': 'REFERENCE', 'NEWEST_IN_ARCHIVE_FOLDER': 'CURRENT', 'VERSION_UNORDERED': 'CURRENT'}
+
+
+def approve_draft(root, proposal_raw, *, now=None):
+    """A draft set from the fresh scan: UNDECIDED documents settled by DRAFT_RULES, and a citable document whose original
+    or parse has a problem EXCLUDED so the draft never reads a stale parse. Recorded under DRAFT_AGENT, never as approval."""
+    from .delegation import DRAFT_AGENT
+    fresh = scan(root)
+    if sha(dump(fresh.model_dump())) != sha(dump(SourceSet.model_validate_json(proposal_raw).model_dump())):
+        raise InputError('PROPOSAL_STALE: the proposal differs from a fresh scan of ARP4; scan again')
+    for e in fresh.documents:
+        if e.status == 'UNDECIDED':
+            if e.reason not in DRAFT_RULES:raise InputError(f'NO_DRAFT_RULE: {e.reason}')
+            e.status, e.decided = DRAFT_RULES[e.reason], 'DRAFT'
+    errors, _ = blocking(fresh.issues, {e.document_id: e.status for e in fresh.documents})
+    troubled = {i['document'] for i in errors}
+    for e in fresh.documents:
+        if e.document_id in troubled:e.status, e.decided = 'EXCLUDED', 'DRAFT'
+    stamp = (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    return SourceSet(schema_version='1', kind='approved', documents=fresh.documents, issues=fresh.issues,
+                     approval=Approval(approver=DRAFT_AGENT, approved_at=stamp, proposal_sha256=sha(proposal_raw), draft=True))
 
 
 def load_approved(raw):
@@ -465,18 +564,30 @@ def check(root, set_raw, design=None):
 
 def markdown(source_set):
     """Table for the person who approves the set: one row per document, grouped by family, with its title and role."""
-    lines = ['| 系列 | 文書 | 表題・位置付け | 版（根拠） | 状態 | 理由 |', '|---|---|---|---|---|---|']
+    lines = ['| 系列 | 文書 | 表題・位置付け | 版（根拠） | 状態 | 理由 | 関連度 |', '|---|---|---|---|---|---|---|']
     cell = lambda text: str(text).replace('|', '｜')
     for e in source_set.documents:
         version = e.signals.version or '—'
         basis = {'CONTENT': f'本文 {e.signals.version_cell}', 'FILE_NAME': 'ファイル名'}.get(e.signals.version_basis, '')
         family = f'{e.signals.code}（文書ID {e.signals.code_cell}）' if e.family_basis == 'DOCUMENT_CODE' else e.family.split(':', 1)[1] + '（ファイル名）'
-        reason = e.reason + (f' → {e.related}' if e.related else '') + ('（承認者が指定）' if e.decided == 'SET' else '')
+        reason = e.reason + (f' → {e.related}' if e.related else '') + {'SET': '（承認者が指定）', 'DRAFT': '（下書きの規則で決定）'}.get(e.decided, '')
         if e.reason == 'POSSIBLY_REFERENCE':reason += '（' + reference_note(e) + '）'
         about = '<br>'.join(cell(x) for x in (e.signals.title, f'位置付け：{e.signals.role}' if e.signals.role else None) if x) or '—'
-        lines.append(f"| {family} | {e.document_id} | {about} | {version}（{basis}） | {e.status} | {cell(reason)} |".replace('（）', ''))
+        lines.append(f"| {family} | {e.document_id} | {about} | {version}（{basis}） | {e.status} | {cell(reason)} | {relevance_note(e)} |".replace('（）', ''))
     for issue in source_set.issues:lines.append(f"\n- {issue['code']}: {issue['document']}")
     return '\n'.join(lines) + '\n'
+
+
+KINDS_JA = {'MINUTES': '議事録', 'REQUIREMENTS': '要件', 'ARCHITECTURE': '方式・構成', 'OPERATIONS': '運用・移行', 'TEST': 'テスト',
+            'PROJECT': '計画・体制', 'APPLICATION': '画面・帳票・データ・処理', 'DESIGN': '設計書'}
+
+
+def relevance_note(entry):
+    """The relevance with what it rests on: the kind and its word, AWS services named and infrastructure cells."""
+    s = entry.signals
+    where = {'ROLE': '位置付け', 'TITLE': '表題', 'FILE_NAME': 'ファイル名', 'FOLDER': 'フォルダ'}
+    kind = f"{KINDS_JA[s.kind]}（{where[s.kind_hint.basis]}「{s.kind_hint.word}」）" if s.kind and s.kind_hint else '種類不明'
+    return f'{entry.relevance}：{kind}、AWSサービス {s.aws_services}、基盤の語のセル {s.infra_cells}'
 
 
 def reference_note(entry):

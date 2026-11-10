@@ -22,6 +22,11 @@
           ],
           "default": null
         },
+        "draft": {
+          "default": false,
+          "title": "Draft",
+          "type": "boolean"
+        },
         "proposal_sha256": {
           "title": "Proposal Sha256",
           "type": "string"
@@ -86,7 +91,8 @@
           "default": "PROPOSED",
           "enum": [
             "PROPOSED",
-            "SET"
+            "SET",
+            "DRAFT"
           ],
           "title": "Decided",
           "type": "string"
@@ -127,6 +133,15 @@
           "default": null,
           "title": "Related"
         },
+        "relevance": {
+          "default": "PRIMARY",
+          "enum": [
+            "PRIMARY",
+            "PERIPHERAL"
+          ],
+          "title": "Relevance",
+          "type": "string"
+        },
         "signals": {
           "$ref": "#/$defs/Signals"
         },
@@ -162,6 +177,48 @@
         "reason"
       ],
       "title": "Entry",
+      "type": "object"
+    },
+    "KindHint": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "ROLE",
+            "TITLE",
+            "FILE_NAME",
+            "FOLDER"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "cell": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cell"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "word": {
+          "title": "Word",
+          "type": "string"
+        }
+      },
+      "required": [
+        "basis",
+        "word",
+        "text"
+      ],
+      "title": "KindHint",
       "type": "object"
     },
     "ReferenceHint": {
@@ -213,6 +270,11 @@
           "title": "Archive Folder",
           "type": "boolean"
         },
+        "aws_services": {
+          "default": 0,
+          "title": "Aws Services",
+          "type": "integer"
+        },
         "code": {
           "anyOf": [
             {
@@ -236,6 +298,44 @@
           ],
           "default": null,
           "title": "Code Cell"
+        },
+        "infra_cells": {
+          "default": 0,
+          "title": "Infra Cells",
+          "type": "integer"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "MINUTES",
+                "REQUIREMENTS",
+                "ARCHITECTURE",
+                "OPERATIONS",
+                "TEST",
+                "PROJECT",
+                "APPLICATION",
+                "DESIGN"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "kind_hint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KindHint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "reference": {
           "default": [],

@@ -19,6 +19,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 AGENT_PREFIX = 'agent:'
 FLOW_AGENT = 'agent:aws-design flow'
+# The name a draft records what it settled under; never a person's approval nor a delegated decision.
+DRAFT_AGENT = 'agent:aws-design flow draft'
 RULES = ('source_set', 'overview', 'policy_pack', 'review', 'external_mapping')
 RULES_JA = {'source_set': '根拠文書セットの承認', 'overview': 'システム概要の合意', 'policy_pack': '方針パックの採用',
             'review': 'レビュー判定（P2）', 'external_mapping': '外部シートの対応付け辞書の承認'}

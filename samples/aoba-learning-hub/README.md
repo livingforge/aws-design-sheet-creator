@@ -33,7 +33,8 @@
    aws-design flow init --workspace work --environment prod --arp-root <プロジェクトのフォルダ>
    ```
 
-4. エージェントに「aws-design-review スキルで、docs の資料から AWS の設計書を作りたい。作業フォルダは work。まず次にやることを教えて」と頼みます。根拠文書の承認や回答の記録を求められたら、記録する人の名前を伝えてください。エージェントは自分の名前で承認しません。
+4. エージェントに「aws-design-review スキルで、docs の資料から AWS の設計書を作りたい。作業フォルダは work」と頼みます。作業フォルダは下書きモードで始まり、下書きが出るまで人に何も聞きません。最初に `work/runs/NNN/draft-report.md`（下書きの報告：仮に決めた文書、見ていない画像、不合格のゲート、人への質問）を読んでください。
+5. 確定まで進めるときは「確定モードにして」と頼みます（`aws-design flow mode --workspace work --set final`）。根拠文書の承認や回答の記録を求められたら、記録する人の名前を伝えてください。エージェントは自分の名前で承認しません。
 
 生成物は `work/runs/NNN/` に出ます。設計書（`design.xlsx` とサービス別のブック）、基本設計の文章（`basic-design.md`）、構成図（`architecture.drawio`）、レビューパック（`review-pack.html`・`.xlsx`）です。未決の判断は `work/asks/` の質問票になります。
 

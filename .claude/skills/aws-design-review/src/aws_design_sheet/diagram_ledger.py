@@ -864,6 +864,11 @@ def render(report):
     for key, title in (('account', 'アカウント別'), ('environment', '環境別'), ('region', 'リージョン別'), ('availability_zone', 'AZ別')):
         rows = design['placements_by'][key]
         if rows:lines_ += [f'### 配置実体数（{title}）', '', '| 区分 | 件数 |', '| --- | --- |', *[f'| {k} | {v} |' for k, v in rows.items()], '']
+    if report.get('triage'):
+        t = report['triage']
+        lines_ += ['## 画像の仕分け（下書きモード）', '', f"図形・画像のある文書 {t['documents']}件：構成を描く見込み {t['architecture']}件"
+                   f"（要素ごとに読んだ文書 {t['read']}件、画像だけの文書 {t['picture_only']}件）、描かない見込み {t['set_aside']}件、"
+                   f"画像を見る前 {t['pending']}件。見た画像：" + ('、'.join(f'{k} {v}' for k, v in t['looks'].items()) or 'なし') + '。', '']
     lines_ += ['## 指摘', '']
     if not report['findings']:lines_.append('なし')
     for f in report['findings']:
@@ -1150,7 +1155,12 @@ def workspace_part(workspace, document):
 
 
 def workspace_report(workspace, arp_root, set_raw, design):
-    """Coverage of the workspace's ledgers, or None when no CURRENT document has drawings and no ledger exists."""
+    """Coverage of the workspace's ledgers, or None when no CURRENT document has drawings and no ledger exists. A draft
+    workspace of part ledgers is covered through its picture triage instead (diagram_triage.draft_coverage)."""
+    from .flow import is_draft, load as load_config
+    if not single(workspace) and is_draft(load_config(workspace)):
+        from .diagram_triage import draft_coverage
+        return draft_coverage(workspace, arp_root, set_raw, design)
     drawings = read_documents(arp_root, set_raw)
     found = [p for p in parts(workspace, drawings) if p.first.is_file()]
     if not found:
@@ -1192,7 +1202,13 @@ def emit(report, key, args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog='aws-design diagram', description='Diagram ledger: every drawing of the CURRENT documents and what the design makes of it')
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] in (['triage'], ['look']):
+        # The picture triage of draft mode (diagram_triage.py) answers these two.
+        from .diagram_triage import main as triage_main
+        return triage_main(argv)
+    parser = argparse.ArgumentParser(prog='aws-design diagram', description='Diagram ledger: every drawing of the CURRENT documents and what the design makes of it'
+                                     ' (triage and look: the picture triage of draft mode, see aws-design diagram triage --help)')
     sub = parser.add_subparsers(dest='command', required=True)
     def arp(p):
         p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True, help='approved source set')
