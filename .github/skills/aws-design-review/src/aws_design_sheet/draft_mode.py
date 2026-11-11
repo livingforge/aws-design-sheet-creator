@@ -33,14 +33,29 @@ def is_draft_policy_input(path, pack_id):
 
 
 def do_sources(workspace, config):
-    from .source_set import approve_draft, dump
-    workspace = Path(workspace)
-    raw = (workspace / 'sources' / 'proposal.json').read_bytes()
-    made = approve_draft(Path(config['arp_root']), raw)
-    (workspace / 'sources' / 'set.json').write_bytes(dump(made.model_dump()))
+    """Scan ARP4 and write the draft set from that one scan. An earlier proposal and set go to sources/retired, and the
+    step says what differs from the set it replaces, so that nobody keeps working from a set that is gone."""
+    from .fileio import write_atomic
+    from .flow import retire_sources
+    from .source_set import SourceSet, draft_from, dump, scan, set_changes, sha
+    workspace = Path(workspace);folder = workspace / 'sources'
+    fresh = scan(Path(config['arp_root']))
+    proposal_raw = dump(fresh.model_dump())
+    made = draft_from(fresh, sha(proposal_raw))
+    before = None
+    if (folder / 'set.json').is_file():
+        try:before = SourceSet.model_validate_json((folder / 'set.json').read_bytes())
+        except ValueError:before = None
+    retired = retire_sources(workspace)
+    write_atomic(folder / 'proposal.json', proposal_raw)
+    write_atomic(folder / 'set.json', dump(made.model_dump()))
     counts = Counter(e.status for e in made.documents)
-    return {'step': 'draft-sources', 'documents': dict(sorted(counts.items())),
-            'settled': [{'document': e.document_id, 'reason': e.reason, 'status': e.status} for e in made.documents if e.decided == 'DRAFT']}
+    result = {'step': 'draft-sources', 'source_set': str(folder / 'set.json'), 'documents': dict(sorted(counts.items())),
+              'settled': [{'document': e.document_id, 'reason': e.reason, 'status': e.status} for e in made.documents if e.decided == 'DRAFT']}
+    if before is not None:
+        result['replaced'] = {'retired': retired, 'was': 'draft' if before.approval and before.approval.draft else f"approved by {before.approval.approver}" if before.approval else 'unknown',
+                              'changes': set_changes(before, made)}
+    return result
 
 
 def do_policy(workspace, config):
@@ -112,10 +127,10 @@ def sources_section(workspace):
 
 
 def diagrams_section(workspace, config):
-    from .diagram_triage import KINDS_JA, load, triage_path
+    from .diagram_triage import KINDS_JA, current, triage_path
     path = triage_path(workspace)
     if not path.is_file():return ['画像の仕分けはない（CURRENT の文書に図形・画像がないか、確定モードで読んだ）。']
-    triage = load(path.read_bytes())
+    triage = current(workspace)
     decisions = Counter(d.decision for d in triage.documents)
     lines = [f"図形・画像のある文書 {len(triage.documents)}件：構成を描く見込み {decisions.get('ARCHITECTURE', 0)}件、"
              f"描かない見込み {decisions.get('NOT_ARCHITECTURE', 0)}件、画像を見る前 {decisions.get('PENDING', 0)}件。"]
@@ -131,6 +146,18 @@ def diagrams_section(workspace, config):
     if unviewable:lines.append(f'表示できず種類の分からない画像 {len(unviewable)}件（ARP4で範囲を描画すれば見られる）。')
     seen = sorted({s for k in looks.values() for s in k.services})
     if seen:lines.append('構成図の画像に描かれたAWSサービス：' + '、'.join(seen) + '。')
+    from .diagram_ledger import InputError as LedgerError, load as load_ledger, part_of
+    from .diagram_rules import by_rule
+    from .diagram_triage import needs_reading
+    ruled = []
+    for document in needs_reading(triage):
+        ledger = part_of(workspace, document).first
+        try:
+            if ledger.is_file() and by_rule(load_ledger(ledger.read_bytes())):ruled.append(document)
+        except LedgerError:continue
+    if ruled:
+        lines.append(f'規則による読み取りのままの文書 {len(ruled)}件（図形の種類・文字・枠・線端から機械が処置を決めた。エージェントも人も確かめていない）：'
+                     + '、'.join(cell(d) for d in ruled[:20]) + (f' ほか{len(ruled) - 20}件' if len(ruled) > 20 else '') + '。')
     return lines
 
 
@@ -163,6 +190,37 @@ def asks_section(workspace, config):
     return lines
 
 
+def outputs_section(latest):
+    """Where the draft's files are: the drawing, the workbooks and the reports a person opens first."""
+    if latest is None:return ['まだ生成していない。']
+    named = (('architecture.drawio', '構成図（Draw.io）'), ('design.xlsx', '設計書（全体）'), ('basic-design.md', '基本設計（方針）'),
+             ('review-pack.xlsx', 'レビューパック'), ('review-pack.md', 'レビューパック（読む順）'), ('service-mentions.md', '文書が名指すサービスの照合'),
+             ('diagram-coverage.md', '構成図の対比カバレッジ'))
+    lines = [f'- {title}：`{latest / name}`' for name, title in named if (latest / name).is_file()]
+    services = sorted(p.name for p in latest.glob('services-*.xlsx'))
+    if services:lines.append(f"- 設計書（サービス別）：`{latest}` の " + '、'.join(services))
+    return lines or [f'`{latest}` に成果物がない。']
+
+
+def unfinished(workspace, latest):
+    """Said at the top of a report that is not the finished draft: gates of this run fail, or the flow has a step left."""
+    from . import flow
+    lines = []
+    path = latest / 'gates.json' if latest else None
+    if path and path.is_file():
+        from .gates import GATES_JA, load
+        failing = [GATES_JA[g.id] for g in load(path).gates if g.status == 'FAIL']
+        if failing and len(flow.runs(workspace)) >= flow.DRAFT_FIX_RUNS:
+            # The same cut-off as the flow's draft_gates: after this many generations the draft is handed over as it is.
+            lines += ['', f"**不合格のゲートがある（{'、'.join(failing)}）。** 生成を{len(flow.runs(workspace))}回したので、この下書きは不合格のゲートを残したまま渡す。残った項目は `gates.json` にある。"]
+        elif failing:lines += ['', f"**不合格のゲートがある（{'、'.join(failing)}）。** 設計入力を新しい写しで直して `aws-design flow run all` をやり直すと、"
+                               '新しい runs/NNN に下書きができる。直さずに出すなら、不合格のまま出すことを報告に書く。']
+    try:nxt = flow.status(workspace)['next']
+    except (flow.InputError, ValueError, OSError):nxt = None
+    if nxt:lines += ['', f"**フローにまだ手順が残っている（{nxt['stage']}：{nxt['state_ja']}）。** この報告は途中のもので、`next` が null になったときの報告が完成した下書きである。"]
+    return lines
+
+
 def report(workspace):
     """The one page a person reads first: what the draft is, what it settled, what it did not look at, and what to ask."""
     from . import flow
@@ -170,7 +228,8 @@ def report(workspace):
     found = flow.runs(workspace);latest = found[-1] if found else None
     lines = ['# 下書きの報告', '',
              f"下書きモードの生成物（{latest.name if latest else 'まだ生成していない'}）。人の承認・合意・レビューはまだない。"
-             '文書セット・方針パックの採用・概要の合意・レビューパックの判定は、確定モードで人が行う。', '',
+             '文書セット・方針パックの採用・概要の合意・レビューパックの判定は、確定モードで人が行う。', *unfinished(workspace, latest), '',
+             '## 0. 成果物', '', *outputs_section(latest), '',
              '## 1. 文書の仕分け', '', *sources_section(workspace), '',
              '## 2. 構成図と画像', '', *diagrams_section(workspace, config), '',
              '## 3. ゲート', '', *gates_section(latest), '',

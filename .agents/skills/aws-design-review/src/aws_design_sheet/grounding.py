@@ -158,9 +158,33 @@ def composite_claims(value):
     elif value is not None:yield value
 
 
+# One sentence on the settings of this many different properties says how none of them was derived. (Careful authors
+# repeat a derivation, "「有効」を真偽値に変換", over about ten properties; a stock sentence covered forty and more.)
+STOCK_PROPERTIES = 20
+
+
+def said(setting):
+    """A setting's rationale with its spaces folded, so that one sentence is counted once."""
+    return ' '.join(str(setting.get('rationale') or '').split()) if isinstance(setting, dict) else ''
+
+
+def stock_rationales(design):
+    """Rationales that decided settings of STOCK_PROPERTIES or more different properties share, most used first:
+    such a sentence hides the derivations a person must review, and it explains no value its cells do not hold."""
+    found = {}
+    for pointer, _, name, setting in settings_of(design):
+        text = said(setting)
+        if not text or setting.get('status', 'DECIDED') != 'DECIDED':continue
+        row = found.setdefault(text, {'code': 'RATIONALE_REPEATED', 'rationale': text, 'settings': 0, 'properties': set(), 'pointer': pointer})
+        row['settings'] += 1;row['properties'].add(name)
+    rows = [{**r, 'properties': len(r['properties'])} for r in found.values() if len(r['properties']) >= STOCK_PROPERTIES]
+    return sorted(rows, key=lambda r: -r['settings'])
+
+
 def ground(design, library=None, trace_rows=None):
     """A row per claimed setting, a count per status and the overall status (PASS, WARN or FAIL)."""
     library = library or Library()
+    stock = {r['rationale'] for r in stock_rationales(design)}
     sources = {s.get('id'): s.get('locator', '') for s in design.get('sources', []) if isinstance(s, dict)}
     traced = {item for row in (trace_rows or []) for item in row.get('item_ids', [])}
     rows = []
@@ -179,7 +203,8 @@ def ground(design, library=None, trace_rows=None):
                 judged = [(library.judge(sources.get(s, ''), values), s) for s in cited]
                 (status, detail), source = max(judged, key=lambda j: STRENGTH[j[0][0]])
                 # Cells that do not hold a value the setting explains deriving are an interpretation to review, not a failure.
-                if status == 'NOT_FOUND' and str(setting.get('rationale') or '').strip():status = 'INTERPRETED'
+                # Under a stock sentence it is still an interpretation (a draft is not failed for it), marked as resting on that sentence alone.
+                if status == 'NOT_FOUND' and said(setting):status, detail = 'INTERPRETED', 'RATIONALE_REPEATED' if said(setting) in stock else detail
                 # A resource-level citation of exact cells still grounds; a whole document cited for a resource is weak.
                 row.update(status=status, detail=detail, source=source, level=level)
         rows.append(row)
@@ -187,6 +212,56 @@ def ground(design, library=None, trace_rows=None):
     for r in rows:counts[r['status']] = counts.get(r['status'], 0) + 1
     status = 'FAIL' if FAILING & set(counts) else 'WARN' if WEAK & set(counts) else 'PASS'
     return {'status': status, 'counts': dict(sorted(counts.items())), 'rows': rows}
+
+
+# Settings AWS reads in UTC. A time copied as the documents write it in Japan time is wrong by nine hours, and the
+# grounding finds it in its cell, so only this check sees it.
+UTC_PROPERTIES = ('PreferredBackupWindow', 'PreferredMaintenanceWindow', 'SnapshotWindow', 'ScheduleExpression')
+LOCAL_TIME = re.compile(r'日本時間|日本標準時|(?<![A-Za-z])JST(?![A-Za-z])')
+SAYS_UTC = re.compile(r'(?<![A-Za-z])(?:UTC|GMT)(?![A-Za-z])|協定世界時')
+CELL_HOUR = re.compile(r'(?<!\d)(\d{1,2})\s*(?:[:：]\s*\d{2}|時)')
+VALUE_HOUR = re.compile(r'(?<!\d)(\d{1,2}):\d{2}')
+CRON_HOUR = re.compile(r'cron\(\s*\S+\s+(\d{1,2})(?=\s)')
+
+
+def utc_claims(name, setting):
+    """(property, value) of the UTC settings a setting holds: itself, or keys inside its composite value. A schedule
+    with a time zone beside it is in that zone, not UTC."""
+    if not isinstance(setting, dict) or setting.get('status', 'DECIDED') != 'DECIDED':return
+    value = setting.get('value')
+    if name in UTC_PROPERTIES and isinstance(value, str):yield name, value
+    def walk(node):
+        if isinstance(node, dict):
+            if set(node) == {'$design'}:
+                return
+            for key, child in node.items():
+                if key in UTC_PROPERTIES and not any('timezone' in k.lower() for k in node):
+                    leaf = child['$design'].get('value') if isinstance(child, dict) and set(child) == {'$design'} and isinstance(child['$design'], dict) else child
+                    if isinstance(leaf, str):yield key, leaf
+                yield from walk(child)
+        elif isinstance(node, list):
+            for child in node:yield from walk(child)
+    if isinstance(value, (dict, list)):yield from walk(value)
+
+
+def time_zone_findings(design, library):
+    """UTC settings whose hour is the hour their cited cell writes, in a document that writes its times in Japan time."""
+    sources = {s.get('id'): s.get('locator', '') for s in design.get('sources', []) if isinstance(s, dict)}
+    local = {d: any(LOCAL_TIME.search(t) for t in cells.values()) for d, cells in library.cells.items()}
+    rows = []
+    for pointer, resource, name, setting in settings_of(design):
+        zoned = any('timezone' in str(k).lower() and isinstance(s, dict) and s.get('status', 'DECIDED') == 'DECIDED' for k, s in (resource.get('settings') or {}).items())
+        for prop, value in utc_claims(name, setting):
+            if zoned and prop == 'ScheduleExpression':continue
+            hours = {int(h) for h in VALUE_HOUR.findall(value)} | {int(h) for h in CRON_HOUR.findall(value)}
+            for source in (setting.get('sources') or []) if isinstance(setting, dict) else []:
+                document, _, place = str(sources.get(source, '')).partition('#')
+                if not local.get(document) or not place:continue
+                texts = [library.cells[document][c] for c in expand(place) or [] if c in library.cells[document]]
+                if any(SAYS_UTC.search(t) for t in texts):continue
+                if hours & {int(h) for t in texts for h in CELL_HOUR.findall(t)}:
+                    rows.append({'pointer': pointer, 'resource_id': resource.get('id'), 'property': prop, 'code': 'TIME_ZONE_AS_WRITTEN', 'source': source});break
+    return rows
 
 
 def self_test(design, library=None, trace_rows=None):
@@ -201,5 +276,7 @@ def self_test(design, library=None, trace_rows=None):
     for part in parts:node = node[int(part)] if isinstance(node, list) else node[part.replace('~1', '/').replace('~0', '~')]
     marker = 'zz-grounding-canary-7f3a9c'
     node['mode'], node['value'] = 'LITERAL', marker
+    # A rationale turns a value its cells do not hold into an interpretation to review; the planted value has none.
+    node.pop('rationale', None)
     again = next(r for r in ground(planted, library, trace_rows)['rows'] if r['pointer'] == target['pointer'])
     return {'status': 'PASS' if again['status'] in ('NOT_FOUND', 'NOT_FOUND_IN_DOCUMENT') else 'FAIL', 'detail': f"{target['pointer']} → {again['status']}"}

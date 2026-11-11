@@ -176,6 +176,7 @@ def diagrams_stage(workspace, config, q):
     part: each document has its own readings and review, so one document is read again without the others."""
     from .diagram_ledger import (InputError as LedgerError, check, load, load_review, parts as find_parts, preflight,
                                  read_documents, sha as raw_sha, single)
+    from .diagram_rules import by_rule
     arp, approved = config.get('arp_root'), workspace / 'sources' / 'set.json'
     if not arp or not approved.is_file():return stage('diagrams', 'SKIPPED', '承認済みの文書セットがない')
     try:drawings = read_documents(Path(arp), approved.read_bytes())
@@ -210,6 +211,9 @@ def diagrams_stage(workspace, config, q):
                 return 'runs', [run(path, '構成図の台帳がない' if path == first else '別の作成担当による独立した読み取りがない', **actor)]
             try:ledger = load(path.read_bytes())
             except LedgerError as exc:return 'runs', [run(path, f'{path.name} が契約を満たさない（{str(exc)[:120]}）', **actor)]
+            if by_rule(ledger):
+                # A draft's rule reading is nobody's reading: a worker reads the drawings and puts its own name on the ledger.
+                return 'runs', [run(path, f'{path.name} は下書きの規則による読み取り。作成担当が view で全要素を読み、処置を直して author を自分の名前にする', **actor)]
             found = check(ledger, drawings, part.documents)
             if found.status == 'FAIL':
                 failing = {r['code'] for r in found.rows if r['severity'] == 'FAIL'}
@@ -319,11 +323,12 @@ def status(workspace):
     draft = is_draft(config)
     from .draft_mode import is_draft_set
     if not arp:stages.append(stage('sources', 'SKIPPED', 'ARP4のルートが設定されていない'))
+    elif not approved.is_file() and draft:
+        # One step scans ARP4 and settles the set from that same scan, so nothing can change between the two.
+        stages.append(stage('sources', 'TODO', '下書きモード：ARP4を走査して仮の文書セットを作る（未決の文書は規則で決め、人に聞かない）',
+                            f'aws-design flow run all --workspace {q(workspace)}', action='draft-sources'))
     elif not approved.is_file() and not proposal.is_file():
         stages.append(stage('sources', 'TODO', '根拠文書セットの提案がない', f'aws-design flow run scan --workspace {q(workspace)}'))
-    elif not approved.is_file() and draft:
-        stages.append(stage('sources', 'TODO', '下書きモード：提案を仮の文書セットにする（未決の文書は規則で決め、人に聞かない）',
-                            f'aws-design flow run all --workspace {q(workspace)}', action='draft-sources'))
     elif not draft and is_draft_set(approved):
         # A draft set is no approval: the final mode scans again and asks the approver.
         stages.append(stage('sources', 'STALE', '下書きで作った仮の文書セット。確定モードでは走査し直して承認者が承認する',
@@ -341,6 +346,12 @@ def status(workspace):
         report = check(Path(arp), approved.read_bytes())
         if report['status'] == 'PASS' and is_draft_set(approved):stages.append(stage('sources', 'DONE', f"下書きの仮の文書セット、文書 {report['documents']}"))
         elif report['status'] == 'PASS':stages.append(stage('sources', 'DONE', f"承認者 {report['approval']['approver']}、文書 {report['documents']}"))
+        elif draft:
+            # A draft follows ARP4 by itself: the set is made again in one step and the old one is kept in sources/retired.
+            codes = sorted({e['code'] for e in report['errors']})
+            stages.append(stage('sources', 'STALE', '文書セットを作ったあとにARP4の文書が変わった：' + '、'.join(codes) + '。run all が走査し直して仮の文書セットを作り直す'
+                                '（古いセットは sources/retired に残る。内容の変わらない文書の台帳と目視はそのまま使う）',
+                                f'aws-design flow run all --workspace {q(workspace)}', action='draft-sources'))
         else:
             codes = sorted({e['code'] for e in report['errors']})
             stages.append(stage('sources', 'STALE', '承認後にARP4の文書が変わった：' + '、'.join(codes),
@@ -350,8 +361,12 @@ def status(workspace):
     stages.append(diagrams_stage(workspace, config, q))
     source_input = at(workspace, config['input'])
     if source_input.is_file():stages.append(stage('input', 'DONE', f"{config['input']}"))
-    else:stages.append(stage('input', 'TODO', '設計入力（1.1）がない。CURRENTの文書だけから書くか、外部シートを aws-design external build で変換する'
-                             + ('。概要の要件は aws-design system design-requirements で加える' if config.get('overview') else '')))
+    else:stages.append(stage('input', 'TODO', f"設計入力（1.1）がない。{source_input} に、CURRENTの文書だけから書くか、外部シートを aws-design external build で変換する"
+                             + ('。概要の要件は aws-design system design-requirements で加える' if config.get('overview') else '')
+                             + (f'。文書を読む：aws-design sources cells --arp-root {q(arp)} --source-set {q(approved)}（文書の一覧。--document 文書ID で全セルを引用に使うIDつきで、'
+                                f'--grep 語 で語を含むセルを出す）。構成図：{workspace / "diagrams" / "parts"} の台帳と aws-design diagram view。'
+                                '書き方：aws-design document --example（記入例）、aws-design document --types 語（カタログにある型）' if arp and approved.is_file() else
+                                '。書き方：aws-design document --example（記入例）、aws-design document --types 語（カタログにある型）')))
     if config.get('policy_pack'):
         policy_input = at(workspace, config['policy_input'])
         command = (f"aws-design policy-pack apply {q(source_input)} --pack {config['policy_pack']}" + (f" --library {q(config['library'])}" if config.get('library') else '')
@@ -397,18 +412,64 @@ def status(workspace):
         for role, placeholder in ROLES.items():
             if people.get(role) and s.get('command'):s['command'] = s['command'].replace(placeholder, q(people[role]))
     nxt = next((s for s in stages if s['state'] in OPEN), None)
+    if nxt:nxt = {**nxt, 'instruction': instruction(nxt, workspace, draft, q)}
     from .delegation import effective
     _, digest, suspended, problem = effective(workspace)
     return {'workspace': str(workspace), 'mode': config.get('mode', 'final'), 'stages': stages, 'next': nxt,
             'latest_run': latest.name if latest else None,
             **({'draft_ready': generated and nxt is None} if draft else {}),
+            **({'draft_gates': draft_gates(workspace, latest, q)} if draft and generated and nxt is None and draft_gates(workspace, latest, q) else {}),
             'delegation': {'in_force': problem is None, 'problem': problem, 'policy_sha256': digest, 'suspended': sorted(suspended)},
             'notice': '完了はファイルがそろったことを表し、設計の承認ではない。人の判断待ちの手順はエージェントが代行しない。'
                       '委任方針で記録した判断はエージェント名と方針のハッシュを持ち、人の承認とは区別される。'}
 
 
+def instruction(step, workspace, draft, q):
+    """What the agent reading `next` does now, in one plain instruction: every state has exactly one."""
+    again = f'aws-design flow run all --workspace {q(workspace)}'
+    if step['state'] == 'WAITING_FOR_PERSON':
+        return '止まる。command と担当（person）を利用者に見せ、利用者が指名した人の名前で実行する。自分の名前・仮の名前・試験用の名前では実行しない'
+    agent = step.get('agent')
+    if agent and agent['name'] == 'aws-design-review':
+        return f'この作業は、この会話のあなた自身が行う（handoff の fix）。終えたら {again} を実行する'
+    if agent:
+        runs = f"{agent['count']}回（handoff の runs の1件ずつ。別々の actor 名で）" if agent['count'] > 1 else '1回'
+        own = ('サブエージェントを起動できない環境では、handoff の instructions のファイルを読み、あなた自身がその役割を1件ずつ順に行ってよい（下書きモードに限る）。'
+               if draft else '')
+        return (f"エージェント {agent['name']}（役割 {agent['role']}）を {runs} 起動し、handoff をそのまま渡す。{own}"
+                f'文書ID・出力先・文書セットのパスは handoff のとおりに使い、作り直したり別の場所に書いたりしない。終えたら {again} を実行する')
+    if step.get('action') or step['state'] == 'DELEGATED' or step['stage'] in ('generate', 'gates') and step.get('command'):
+        return f'{again} を実行する（この手順は run all が自分で行う。ほかのコマンドで代わりをしない）'
+    if step['stage'] == 'input':
+        return f'設計入力を書く（SKILL.md の「Write a design input from documents」）。書いたら {again} を実行する'
+    if step.get('command'):return f"command を実行し、そのあと {again} を実行する"
+    return f'detail のとおりに直し、そのあと {again} を実行する'
+
+
 # A draft stops only where the draft itself is broken: a handover file that breaks its contract or a failed generation.
 DRAFT_BLOCKING_GATES = ('contracts', 'generation')
+
+
+# What a generation that stops on the input's structure says about it: passed on, so that nobody has to generate again to see it.
+STRUCTURE_KEYS = ('error_count', 'messages', 'shape_errors')
+# How many generations a draft spends on failing gates before it is handed over with them stated.
+DRAFT_FIX_RUNS = 3
+
+
+def draft_gates(workspace, latest, q):
+    """What a finished draft says about gates that fail without stopping it: which, and whether to fix once more.
+    `next` is null either way; without this an agent cannot tell a draft to hand over from one to fix."""
+    if latest is None or not (latest / 'gates.json').is_file():return None
+    from .gates import GATES_JA, load as load_gates
+    failing = [g for g in load_gates(latest / 'gates.json').gates if g.status == 'FAIL']
+    if not failing:return None
+    again = len(runs(workspace)) < DRAFT_FIX_RUNS
+    return {'failing': [g.id for g in failing], 'fix': again,
+            'instruction': (f"下書きはできたが、ゲートが不合格（{'、'.join(GATES_JA[g.id] for g in failing)}）。"
+                            + (f"aws-design gate run --workspace {q(workspace)} --markdown で項目を見て、設計入力を新しい写しで直し、"
+                               f"aws-design flow input --workspace {q(workspace)} --set 新しい写し のあと aws-design flow run all をやり直す。"
+                               f"生成は{DRAFT_FIX_RUNS}回までで切り上げる" if again else
+                               f"生成を{len(runs(workspace))}回したので、ここで切り上げる。draft-report.md を渡し、不合格のゲートと残った項目を報告に書く"))}
 
 
 def gates_stage(workspace, latest, q, draft=False):
@@ -504,27 +565,43 @@ def render(report):
     lines = ['| 段階 | 状態 | 内容 |', '|---|---|---|']
     lines += [f"| {s['stage']} | {s['state_ja']} | {s['detail']} |" for s in report['stages']]
     n = report['next']
-    lines += ['', '次：' + (f"{n['stage']}（{n['state_ja']}）" + (f"\n\n    {n['command']}" if n.get('command') else '') +
+    lines += ['', '次：' + (f"{n['stage']}（{n['state_ja']}）" + (f"\n\nすること：{n['instruction']}" if n.get('instruction') else '') +
+                         (f"\n\n    {n['command']}" if n.get('command') else '') +
                          (f"\n\n担当：{n['person']}" if n.get('person') else '') +
                          (f"\n\nエージェント：{n['agent']['name']} ×{n['agent']['count']}（" + '、'.join(f'{k}={v}' for k, v in n['agent']['handoff'].items() if k != 'runs') + '）'
                           + ''.join(f"\n- {i}：" + '、'.join(f'{k}={v}' for k, v in run.items()) for i, run in enumerate(n['agent']['handoff'].get('runs', []), 1))
                           if n.get('agent') else '') +
-                         (f"\n\n委任されない理由：{'、'.join(n['delegation_refused'])}" if n.get('delegation_refused') else '') if n else 'なし'), '', report['notice']]
+                         (f"\n\n委任されない理由：{'、'.join(n['delegation_refused'])}" if n.get('delegation_refused') else '') if n else 'なし'),
+              *(['', 'すること：' + report['draft_gates']['instruction']] if report.get('draft_gates') else []), '', report['notice']]
     return '\n'.join(lines) + '\n'
 
 
+def retire_sources(workspace, names=('proposal.json', 'set.json')):
+    """Move the proposal and the set out of use into sources/retired under the time, never over an earlier file. The
+    flow reads only sources/set.json; nothing in retired/ is ever read again."""
+    from datetime import datetime, timezone
+    folder = Path(workspace) / 'sources';moved = []
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    for name in names:
+        if not (folder / name).is_file():continue
+        target = folder / 'retired' / f'{stamp}-{name}';n = 1
+        while target.exists():n += 1;target = folder / 'retired' / f'{stamp}-{n}-{name}'
+        target.parent.mkdir(parents=True, exist_ok=True);(folder / name).replace(target);moved.append(str(target))
+    return moved
+
+
 def run_scan(workspace, replace=False):
+    from .fileio import write_atomic
     from .source_set import dump, scan
     config = load(workspace)
     if not config.get('arp_root'):raise InputError('NO_ARP_ROOT')
     folder = Path(workspace) / 'sources';folder.mkdir(exist_ok=True)
-    if replace:
-        for name in ('proposal.json', 'set.json'):
-            if (folder / name).is_file():(folder / name).replace(folder / f'{name}.previous')
+    retired = retire_sources(workspace) if replace else []
     if (folder / 'proposal.json').exists():raise InputError('proposal already exists; approve it or run with --replace')
     proposal = scan(Path(config['arp_root']))
-    (folder / 'proposal.json').write_bytes(dump(proposal.model_dump()))
-    return {'proposal': str(folder / 'proposal.json'), 'undecided': [e.document_id for e in proposal.documents if e.status == 'UNDECIDED']}
+    write_atomic(folder / 'proposal.json', dump(proposal.model_dump()))
+    return {'proposal': str(folder / 'proposal.json'), 'undecided': [e.document_id for e in proposal.documents if e.status == 'UNDECIDED'],
+            **({'retired': retired} if retired else {})}
 
 
 def run_all(workspace, limit=16):
@@ -540,13 +617,17 @@ def run_all(workspace, limit=16):
         elif nxt.get('action') == 'triage':
             from .diagram_triage import build
             done.append(build(workspace))
+        elif nxt.get('action') == 'read-diagrams':
+            from .diagram_rules import InputError as RuleError, write_missing
+            try:done.append(write_missing(workspace))
+            except RuleError as exc:raise InputError(str(exc)) from None
         elif nxt['stage'] == 'sources' and nxt['state'] in ('TODO', 'STALE'):
             result = run_scan(workspace, replace=nxt['state'] == 'STALE');done.append({'step': 'scan', 'undecided': result['undecided']})
         elif nxt['state'] == 'DELEGATED':done.append(delegated(workspace, nxt))
         elif nxt['stage'] == 'generate' and nxt.get('command'):
             code, output, result = run_generate(workspace)
             done.append({'step': 'generate', 'run': output.name, 'exit_code': code, 'generation_status': result.get('generation_status'),
-                         'gates': result.get('gates')})
+                         'gates': result.get('gates'), **{k: result[k] for k in STRUCTURE_KEYS if k in result}})
             if code == 2:break
         elif nxt['stage'] == 'asks' and nxt['state'] == 'TODO' and nxt.get('action'):
             from . import asks
@@ -643,6 +724,8 @@ def main(argv=None):
     p = sub.add_parser('people', help='register the people the user names for each role');p.add_argument('--workspace', required=True);role_args(p)
     p = sub.add_parser('mode', help='switch between draft and final; to final, the draft source set and candidate policy input go aside')
     p.add_argument('--workspace', required=True);p.add_argument('--set', dest='mode', required=True, choices=['draft', 'final'])
+    p = sub.add_parser('input', help='point the workspace at a design input: a new copy you wrote after fixing the earlier one')
+    p.add_argument('--workspace', required=True);p.add_argument('--set', dest='path', required=True, help='the input file, inside the workspace')
     p = sub.add_parser('draft-report', help='print the draft report (draft-report.md) of the workspace as it stands')
     p.add_argument('--workspace', required=True)
     p = sub.add_parser('inbox', help='one workbook with every decision the workspace waits for');p.add_argument('--workspace', required=True)
@@ -653,13 +736,16 @@ def main(argv=None):
     p.add_argument('--markdown', action='store_true')
     p = sub.add_parser('run', help='perform steps that need no person: scan, generate, or all until a person is needed')
     p.add_argument('step', choices=['scan', 'generate', 'all'])
-    p.add_argument('--workspace', required=True);p.add_argument('--replace', action='store_true', help='scan again, keeping the old files as *.previous')
+    p.add_argument('--workspace', required=True);p.add_argument('--replace', action='store_true', help='scan again, keeping the old files in sources/retired')
     args = parser.parse_args(argv)
     try:
         workspace = Path(args.workspace)
         if args.command == 'init':
             if (workspace / CONFIG).exists():raise InputError('flow.json already exists')
             workspace.mkdir(parents=True, exist_ok=True)
+            # The folder the input is written to exists from the start, so the first write does not fail on it.
+            (workspace / args.input).parent.mkdir(parents=True, exist_ok=True)
+            if args.asks:(workspace / 'asks').mkdir(exist_ok=True)
             if any(is_agent(getattr(args, r)) for r in ROLES if getattr(args, r)):raise InputError('PERSON_IS_AGENT: register persons only')
             config = {'environment': args.environment, 'input': args.input, 'arp_root': args.arp_root, 'policy_pack': args.policy_pack,
                       'policy_input': 'input/design-with-policies.json' if args.policy_pack else None,
@@ -673,6 +759,18 @@ def main(argv=None):
             from .draft_mode import switch
             result = switch(workspace, args.mode)
             print(json.dumps({**result, 'next': status(workspace)['next']}, ensure_ascii=False));return 0
+        if args.command == 'input':
+            config = load(workspace)
+            target = Path(args.path) if Path(args.path).is_absolute() else workspace / args.path
+            try:relative = target.resolve().relative_to(workspace.resolve()).as_posix()
+            except ValueError:raise InputError(f'INPUT_OUTSIDE_WORKSPACE: {target} is not inside {workspace}') from None
+            if not target.is_file():raise InputError(f'NO_INPUT: {target} does not exist; write the input first')
+            from .contracts import validate
+            found = validate(target, 'design-input')
+            previous = config['input'];config['input'] = relative
+            (workspace / CONFIG).write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+            print(json.dumps({'input': relative, 'previous': previous, 'contract': found['status'], **({'errors': found['errors'][:20]} if found['errors'] else {}),
+                              'next': status(workspace)['next']}, ensure_ascii=False));return 0
         if args.command == 'draft-report':
             from .draft_mode import report as draft_report
             load(workspace);sys.stdout.buffer.write(draft_report(workspace).encode('utf-8'));return 0
@@ -701,12 +799,13 @@ def main(argv=None):
             print(json.dumps({'recorded': done, 'next': status(workspace)['next']}, ensure_ascii=False));return 0
         if args.step == 'all':
             done = run_all(workspace)
-            print(json.dumps({'done': done, 'next': status(workspace)['next']}, ensure_ascii=False))
+            after = status(workspace)
+            print(json.dumps({'done': done, 'next': after['next'], **({'draft_gates': after['draft_gates']} if after.get('draft_gates') else {})}, ensure_ascii=False))
             return 2 if done and done[-1].get('exit_code') == 2 else 0
         if args.step == 'scan':
             print(json.dumps(run_scan(workspace, args.replace), ensure_ascii=False));return 0
         code, output, result = run_generate(workspace)
-        brief = {k: result[k] for k in ('generation_status', 'errors', 'review_pack', 'source_set_status', 'input_completeness', 'gates') if k in result}
+        brief = {k: result[k] for k in ('generation_status', 'errors', 'review_pack', 'source_set_status', 'input_completeness', 'gates', *STRUCTURE_KEYS) if k in result}
         print(json.dumps({'run': str(output), 'exit_code': code, **brief, 'next': status(workspace)['next']}, ensure_ascii=False));return code
     except (InputError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({'status': 'ERROR', 'message': str(exc) if isinstance(exc, InputError) else type(exc).__name__}, ensure_ascii=False));return 2

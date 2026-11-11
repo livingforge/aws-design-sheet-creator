@@ -21,7 +21,7 @@ EXPORT_DIR = Path(__file__).resolve().parents[2] / 'schemas' / 'contracts'
 WORKSPACE_GLOBS = ('flow.json', 'sources/*.json', 'input/*.json', 'input/*.yaml', 'input/*.yml', 'reviews/*.json', 'delegation/*.json',
                    'delegation/log/*.json', 'delegation/audits/*.json', 'runs/*/gates.json', 'runs/*/agent-review/*.json',
                    'asks/ledger.json', 'asks/review-*.json', 'asks/records/*.json', 'asks/batches/*/manifest.json', 'diagrams/*.json',
-                   'diagrams/adoptions/*.json', 'diagrams/parts/*/*.json', 'diagrams/parts/*/adoptions/*.json')
+                   'diagrams/adoptions/*.json', 'diagrams/parts/*/*.json', 'diagrams/parts/*/adoptions/*.json', 'diagrams/looks/*.json')
 
 
 class InputError(ValueError):
@@ -51,7 +51,7 @@ def models():
     from .asks import AskReview, Batch, Ledger, Records
     from .delegation import AutoDecision, Calibration, Policy, PolicyApproval
     from .diagram_ledger import Adoption as DiagramAdoption, Ledger as DiagramLedger, LedgerReview as DiagramReview
-    from .diagram_triage import Triage as DiagramTriage
+    from .diagram_triage import LookRecord as DiagramLook, Triage as DiagramTriage
     from .external_sheet import Dictionary, ItemsFile, Review
     from .flow import FlowConfig
     from .gates import GateReport
@@ -69,14 +69,14 @@ def models():
             'golden-manifest': GoldenManifest, 'golden-report': GoldenReport, 'source-trace': source_trace_model(),
             'ask-ledger': Ledger, 'ask-review': AskReview, 'ask-records': Records, 'ask-batch': Batch,
             'diagram-ledger': DiagramLedger, 'diagram-review': DiagramReview, 'diagram-adoption': DiagramAdoption,
-            'diagram-triage': DiagramTriage}
+            'diagram-triage': DiagramTriage, 'diagram-look': DiagramLook}
 
 
 KINDS = ('design-input', *('flow-config', 'source-set', 'system-overview', 'overview-review', 'overview-approval', 'external-items',
                           'external-dictionary', 'external-review', 'review-decisions', 'review-packet', 'agent-verdicts', 'agent-escalation',
                           'delegation-policy', 'delegation-approval', 'delegation-calibration', 'auto-decision', 'audit-record', 'gate-report',
                           'golden-manifest', 'golden-report', 'source-trace', 'ask-ledger', 'ask-review', 'ask-records', 'ask-batch',
-                          'diagram-ledger', 'diagram-review', 'diagram-adoption', 'diagram-triage'))
+                          'diagram-ledger', 'diagram-review', 'diagram-adoption', 'diagram-triage', 'diagram-look'))
 
 
 def detect(data):
@@ -102,11 +102,39 @@ def detect(data):
     return None
 
 
+# The longest message of a contract's own rule that is passed on: one may name the faults of twenty settings.
+MESSAGE_LENGTH = 6000
+# Error types whose message states the rule alone (the pattern, the allowed words, the wanted type), never the input.
+RULE_ONLY = ('string_pattern_mismatch', 'literal_error', 'enum', 'missing', 'extra_forbidden', 'string_too_short', 'string_too_long',
+             'too_short', 'too_long', 'greater_than', 'greater_than_equal', 'less_than', 'less_than_equal')
+
+
 def errors_of(exc):
     """Validation errors by location and type. A contract's own rule (value_error) adds its message, which names IDs
     and never a value, so that the author learns which object to fix."""
-    return [{'loc': [str(x) for x in e['loc']], 'type': e['type'], **({'message': e['msg'].removeprefix('Value error, ')[:300]} if e['type'] == 'value_error' else {})}
+    return [{'loc': [str(x) for x in e['loc']], 'type': e['type'], **({'message': e['msg'].removeprefix('Value error, ')[:MESSAGE_LENGTH]} if e['type'] == 'value_error' else {})}
             for e in exc.errors(include_input=False, include_context=False)]
+
+
+# How many places of one kind of fault are named: enough to fix a handful without searching.
+FIRST_PLACES = 10
+
+
+def shape_errors(exc, limit=20):
+    """Errors of a file's shape (an ID's pattern, a word outside the allowed ones, a missing or unknown key), one row
+    per kind of fault: what the contract expects there, how many places break it and the first FIRST_PLACES. One mistake
+    repeated over every source or setting is a thousand errors and one row. No input value is given."""
+    groups = {}
+    for e in exc.errors(include_input=False):
+        if e['type'] == 'value_error':continue
+        # Places that differ only by an index or by the name of a setting are one kind of fault.
+        loc = e['loc']
+        where = '/'.join('*' if isinstance(x, int) or (i and loc[i - 1] == 'settings') else str(x) for i, x in enumerate(loc))
+        rule = e['msg'] if e['type'] in RULE_ONLY or e['type'].endswith('_type') else None
+        row = groups.setdefault((e['type'], where), {'where': where, 'type': e['type'], **({'expects': rule} if rule else {}), 'count': 0, 'first': []})
+        row['count'] += 1
+        if len(row['first']) < FIRST_PLACES:row['first'].append('/'.join(str(x) for x in e['loc']))
+    return sorted(groups.values(), key=lambda r: -r['count'])[:limit]
 
 
 # Contracts whose commands read them with a loader of their own; the check uses that loader, so a file passes here

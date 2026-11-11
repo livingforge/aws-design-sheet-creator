@@ -16,4 +16,6 @@ A draft does not read every drawing element by element, but it must not leave pi
 3. For ARCHITECTURE and NETWORK, give one `--service` per AWS service the picture shows by an icon or a label, by its official name (Amazon ECS, Application Load Balancer, Amazon Aurora, AWS WAF). Name only what you can see; never add a service the picture does not show, and do not name services for other kinds.
 4. `--note`: a few words on what the picture shows (at most 300 characters). Do not copy its text beyond service names and never copy a secret, an address or an account ID.
 
+Each look is saved as a file of its own (`diagrams/looks/<SHA-256>.json`), so several triage runs may record at the same time; never edit `diagrams/triage.json` or a look file by hand, and record a picture again with the same command to correct it.
+
 Report to the parent the number of pictures per kind, the services you named per picture with its refs, and the pictures you could not open. You never write the diagram ledger or the design input, and you do not review your own records.

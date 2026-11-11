@@ -135,7 +135,8 @@ class Catalog:
             'array':lambda x:isinstance(x,list),'integer':lambda x:type(x) is int,
             'number':lambda x:type(x) in (int,float),'boolean':lambda x:type(x) is bool,'null':lambda x:x is None}
         if not unrestricted and types and not any(predicates[t](value) for t in types if t in predicates):
-            raise ValueError('literal JSON type is incompatible with the schema')
+            raise ValueError('literal JSON type is incompatible with the schema (the property takes '+' or '.join(sorted(set(types)))+', the input gives '
+                             +next(n for n,p in predicates.items() if p(value))+')')
 
     def paths(self,kind):
         """Finite path inventory; dynamic keys and recursion are explicitly marked."""

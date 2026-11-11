@@ -903,7 +903,7 @@ def main(argv=None):
         sys.stdout.buffer.write((json.dumps(result, ensure_ascii=False, indent=2, default=str) + '\n').encode('utf-8'))
         return 0
     except (InputError, OSError, json.JSONDecodeError) as exc:
-        sys.stdout.buffer.write((json.dumps({'status': 'ERROR', 'message': str(exc) if isinstance(exc, InputError) else type(exc).__name__}, ensure_ascii=False) + '\n').encode('utf-8'))
+        sys.stdout.buffer.write((json.dumps({'status': 'ERROR', 'message': str(exc) if isinstance(exc, InputError) else f'NO_FILE: {exc.filename} does not exist; write it first' if isinstance(exc, FileNotFoundError) else type(exc).__name__}, ensure_ascii=False) + '\n').encode('utf-8'))
         return 2
     except ValidationError as exc:
         message = 'CONTRACT_INVALID: ' + ', '.join('/'.join(map(str, e['loc'])) + ' ' + e['type'] for e in exc.errors(include_input=False))[:300]

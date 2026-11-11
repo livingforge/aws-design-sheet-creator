@@ -10,6 +10,10 @@ draws the system when its drawings name AWS or network things or hold a graph, i
 of it was seen to be an architecture or network diagram; only such documents with drawings other than unread
 pictures get a reading in draft mode, and `draft_coverage` joins those readings, the triage and the design input.
 The triage records what was seen; it is a draft's evidence, never a reviewed reading (docs/draft-mode.md 3.3).
+
+Only `run all` writes diagrams/triage.json. Each look is a file of its own, diagrams/looks/<image SHA-256>.json, so
+that several agents may record looks at once without ever writing the same file; `current` reads the triage with
+every look recorded since it was built.
 """
 import argparse
 import hashlib
@@ -23,6 +27,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, ValidationError
 
+from .fileio import write_atomic
 from .models import StrictModel
 
 CONTRACT = 'diagram-triage/1'
@@ -52,6 +57,11 @@ class Look(StrictModel):
     note: str = Field(default='', max_length=300)
     actor: str = Field(min_length=1)
     recorded_at: str
+
+
+class LookRecord(Look):
+    """One look as its own file, diagrams/looks/<sha256>.json."""
+    contract: Literal['diagram-look/1']
 
 
 class Picture(StrictModel):
@@ -88,12 +98,36 @@ def sha(raw):return hashlib.sha256(raw).hexdigest()
 def stamp():return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
 def dump(value):return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
 def triage_path(workspace):return Path(workspace) / 'diagrams' / 'triage.json'
+def looks_folder(workspace):return Path(workspace) / 'diagrams' / 'looks'
 
 
 def load(raw):
     try:return Triage.model_validate_json(raw)
     except ValidationError as exc:
         raise InputError('CONTRACT_INVALID: ' + ', '.join('/'.join(map(str, e['loc'])) + ' ' + e['type'] for e in exc.errors(include_input=False))[:300]) from None
+
+
+def read_looks(workspace, base=()):
+    """Every look of a workspace by image hash: those the triage file holds, then the look files, which win. A look
+    file that breaks its contract is left out here; the contracts gate names it."""
+    looks = {k.sha256: k for k in base}
+    folder = looks_folder(workspace)
+    for path in sorted(folder.glob('*.json')) if folder.is_dir() else []:
+        try:record = LookRecord.model_validate_json(path.read_bytes())
+        except (ValidationError, OSError):continue
+        looks[record.sha256] = Look(**record.model_dump(exclude={'contract'}))
+    return looks
+
+
+def current(workspace):
+    """The triage as it stands: diagrams/triage.json with every look recorded since, and each document decided again."""
+    path = triage_path(workspace)
+    if not path.is_file():raise InputError('NO_TRIAGE: run aws-design flow run all first')
+    triage = load(path.read_bytes())
+    looks = read_looks(workspace, triage.looks)
+    for doc in triage.documents:doc.decision, doc.basis = decide(doc, looks)
+    triage.looks = list(looks.values())
+    return triage
 
 
 def image_size(raw):
@@ -162,8 +196,9 @@ def build(workspace):
     drawings = read_documents(Path(config['arp_root']), set_raw)
     kinds = {e.document_id: e.signals.kind for e in load_approved(set_raw).documents}
     path = triage_path(workspace)
-    looks = load(path.read_bytes()).looks if path.is_file() else []
-    by_sha = {k.sha256: k for k in looks}
+    try:earlier = load(path.read_bytes()).looks if path.is_file() else []
+    except InputError:earlier = []
+    by_sha = read_looks(workspace, earlier);looks = list(by_sha.values())
     seen, documents = set(), []
     for document, found in sorted(drawings.items()):
         if not found.elements:continue
@@ -175,7 +210,7 @@ def build(workspace):
         doc.decision, doc.basis = decide(doc, by_sha)
         documents.append(doc)
     triage = Triage(contract=CONTRACT, source_set_sha256=sha(set_raw), documents=documents, looks=looks)
-    path.parent.mkdir(parents=True, exist_ok=True);path.write_bytes(dump(triage.model_dump(exclude_none=True)))
+    write_atomic(path, dump(triage.model_dump(exclude_none=True)))
     counts = Counter(d.decision for d in documents)
     return {'step': 'triage', 'triage': str(path), 'documents': dict(sorted(counts.items())), 'to_look': len(pending(triage))}
 
@@ -201,22 +236,19 @@ def pending(triage):
 
 
 def record_look(workspace, image, kind, services, note, actor):
-    """Record what one picture shows, by its hash, and decide the documents again."""
+    """Record what one picture shows, by its hash, as a file of its own: looks recorded at the same time by several
+    agents never touch one file, and a second look at one image replaces the first."""
     from .delegation import agent
-    path = triage_path(workspace)
-    if not path.is_file():raise InputError('NO_TRIAGE: run aws-design flow run all first')
-    triage = load(path.read_bytes())
+    triage = current(workspace)
     known = {p.sha256: p for d in triage.documents for p in d.pictures if p.sha256}
     if image not in known:raise InputError(f'UNKNOWN_IMAGE: {image[:12]} is no picture of the triage')
     if services and kind not in DRAWS_SYSTEM:raise InputError('SERVICES_ONLY_FOR_DIAGRAMS: name services only for ARCHITECTURE or NETWORK')
     if kind != 'UNVIEWABLE' and known[image].format not in VIEWABLE:
         raise InputError(f'NOT_VIEWABLE: the image is {known[image].format or "of an unknown format"}; record UNVIEWABLE or render it to PNG in ARP4')
-    looks = [k for k in triage.looks if k.sha256 != image]
-    looks.append(Look(sha256=image, kind=kind, services=[s.strip() for s in services if s.strip()], note=note.strip(), actor=agent(actor), recorded_at=stamp()))
-    by_sha = {k.sha256: k for k in looks}
-    for doc in triage.documents:doc.decision, doc.basis = decide(doc, by_sha)
-    triage.looks = looks
-    path.write_bytes(dump(triage.model_dump(exclude_none=True)))
+    look = LookRecord(contract='diagram-look/1', sha256=image, kind=kind, services=[s.strip() for s in services if s.strip()], note=note.strip(),
+                      actor=agent(actor), recorded_at=stamp())
+    write_atomic(looks_folder(workspace) / f'{image}.json', dump(look.model_dump()))
+    triage = current(workspace)
     return {'image': image, 'kind': kind, 'documents': sorted({d.document for d in triage.documents if any(p.sha256 == image for p in d.pictures)}),
             'to_look': len(pending(triage))}
 
@@ -229,15 +261,15 @@ def needs_reading(triage):
 # --- Flow stage and coverage in draft mode --------------------------------------------------------------
 
 def flow_stage(workspace, config, q, drawings, approved):
-    from .diagram_ledger import InputError as LedgerError, check, load as load_ledger, part_of
-    from .flow import STALE_HELP, role, stage
+    from .diagram_ledger import NOT_THIS_DOCUMENT, InputError as LedgerError, check, load as load_ledger, part_of
+    from .flow import role, stage
     arp = config['arp_root']
     documents = {d: len(f.elements) for d, f in drawings.items() if f.elements}
     detail = f"図形・画像を含むCURRENTの文書 {len(documents)}件、要素 {sum(documents.values())}件"
     run_all = f'aws-design flow run all --workspace {q(workspace)}'
     path = triage_path(workspace)
     if not path.is_file():return stage('diagrams', 'TODO', '下書きモード：画像の仕分けがない。run all が図形の手がかりと画像の大きさで仕分ける。' + detail, run_all, action='triage')
-    try:triage = load(path.read_bytes())
+    try:triage = current(workspace)
     except InputError as exc:return stage('diagrams', 'TODO', f'画像の仕分けを読めない（{str(exc)[:120]}）。run all が作り直す。' + detail, run_all, action='triage')
     why = stale(workspace, triage, drawings)
     if why:return stage('diagrams', 'TODO', f'画像の仕分けが古い（{why}）。run all が作り直す（記録した目視は画像の内容で引き継ぐ）。' + detail, run_all, action='triage')
@@ -250,33 +282,44 @@ def flow_stage(workspace, config, q, drawings, approved):
         handoff = {'look': command, **({'pictures': looks} if len(runs) == 1 else {'runs': runs})}
         return stage('diagrams', 'WAITING_FOR_AGENT', f'下書きモード：目で見て種類を記録する画像 {len(looks)}件（1枚1回、構成図なら描かれたAWSサービスも）。' + detail,
                      command, agent=role('aws-design-author', 'diagram-triager', len(runs), handoff))
+    from . import diagram_rules
     common = f'--arp-root {q(arp)} --source-set {q(approved)}'
-    readings, done = [], 0
+    decisions = Counter(d.decision for d in triage.documents)
+    summary = (f"構成を描く見込み {decisions.get('ARCHITECTURE', 0)}件（うち読む文書 {len(needs_reading(triage))}件）、"
+               f"描かない見込み {decisions.get('NOT_ARCHITECTURE', 0)}件、見た画像 {len(triage.looks)}件")
+    # A reading nobody wrote yet is written by rule: the draft never waits for an agent to write a ledger by hand.
+    missing = diagram_rules.needed(workspace, drawings, triage)
+    if missing:
+        return stage('diagrams', 'TODO', f'下書きモード：構成を描く文書 {len(missing)}件の読み取りがない。run all が規則で台帳を書く'
+                     f'（図形の種類・文字・枠・線端から。エージェントの作業は要らない）。{summary}。' + detail, run_all, action='read-diagrams')
+    readings, done, by_rule, unaccepted = [], 0, 0, 0
     for document in needs_reading(triage):
         part = part_of(workspace, document)
         view = f'aws-design diagram view {common} --document {q(document)}'
         checking = f'aws-design diagram check {common} --ledger {q(part.first)} --for-document {q(document)}'
-        run = {'document': document, 'output': str(part.first), 'check': checking, 'view': view, 'actor': '作成担当の名前',
-               'draft': '下書きモード：この文書の読み取りは1つだけで、2つ目の読み取りと独立レビューは確定モードで行う'}
-        if not part.first.is_file():readings.append({**run, 'why': '構成を描く文書の台帳がない'});continue
+        # An agent's reading that fails is fixed by that agent, or started again from the rule reading: never retried blindly.
+        run = {'document': document, 'output': str(part.first), 'check': checking, 'view': view,
+               'restart': f'aws-design diagram start --workspace {q(workspace)} --document {q(document)} --replace',
+               'draft': '下書きモード：この台帳を直すか、restart で規則による読み取りに戻す。2つ目の読み取りと独立レビューは確定モードで行う'}
         try:ledger = load_ledger(part.first.read_bytes())
-        except LedgerError as exc:readings.append({**run, 'why': f'台帳が契約を満たさない（{str(exc)[:120]}）'});continue
-        found = check(ledger, drawings, [document])
-        failing = sorted({r['code'] for r in found.rows if r['severity'] == 'FAIL'})
-        if 'STRUCTURE_NOT_ACCEPTED' in failing:
-            return stage('diagrams', 'TODO', f"{document}：{STALE_HELP['STRUCTURE_NOT_ACCEPTED']}。" + detail, f'aws-design diagram preflight {common} --ledger {q(part.first)}')
-        if failing:readings.append({**run, 'why': f"台帳の検査が不合格：{'、'.join(failing)}", 'actor': ledger.author.actor});continue
-        done += 1
-    decisions = Counter(d.decision for d in triage.documents)
-    summary = (f"構成を描く見込み {decisions.get('ARCHITECTURE', 0)}件（うち読む文書 {len(needs_reading(triage))}件）、"
-               f"描かない見込み {decisions.get('NOT_ARCHITECTURE', 0)}件、見た画像 {len(triage.looks)}件")
+        except LedgerError as exc:readings.append({**run, 'why': f'台帳が契約を満たさない（{str(exc)[:120]}）', 'actor': '作成担当の名前'});continue
+        codes = {r['code'] for r in check(ledger, drawings, [document]).rows if r['severity'] == 'FAIL'}
+        failing = sorted(codes - set(diagram_rules.DRAFT_TOLERATED))
+        if failing:
+            belongs = set(failing) <= set(NOT_THIS_DOCUMENT)
+            readings.append({**run, 'why': f"台帳の検査が不合格：{'、'.join(failing)}"
+                             + ('。台帳がこの文書・この文書セットのものでない（内容の不備ではない）。読み直さず restart で書き直す' if belongs else ''),
+                             'actor': ledger.author.actor});continue
+        done += 1;by_rule += diagram_rules.by_rule(ledger);unaccepted += 'STRUCTURE_NOT_ACCEPTED' in codes
     if readings:
         base = {'arp_root': arp, 'source_set': str(approved)}
         handoff = {**base, **readings[0]} if len(readings) == 1 else {**base, 'runs': readings}
         if len(readings) == 1:handoff.pop('why')
-        return stage('diagrams', 'WAITING_FOR_AGENT', f"下書きモード：{readings[0]['why'] if len(readings) == 1 else f'読む文書 {len(readings)}件'}。{summary}。" + detail,
-                     readings[0]['check'], agent=role('aws-design-author', 'diagram-extract-worker', len(readings), handoff))
-    return stage('diagrams', 'DONE', f'下書き：{summary}、読んだ文書 {done}件（独立レビューは確定モード）。' + detail)
+        return stage('diagrams', 'WAITING_FOR_AGENT', f"下書きモード：{readings[0]['why'] if len(readings) == 1 else f'直す台帳 {len(readings)}件'}。{summary}。" + detail,
+                     readings[0]['restart'] if len(readings) == 1 else None, agent=role('aws-design-author', 'diagram-extract-worker', len(readings), handoff))
+    notes = ((f'、うち規則による読み取り {by_rule}件（設計入力を書くときに aws-design diagram view と見比べ、違う処置は台帳を直して author を自分の名前にする）' if by_rule else '')
+             + (f'、ARP4の構造レビューが未受理の文書 {unaccepted}件（下書きでは警告）' if unaccepted else ''))
+    return stage('diagrams', 'DONE', f'下書き：{summary}、読んだ文書 {done}件{notes}（独立レビューは確定モード）。' + detail)
 
 
 def service_keys(name):
@@ -299,7 +342,7 @@ def draft_coverage(workspace, arp_root, set_raw, design):
     empty = {'contract': 'diagram-coverage/1', 'counts': {}, 'covered': 0, 'coverage_percent': 0.0, 'design_counts': design_counts(Design(design or {}))}
     path = triage_path(workspace)
     if not path.is_file():return {**empty, 'status': 'FAIL', 'findings': [{'severity': 'FAIL', 'code': 'TRIAGE_MISSING'}]}
-    triage = load(path.read_bytes())
+    triage = current(workspace)
     if (why := stale(workspace, triage, drawings)):return {**empty, 'status': 'FAIL', 'findings': [{'severity': 'FAIL', 'code': 'TRIAGE_STALE', 'reason': why}]}
     need = needs_reading(triage)
     reviews = []
@@ -318,11 +361,19 @@ def draft_coverage(workspace, arp_root, set_raw, design):
         for document in need:out.fail('DIAGRAM_NOT_LEDGERED', document, count=len(drawings[document].elements))
         report = {**empty, 'status': out.status, 'coverage_percent': 100.0 if not need else 0.0, 'findings': out.rows}
     for row in report['findings']:
-        # The independent review belongs to the final mode.
-        if row['code'] in ('REVIEW_MISSING', 'REVIEW_STALE'):row['severity'] = 'WARN'
+        # The independent review and the ARP4 structure review belong to the final mode.
+        if row['code'] in ('REVIEW_MISSING', 'REVIEW_STALE', 'STRUCTURE_NOT_ACCEPTED'):row['severity'] = 'WARN'
     findings = Findings();findings.rows = report['findings']
+    from .diagram_rules import by_rule
+    for ledger, _, _ in reviews:
+        # A reading written by rule is nobody's reading: say so beside everything it led to.
+        if by_rule(ledger):findings.warn('READ_BY_RULE', ledger.documents[0].document)
     held = in_design(design or {})
     looks = {k.sha256: k for k in triage.looks}
+    # A picture somebody looked at and found to draw no system (a logo, a photo) is read: its note in the ledger stands.
+    seen = {(doc.document, p.ref) for doc in triage.documents for p in doc.pictures
+            if p.sha256 and p.sha256 in looks and looks[p.sha256].kind not in DRAWS_SYSTEM and looks[p.sha256].kind != 'UNVIEWABLE'}
+    findings.rows = [r for r in findings.rows if not (r['code'] == 'PICTURE_NOT_READ' and r['severity'] == 'WARN' and (r.get('document'), r.get('ref')) in seen)]
     for doc in triage.documents:
         if doc.decision == 'PENDING':findings.warn('TRIAGE_PENDING', doc.document)
         for p in doc.pictures:
@@ -357,7 +408,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == 'triage':
-            result = build(args.workspace);result['pictures'] = pending(load(triage_path(args.workspace).read_bytes()))[:BATCH]
+            result = build(args.workspace);result['pictures'] = pending(current(args.workspace))[:BATCH]
         else:result = record_look(args.workspace, args.image, args.kind, args.service, args.note, args.actor)
         sys.stdout.buffer.write((json.dumps(result, ensure_ascii=False) + '\n').encode('utf-8'));return 0
     except (InputError, OSError, ValueError) as exc:

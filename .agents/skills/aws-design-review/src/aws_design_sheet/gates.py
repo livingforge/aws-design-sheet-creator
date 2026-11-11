@@ -59,9 +59,10 @@ def overall(gates):
     return 'FAIL' if 'FAIL' in states else 'WARN' if 'WARN' in states else 'PASS'
 
 
-def evaluate(workspace, run=None, *, keep=None):
+def evaluate(workspace, run=None, *, keep=None, grounding=None):
     """Gate report for the workspace as it stands, attributed to a run folder when given. `keep` receives the
-    diagram coverage report, which the run folder holds beside the gates."""
+    diagram coverage report, which the run folder holds beside the gates; `grounding`, a list, receives every item
+    of the grounding gate (a gate holds 50) with the locator each cites."""
     from . import flow
     from .contracts import validate_workspace
     from .document_normalize import InputError as ParseError, parse
@@ -97,9 +98,32 @@ def evaluate(workspace, run=None, *, keep=None):
             trace_rows = json.loads(flow.at(workspace, config['source_trace']).read_text(encoding='utf-8')).get('rows', [])
         grounded = ground(design, library, trace_rows)
         weak_or_failing = [r for r in grounded['rows'] if r['status'] not in ('GROUNDED', 'TRACED', 'DECISION', 'INTERPRETED')]
-        gates.append(Gate(id='grounding', status=grounded['status'], counts=grounded['counts'],
-                          detail='、'.join(f'{k} {v}' for k, v in grounded['counts'].items()) or 'no document values claimed',
-                          items=[{k: r.get(k) for k in ('pointer', 'status', 'detail', 'source')} for r in weak_or_failing][:50]))
+        # A time copied in Japan time into a setting AWS reads in UTC passes the grounding, so it is warned about here.
+        from .grounding import stock_rationales, time_zone_findings
+        zones = time_zone_findings(design, library) if library is not None else []
+        # One sentence on settings of many different properties: the derivations a person must review are hidden in it.
+        stock = stock_rationales(design)
+        listed = ([{'pointer': z['pointer'], 'status': z['code'], 'detail': z['property'], 'source': z['source']} for z in zones]
+                  + [{'pointer': r['pointer'], 'status': r['code'], 'detail': f"{r['settings']} settings of {r['properties']} properties: {r['rationale'][:80]}"} for r in stock]
+                  + [{'pointer': r['pointer'], 'status': 'RATIONALE_REPEATED', 'detail': 'value not in its cited cells', 'source': r.get('source')}
+                     for r in grounded['rows'] if r['detail'] == 'RATIONALE_REPEATED']
+                  + [{k: r.get(k) for k in ('pointer', 'status', 'detail', 'source')} for r in weak_or_failing])
+        if grounding is not None:
+            locators = {s.get('id'): s.get('locator', '') for s in design.get('sources', []) if isinstance(s, dict)}
+            grounding.extend({**row, 'locator': locators.get(row.get('source'), '')} for row in listed)
+        # What an author does about values the cited cells do not hold, and where the items beyond the 50 a gate holds are.
+        more = ''
+        if grounded['counts'].get('NOT_FOUND'):
+            more += ('。NOT_FOUND は値が引用セルにない設定：`aws-design sources cells --grep 値` で値のあるセルを探して引用を直す。'
+                     '文書の語から導いた値（換算、真偽値、列挙値）なら rationale に導き方を書く。文書にない値は UNDECIDED にする')
+        if len(listed) > 50:more += f'。項目は先頭の50件。全{len(listed)}件：`aws-design gate grounding --workspace {workspace}`'
+        gates.append(Gate(id='grounding', status='WARN' if (zones or stock) and grounded['status'] == 'PASS' else grounded['status'], counts=grounded['counts'],
+                          detail=('、'.join(f'{k} {v}' for k, v in grounded['counts'].items()) or 'no document values claimed')
+                                 + (f'、TIME_ZONE_AS_WRITTEN {len(zones)}（日本時間の時刻をUTCの設定にそのまま入れた疑い。9時間ずらして換算し、rationale に書く）' if zones else '')
+                                 + (f"、RATIONALE_REPEATED {sum(r['settings'] for r in stock)}（同じ rationale を多くの種類の設定に付けている。"
+                                    f"うち {sum(r['detail'] == 'RATIONALE_REPEATED' for r in grounded['rows'])}件は値が引用セルになく、この文だけで通っている。"
+                                    'セルの値を写しただけの設定からは rationale を外し、導いた値にだけ、その導き方を書く）' if stock else '') + more,
+                          items=listed[:50]))
         tested = self_test(design, library, trace_rows)
         gates.append(Gate(id='grounding_self_test', status=tested['status'], detail=tested['detail']))
     else:
@@ -192,10 +216,19 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='command', required=True)
     p = sub.add_parser('run', help='evaluate the gates of a workspace; with --run, write runs/NNN/gates.json')
     p.add_argument('--workspace', required=True);p.add_argument('--run');p.add_argument('--markdown', action='store_true')
+    p = sub.add_parser('grounding', help='every item of the grounding gate of a workspace (a gate holds 50), one line each with the cell it cites')
+    p.add_argument('--workspace', required=True);p.add_argument('--status', help='only items of this status, for example NOT_FOUND')
     p = sub.add_parser('ground', help='grounding of one design input against an approved source set')
     p.add_argument('design');p.add_argument('--arp-root');p.add_argument('--source-set');p.add_argument('--source-trace')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'grounding':
+            from .flow import runs
+            found = runs(Path(args.workspace));rows = []
+            evaluate(args.workspace, found[-1].name if found else None, grounding=rows)
+            rows = [r for r in rows if not args.status or r['status'] == args.status]
+            lines = ['# status\tpointer\tcited locator\tdetail', *['\t'.join(str(r.get(k) or '') for k in ('status', 'pointer', 'locator', 'detail')) for r in rows], f'# {len(rows)} items']
+            sys.stdout.buffer.write(('\n'.join(lines) + '\n').encode('utf-8'));return 0
         if args.command == 'ground':
             from .document_normalize import parse
             from .grounding import Library, ground, self_test

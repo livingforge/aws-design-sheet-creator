@@ -4,7 +4,7 @@ import json
 import re
 from typing import Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, ValidationError, model_validator
 
 from .document_catalog import catalog, matches, pointer, input_type_inventory
 from .document_decisions import Decision, Section, validate_decisions
@@ -174,7 +174,7 @@ class SchemaInput(DocumentInput):
         # Messages name the IDs at fault (identifiers the author chose, never setting values), so that an author can fix them.
         if twice(c.change_id for c in self.change_log):raise ValueError('duplicate change ID: '+named(twice(c.change_id for c in self.change_log)))
         objects=[self.system,*self.environments,*self.sources,*self.resources,*self.actors,*self.accounts,*self.requirements,*self.connections,*self.operations,*self.issues,*self.decisions]
-        if twice(x.id for x in objects):raise ValueError('duplicate stable ID: '+named(twice(x.id for x in objects)))
+        if twice(x.id for x in objects):raise ValueError('duplicate stable ID: '+named(twice(x.id for x in objects))+' (an id is used once across accounts, environments, resources, actors and the other objects of the input)')
         resources={r.id:r for r in self.resources};sources={s.id for s in self.sources}
         bindings=[r.cfn_logical_id for r in self.resources if r.cfn_logical_id]
         if twice(bindings):raise ValueError('duplicate CFN binding: '+named(twice(bindings)))
@@ -189,11 +189,27 @@ class SchemaInput(DocumentInput):
             # One verified catalog per region for the whole input, not one lookup per resource and environment.
             if region not in cats:cats[region]=catalog(region)
             return cats[region]
+        # Faults of settings are gathered and reported together (one per setting), so that an author fixes them in
+        # one round instead of one generation per fault. Each is kept once, however many environments show it.
+        faults={}
+        def report():
+            if len(faults)==1:raise ValueError(next(iter(faults)))
+            if faults:raise ValueError(f'{len(faults)} settings at fault: '+' | '.join(list(faults)[:FAULTS_SHOWN])+(f' | and {len(faults)-FAULTS_SHOWN} more' if len(faults)>FAULTS_SHOWN else ''))
         def validate(resource,values,cat,absent=frozenset()):
-            if resource.type not in cat.schemas:raise ValueError(f'resource is outside the regional service catalog: {resource.id}')
+            if resource.type not in cat.schemas:
+                faults[f'resource is outside the regional service catalog: {resource.id} ({resource.type}); list the types with aws-design document --types TEXT, and model a service the catalog lacks as an actor of kind AWS_SERVICE']=None;return
             for name,setting in values.items():
-                if name not in cat.writable(resource.type):raise ValueError(f'unknown or read-only top-level property: {resource.id} {name}')
-                visit_setting(setting,resource.type,[name],resources,provenance,cat=cat,absent=absent)
+                if name not in cat.writable(resource.type):
+                    faults[f'unknown or read-only top-level property: {resource.id} {name}'+candidates(cat,resource.type,[name])]=None;continue
+                try:visit_setting(setting,resource.type,[name],resources,provenance,cat=cat,absent=absent)
+                except ValidationError as exc:
+                    # A $design leaf that is no setting: its place and the rule it breaks, never its value.
+                    where=', '.join('/'.join(map(str,e['loc']))+' '+e['type'] for e in exc.errors(include_input=False,include_context=False))[:200]
+                    faults[f'{resource.id} {name}: a $design leaf is not a valid setting ({where})']=None
+                except ValueError as exc:
+                    # Say which resource and setting, and where inside a composite value, so nobody has to search by halves.
+                    message=str(exc)
+                    faults[message if message.startswith(f'{resource.id} ') else f'{resource.id} {name}: {message}']=None
         for resource in self.resources:provenance(resource)
         accounts={a.id for a in self.accounts};environments={e.id for e in self.environments}
         for x in [*self.accounts,*self.environments]:provenance(x)
@@ -216,6 +232,7 @@ class SchemaInput(DocumentInput):
             for conn in self.connections:
                 ends=[e for e in (conn.source,conn.target) if e in resources]
                 if any(e in absent for e in ends) and any(e not in absent for e in ends):raise ValueError(f'connection to a resource absent from the environment {env.id}: {conn.id}')
+        report()
         for note in [*self.requirements,*self.operations,*self.issues]:
             provenance(note)
             if any(r not in resources for r in note.resources):raise ValueError(f'invalid note resource in {note.id}: '+named(r for r in note.resources if r not in resources))
@@ -231,7 +248,7 @@ class SchemaInput(DocumentInput):
             if (conn.source in actors or conn.target in actors) and conn.kind!='TRAFFIC':raise ValueError(f'only traffic connections reach an actor: {conn.id}')
             if conn.kind=='REFERENCE':
                 source=resources[conn.source]
-                if any(conn.property not in regional(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError('unknown connection property')
+                if any(conn.property not in regional(source.region or e.region).writable(source.type) for e in self.environments):raise ValueError(f'unknown connection property: {conn.id} (a REFERENCE connection names a top-level property of its source resource; a flow between components is a TRAFFIC connection)')
             elif conn.property is not None:raise ValueError('only reference connections have a property')
         from .document_decisions import expanded_setting, expansion_targets
         for d in self.decisions:
@@ -241,9 +258,26 @@ class SchemaInput(DocumentInput):
                     for rid in expansion_targets(self,d,e,env.id):
                         if rid in absent:continue
                         resource=resources[rid];validate(resource,{e.property:expanded_setting(d,e)},regional(resource.region or env.region),absent)
+        report()
         from .document_policy_model import validate_policies
         validate_policies(self)
         return self
+
+
+# How many faults one structure error names.
+FAULTS_SHOWN=20
+
+
+def candidates(cat,kind,path):
+    """Property names of the schema close to a name it lacks (names of the pinned schema, never input values)."""
+    import difflib
+    name=path[-1]
+    if not isinstance(name,str):return ''
+    if len(path)==1:names=set(cat.writable(kind))
+    else:names={k for node in cat.at(kind,path[:-1]) for branch in cat.branches(kind,node) for k in (branch or {}).get('properties',{})}
+    close=difflib.get_close_matches(name,sorted(names),n=3,cutoff=0.6)
+    if close:return f" (did you mean {', '.join(close)}?)"
+    return f" (the properties here: {', '.join(sorted(names))})" if 0<len(names)<=30 else ''
 
 
 def present(resource,environment):
@@ -254,7 +288,7 @@ def present(resource,environment):
 def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None,absent=frozenset()):
     """Validate typed decision nodes and preserve their original representation."""
     cat=cat or catalog();provenance(setting)
-    if cat.readonly(kind,parts) or not cat.at(kind,parts):raise ValueError('unknown or read-only nested property')
+    if cat.readonly(kind,parts) or not cat.at(kind,parts):raise ValueError(f'unknown or read-only nested property at {pointer(parts)}')
     if trace is not None:trace.append({'path':pointer(parts),'status':setting.status,'mode':setting.mode})
     if setting.status!='DECIDED':return
     if setting.mode=='OMITTED':return
@@ -265,7 +299,7 @@ def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None,
         if any(r not in resources for r in refs) or len(refs)!=len(set(refs)):raise ValueError('invalid internal reference')
         for i,r in enumerate(refs):
             targets=cat.reference_targets(kind,[*parts,i] if isinstance(setting.ref,list) else parts)
-            if targets and resources[r].type not in targets:raise ValueError('reference target type disagrees with registered reference metadata')
+            if targets and resources[r].type not in targets:raise ValueError(f'reference target type disagrees with registered reference metadata at {pointer(parts)}: {r} is not one of '+', '.join(sorted(targets)))
         return
     if setting.mode in ('SECRET_REF','EXTERNAL_REF','DEFAULT','OMITTED'):return
     if setting.mode=='EXPRESSION':
@@ -276,7 +310,8 @@ def visit_setting(setting,kind,parts,resources,provenance,trace=None,*,cat=None,
             visit_setting(SchemaSetting.model_validate(value['$design']),kind,path,resources,provenance,trace,cat=cat,absent=absent);return
         if sensitive(kind,path):raise ValueError('sensitive input requires a typed secret reference')
         if secret_literal(value) and not isinstance(value,(dict,list)):raise ValueError('secret-like literal')
-        cat.shape(kind,path,value)
+        try:cat.shape(kind,path,value)
+        except ValueError as exc:raise ValueError(f'{exc} at {pointer(path)}'+(candidates(cat,kind,path) if 'absent from the pinned schema' in str(exc) else '')) from None
         if isinstance(value,dict):
             # Tag key/value pairs can carry secrets despite an innocuous Value field.
             if isinstance(value.get('Key'),str) and SECRET_NAME.search(value['Key']):

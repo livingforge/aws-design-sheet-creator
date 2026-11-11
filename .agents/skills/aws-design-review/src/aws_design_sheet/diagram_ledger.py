@@ -41,6 +41,8 @@ REGION = r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+$'
 ZONE = r'^[a-z]{2}(?:-gov)?-[a-z]+-\d+[a-z]$|^[a-z]{3,4}\d-az\d+$'
 GLOBAL = {'IAM', 'Organizations', 'CloudFront', 'Route53'}
 VPC, SUBNET, SECURITY_GROUP = 'AWS::EC2::VPC', 'AWS::EC2::Subnet', 'AWS::EC2::SecurityGroup'
+# A cluster whose instances sit in its subnets, and the resource that puts a gateway in a VPC.
+CLUSTERS, ATTACHMENT = ('AWS::RDS::DBCluster', 'AWS::DocDB::DBCluster', 'AWS::Neptune::DBCluster'), 'AWS::EC2::VPCGatewayAttachment'
 # Excel's default column width and row height in EMU, to place an anchor's offsets within its cells.
 COLUMN_EMU, ROW_EMU, SLACK = 609600, 190500, 0.05
 
@@ -251,7 +253,8 @@ class Drawings:
             while at.get('group') and at['group'] not in seen:seen.add(at['group']);chain.append(at['group']);at = self.elements[at['group']]
             own = e['rect'] or next((self.elements[g]['rect'] for g in chain if self.elements[g]['rect']), None)
             if own:
-                around = [r for r, box in boxes.items() if r != ref and r not in chain and encloses(box, own)]
+                # Anchors are cells of one sheet: a drawing of another sheet at the same cells is no frame.
+                around = [r for r, box in boxes.items() if r != ref and r not in chain and page(r) == page(ref) and encloses(box, own)]
                 chain += sorted(around, key=lambda r:area(boxes[r]))
             self.frames[ref] = chain
 
@@ -280,6 +283,12 @@ def element_texts(extraction):
         ocr = asset.get('ocr') or {}
         if Path(str(asset.get('path', ''))).name not in shown and ocr.get('status') == 'available' and clean(ocr.get('text')):
             yield f'a{a}', clean(ocr.get('text'))
+
+
+def page(ref):
+    """The sheet or slide a reference lies on (`s3` of `s3-d4`), the visual of a graph element, or the reference itself."""
+    if ref.startswith('v:'):return ref.split('/', 1)[0]
+    return ref.split('-', 1)[0] if '-' in ref else ref
 
 
 def is_line(e):return e.get('kind') == 'connector' or (e.get('geometry') or '').startswith(('line', 'straightConnector', 'bentConnector', 'curvedConnector'))
@@ -337,7 +346,7 @@ def near(found, point, own):
     x, y = point;found_at = []
     for ref, e in found.elements.items():
         box = e['rect']
-        if ref == own or not box or is_line(e):continue
+        if ref == own or not box or is_line(e) or page(ref) != page(own):continue
         if box[0] - .5 <= x <= box[2] + .5 and box[1] - .5 <= y <= box[3] + .5:found_at.append((round(area(box), 3), ref))
     if not found_at:return []
     least = min(a for a, _ in found_at)
@@ -535,6 +544,11 @@ def check(ledger, drawings, part=None):
     return out
 
 
+# Failures that say a ledger does not belong to the document or the source set it is checked against: a wrong
+# input, not a wrong reading.
+NOT_THIS_DOCUMENT = ('LEDGER_NOT_CURRENT', 'DOCUMENT_NOT_IN_PART', 'DIAGRAM_NOT_LEDGERED', 'DOCUMENT_LISTED_TWICE')
+
+
 def citations(design):
     """(document, element reference) → [(kind, object ID)] for every object whose sources cite drawing elements."""
     locators = {s.get('id'): str(s.get('locator', '')) for s in design.get('sources', []) or [] if isinstance(s, dict)}
@@ -605,23 +619,33 @@ class Design:
         if isinstance(setting, dict) and setting.get('status', 'DECIDED') == 'DECIDED' and setting.get('mode') == 'LITERAL':return setting.get('value')
         return None
 
-    def subnets(self, rid):
-        """Subnets a resource names directly or through a subnet group."""
+    def subnets(self, rid, seen=()):
+        """Subnets a resource names directly, through a subnet group, or through the cluster it is an instance of."""
         found = set()
         for x in self.refs.get(rid, []):
             if self.type(x) == SUBNET:found.add(x)
             elif self.type(x).endswith('SubnetGroup'):found.update(y for y in self.refs.get(x, []) if self.type(y) == SUBNET)
+            elif self.type(x) in CLUSTERS and x not in seen:found |= self.subnets(x, (*seen, rid))
         return {rid} if self.type(rid) == SUBNET else found
 
     def vpcs(self, rid):
+        """VPCs a resource names, directly or through its subnets and security groups; a gateway's VPC is the one
+        its attachment names, since the gateway itself names none."""
         found = set()
-        for x in self.refs.get(rid, []) + sorted(self.subnets(rid)):
+        attached = [y for a, refs in self.refs.items() if self.type(a) == ATTACHMENT and rid in refs for y in refs]
+        for x in self.refs.get(rid, []) + sorted(self.subnets(rid)) + attached:
             if self.type(x) == VPC:found.add(x)
             elif self.type(x) in (SUBNET, SECURITY_GROUP):found.update(y for y in self.refs.get(x, []) if self.type(y) == VPC)
         return {rid} if self.type(rid) == VPC else found
 
 
-def service_matches(named, kind):return '::' in kind and service_key(named) == service_key(kind)
+def service_matches(named, kind):
+    """A ledger's service against a resource type: the same namespace, or a service name the dictionary knows whose
+    types hold it (`EventBridge Scheduler` and AWS::Scheduler::ScheduleGroup, `Aurora` and AWS::RDS::DBInstance)."""
+    if '::' not in kind:return False
+    if service_key(named) == service_key(kind):return True
+    from .service_mentions import detect, type_holds
+    return not named.strip().startswith('AWS::') and any(type_holds(key, kind) for key in detect(named))
 
 
 def judge_review(out, ledger, review, ledger_sha256, documents=None):
@@ -790,8 +814,13 @@ def placements(out, doc, found, by_ref, model, cited):
                     actual = {model.region(oid, env) for env in envs}
                     if actual != {frame.value}:out.fail('PLACEMENT_MISMATCH', doc.document, e.ref, target=oid, boundary='REGION', expected=frame.value, actual=sorted(actual))
                 elif kind == 'resource' and frame.boundary == 'AZ':
-                    zones = {model.literal(s, 'AvailabilityZone') or model.literal(s, 'AvailabilityZoneId') for s in model.subnets(oid)} - {None}
-                    if not zones:out.warn('PLACEMENT_UNVERIFIED', doc.document, e.ref, target=oid, boundary='AZ')
+                    # The resource's own zone when it states one (a database instance), else the zones of its subnets;
+                    # subnets whose zone is still open cannot refute the drawing.
+                    own = model.literal(oid, 'AvailabilityZone')
+                    known = [model.literal(s, 'AvailabilityZone') or model.literal(s, 'AvailabilityZoneId') for s in model.subnets(oid)]
+                    zones = {own} if own else set(known) - {None}
+                    if not zones or (frame.value not in zones and not own and None in known):
+                        out.warn('PLACEMENT_UNVERIFIED', doc.document, e.ref, target=oid, boundary='AZ')
                     elif frame.value not in zones:out.fail('PLACEMENT_MISMATCH', doc.document, e.ref, target=oid, boundary='AZ', expected=frame.value, actual=sorted(zones))
                 elif kind == 'resource' and frame.boundary in ('VPC', 'SUBNET') and target(frame, 'resource'):
                     wanted = target(frame, 'resource')
@@ -875,7 +904,29 @@ def render(report):
         where = '#'.join(x for x in (f.get('document'), f.get('ref')) if x)
         extra = '、'.join(f'{k}={v}' for k, v in f.items() if k not in ('severity', 'code', 'document', 'ref'))
         lines_.append(f"- {f['severity']} `{f['code']}` {where} {extra}".rstrip())
+    fixes = [(code, text) for code, text in FIXES if any(f['code'] == code for f in report['findings'])]
+    if fixes:lines_ += ['', '## 指摘の直し方', '', *[f'- `{code}`：{text}' for code, text in fixes]]
     return '\n'.join(lines_) + '\n'
+
+
+# How an author answers the warnings a weaker agent otherwise leaves or guesses at; shown under the findings they are about.
+FIXES = (
+    ('PICTURE_NOT_READ', '文字も代替テキストもない画像で、中身を誰も見ていない。下書きでは `aws-design diagram look` で画像を見て種類を記録する。'
+     '構成を描かない画像（ロゴ、写真、画面、表）と記録すれば、この警告は次の生成で消える。構成を描く画像なら、描かれたサービスを記録し、入力にあるかを確かめる。'),
+    ('KIND_MISMATCH', '図形の処置と、その図形を引用する入力のもの（targets）の種類が合わない。RESOURCE の図形を引用できるのはリソースと AWS_SERVICE のアクター、'
+     'ACTOR はアクター、CONNECTION は接続。枠（BOUNDARY）は、ACCOUNT ならアカウント、ENVIRONMENT なら環境、VPC・SUBNET ならその型のリソースが引用する。'
+     'REGION・AZ・ON_PREMISES・OTHER の枠は、リソースからは引用しない：その引用を入力の `sources` から外す'
+     '（リージョンは環境かリソースの `region`、AZ はサブネットの `AvailabilityZone` で表し、その設定が枠を引用するのはよい）。'
+     '台帳の読み違い（アクターを RESOURCE にした、など）なら台帳を直す。'),
+    ('PLACEMENT_UNVERIFIED', '図は target を枠（boundary）の中に描いているが、入力に target からその VPC・サブネット・AZ へたどれる参照がない。'
+     '文書が配置を決めているなら、入力に参照を書く。サブネットを取る設定（`SubnetIds`、`SubnetId`、`DBSubnetGroupName` など）を、サブネットかサブネットグループへの RESOURCE_REF にする。'
+     'Aurora のインスタンスは `DBClusterIdentifier` をクラスターへの RESOURCE_REF にし、クラスターの `DBSubnetGroupName` をサブネットグループへの RESOURCE_REF にする。'
+     'インターネットゲートウェイは、`InternetGatewayId` と `VpcId` を RESOURCE_REF にした `AWS::EC2::VPCGatewayAttachment` を入力に足す。'
+     'AZ は、参照先のサブネットの `AvailabilityZone` が決まっていれば確かめられる。文書が配置を決めていないなら、警告のままでよい（下書きは止まらない）。'),
+    ('SERVICE_MISMATCH', '台帳の `service` と、その図形を引用する入力のリソース（target）の型で、サービスが違う。台帳の読み違いなら台帳の `service` を直し、'
+     '入力が別の図形を引用しているなら入力の `sources` を直す。'),
+    ('LINE_END_UNMAPPED', '線の端の図形に、入力での対応先がない。端の図形を引用するリソースかアクターが入力にあるかを見る。注記への線なら、台帳でその線を ANNOTATION にする。'),
+)
 
 
 # What a disagreement is about, most important first. Whether an element is there, what it is, where it sits and
@@ -1239,6 +1290,9 @@ def main(argv=None):
     p = sub.add_parser('retire', help='take a reading out of use into retired/, so a new one is written to a fresh file');deciding(p)
     p.add_argument('--reading', choices=['ledger', 'reading-2'], required=True)
     p = sub.add_parser('adopt', help='make the independent reading the one the design uses; the former one is retired');deciding(p)
+    p = sub.add_parser('start', help="draft mode: write a document's ledger by rule (kind, text, frames, line ends), to correct instead of writing one by hand")
+    p.add_argument('--workspace', required=True);p.add_argument('--document', required=True, help='the document ID exactly as the flow names it')
+    p.add_argument('--replace', action='store_true', help='retire the existing reading and start again from the rule reading')
     for name in ('view', 'preflight', 'check', 'review', 'coverage', 'adopt'):
         sub.choices[name].add_argument('--progress', action='store_true', help='JSON lines of progress on standard error')
     args = parser.parse_args(argv)
@@ -1246,6 +1300,11 @@ def main(argv=None):
     try:
         if args.command == 'schema':
             print(json.dumps((Ledger if args.kind == 'ledger' else LedgerReview).model_json_schema(), ensure_ascii=False, indent=2));return 0
+        if args.command == 'start':
+            from .diagram_rules import InputError as RuleError, start
+            try:result = start(args.workspace, args.document, args.replace)
+            except RuleError as exc:raise InputError(str(exc)) from None
+            sys.stdout.buffer.write((json.dumps(result, ensure_ascii=False) + '\n').encode('utf-8'));return 0
         if args.command == 'compare':
             if len(args.ledger) != 2:raise InputError('compare needs exactly two --ledger files')
             report = compare(*(load(Path(p).read_bytes()) for p in args.ledger))
@@ -1290,6 +1349,14 @@ def main(argv=None):
         if args.command == 'preflight':
             report = preflight(drawings, load(Path(args.ledger).read_bytes()) if args.ledger else None)
             emit(report, 'findings', args);return 0 if report['status'] != 'FAIL' else 2
+        for document in getattr(args, 'for_document', None) or []:
+            # A wrong input is told apart from a wrong ledger, before the ledger is read: no reading can fix it.
+            if document not in drawings or not drawings[document].elements:
+                known = sorted(d for d, f in drawings.items() if f.elements)
+                raise InputError(f'INPUT_DOCUMENT_NOT_CURRENT: {document} is not a CURRENT document with drawings in this source set. The ledger is '
+                                 'not at fault and reading again will not help: use the document ID and the source set the flow names '
+                                 f'(aws-design flow status). CURRENT documents with drawings: {json.dumps(known[:30], ensure_ascii=False)}'
+                                 + (f' and {len(known) - 30} more' if len(known) > 30 else ''))
         raw = Path(args.ledger).read_bytes();ledger = load(raw)
         if args.command == 'check':
             if args.design:
@@ -1301,6 +1368,14 @@ def main(argv=None):
                 report['findings'], report['status'] = kept.rows, kept.status
             else:
                 found = check(ledger, drawings, args.for_document);report = {'status': found.status, 'findings': found.rows}
+                failed = {r['code'] for r in found.rows if r['severity'] == 'FAIL'}
+                if failed and failed <= set(NOT_THIS_DOCUMENT):
+                    # The ledger names another document than the one it is checked for: an input mismatch, not a reading to redo.
+                    report.update(cause='INPUT_MISMATCH', ledger_documents=sorted({d.document for d in ledger.documents})[:20],
+                                  expected_documents=args.for_document or sorted(d for d, f in drawings.items() if f.elements)[:20],
+                                  hint='The ledger does not belong to the document or source set it is checked against. Do not read the drawings '
+                                       'again: set "document" to the expected ID exactly, or in draft mode run aws-design diagram start --workspace WS '
+                                       '--document ID --replace.')
             emit(report, 'findings', args);return 0 if report['status'] != 'FAIL' else 2
         if args.actor.strip() == ledger.author.actor.strip():raise InputError('REVIEWER_IS_AUTHOR: use an independent reviewer')
         found = check(ledger, drawings, args.for_document)

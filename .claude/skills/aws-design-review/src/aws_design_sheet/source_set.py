@@ -389,10 +389,16 @@ DRAFT_RULES = {'POSSIBLY_REFERENCE': 'REFERENCE', 'ARCHIVE_FOLDER': 'REFERENCE',
 def approve_draft(root, proposal_raw, *, now=None):
     """A draft set from the fresh scan: UNDECIDED documents settled by DRAFT_RULES, and a citable document whose original
     or parse has a problem EXCLUDED so the draft never reads a stale parse. Recorded under DRAFT_AGENT, never as approval."""
-    from .delegation import DRAFT_AGENT
     fresh = scan(root)
     if sha(dump(fresh.model_dump())) != sha(dump(SourceSet.model_validate_json(proposal_raw).model_dump())):
         raise InputError('PROPOSAL_STALE: the proposal differs from a fresh scan of ARP4; scan again')
+    return draft_from(fresh, sha(proposal_raw), now=now)
+
+
+def draft_from(fresh, proposal_sha256, *, now=None):
+    """The draft set of one scan. `run all` scans and settles in one step with this, so that ARP4 changing between a
+    scan and its approval can never stop a draft."""
+    from .delegation import DRAFT_AGENT
     for e in fresh.documents:
         if e.status == 'UNDECIDED':
             if e.reason not in DRAFT_RULES:raise InputError(f'NO_DRAFT_RULE: {e.reason}')
@@ -403,7 +409,17 @@ def approve_draft(root, proposal_raw, *, now=None):
         if e.document_id in troubled:e.status, e.decided = 'EXCLUDED', 'DRAFT'
     stamp = (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
     return SourceSet(schema_version='1', kind='approved', documents=fresh.documents, issues=fresh.issues,
-                     approval=Approval(approver=DRAFT_AGENT, approved_at=stamp, proposal_sha256=sha(proposal_raw), draft=True))
+                     approval=Approval(approver=DRAFT_AGENT, approved_at=stamp, proposal_sha256=proposal_sha256, draft=True))
+
+
+def set_changes(before, after):
+    """What differs between two sets, by document ID: documents that came, went, were imported again or changed status."""
+    old = {e.document_id: e for e in before.documents};new = {e.document_id: e for e in after.documents}
+    both = sorted(set(old) & set(new))
+    found = {'added': sorted(set(new) - set(old)), 'removed': sorted(set(old) - set(new)),
+             'imported_again': [d for d in both if (old[d].source_sha256, old[d].extraction_sha256) != (new[d].source_sha256, new[d].extraction_sha256)],
+             'status_changed': [{'document': d, 'from': old[d].status, 'to': new[d].status} for d in both if old[d].status != new[d].status]}
+    return {k: v for k, v in found.items() if v}
 
 
 def load_approved(raw):
@@ -614,6 +630,48 @@ def render_diff(report):
     return '\n'.join(lines) + '\n'
 
 
+def cells(root, set_raw, document=None, sheet=None, grep=None):
+    """What an author reads and cites: the cells and drawing texts of the documents a design may cite, each with the
+    ID a source's locator names. Without a document, the citable documents; with `grep`, the cells holding a text."""
+    from .diagram_ledger import element_texts
+    approved = load_approved(set_raw)
+    entries = {e.document_id: e for e in approved.documents}
+    documents = {d['document_id']: d for d in read_arp(root)[0]}
+    if document is not None:
+        entry = entries.get(document)
+        if entry is None or document not in documents:
+            raise InputError(f'UNLISTED_DOCUMENT: {document} is not in the source set; run this command without --document for the documents a design may cite')
+        if entry.status not in CITABLE:
+            raise InputError(f'NOT_CITABLE: {document} is {entry.status}; a design reads and cites CURRENT documents' + (f' (newer: {entry.related})' if entry.related else ''))
+    wanted = [document] if document else sorted(d for d, e in entries.items() if e.status in CITABLE and d in documents)
+    plain = lambda text:unicodedata.normalize('NFKC', text).casefold()
+    lines = []
+    if document is None and grep is None:
+        lines = ['# 設計が読んで引用できる文書（CURRENT から読む。PRIMARY が先）。--document 文書ID で全セル、--grep 語 で語を含むセルを出す', '']
+        order = sorted(wanted, key=lambda d:(entries[d].status != 'CURRENT', entries[d].relevance != 'PRIMARY', d))
+        for d in order:
+            extraction = documents[d]['extraction']
+            lines.append(f"{d}\t{entries[d].status}\t{entries[d].relevance}\tsheets={len(extraction.get('sheets', []) or [])}"
+                         f"\tcells={sum(1 for _ in cell_texts(extraction))}\tdrawings={sum(1 for _ in element_texts(extraction))}")
+        return lines
+    for d in wanted:
+        extraction = documents[d]['extraction']
+        names = {n: s.get('name', '') for n, s in enumerate(extraction.get('sheets', []) or [], 1)}
+        rows = [(cid, text) for cid, text in list(cell_texts(extraction)) + list(element_texts(extraction))
+                if (sheet is None or cid.startswith(f's{sheet}-')) and (grep is None or plain(grep) in plain(text))]
+        if grep is not None:
+            lines += [f'{d}#{cid}\t{text}' for cid, text in rows];continue
+        lines += [f'# {d}（{entries[d].status}、{entries[d].relevance}）', f'# 引用の書き方：sources の locator に {d}#<ID>（例 {d}#{rows[0][0] if rows else "s1-A1"}）。'
+                  'セルは s<シート>-<番地>、図形は s<シート>-d<番号>', '']
+        seen = None
+        for cid, text in rows:
+            number = int(cid[1:cid.index('-')]) if cid.startswith('s') and '-' in cid else 0
+            if number != seen:
+                seen = number;lines.append(f'## s{number} {names.get(number, "")}'.rstrip() if number else '## 図形にない画像')
+            lines.append(f'{cid}\t{text}')
+    return lines
+
+
 def write_new(path, data):
     path = Path(path)
     if path.exists():raise InputError('output already exists; use a fresh path')
@@ -632,6 +690,11 @@ def main(argv=None):
     p.add_argument('--output', required=True)
     p = sub.add_parser('check', help='verify the set against ARP4 and, optionally, the sources a design cites')
     p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True);p.add_argument('--design', help='1.1 input (JSON or YAML)')
+    p = sub.add_parser('cells', help='read the documents a design may cite: every cell and drawing text with the ID a citation names')
+    p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True)
+    p.add_argument('--document', help='a CURRENT or REFERENCE document ID; without it, the citable documents are listed')
+    p.add_argument('--sheet', type=int, help='only this sheet number (the 1 of s1-A5)');p.add_argument('--grep', metavar='TEXT', help='only cells and drawings holding this text, in every citable document or in --document')
+    p.add_argument('--offset', type=int, default=0);p.add_argument('--limit', type=int, default=3000, help='lines printed (default 3000); the rest are counted')
     p = sub.add_parser('diff', help='what changed between each superseded document and its newer version')
     p.add_argument('--arp-root', required=True);p.add_argument('--source-set', required=True)
     p.add_argument('--markdown', action='store_true', help='print a Markdown summary instead of JSON')
@@ -655,6 +718,12 @@ def main(argv=None):
             approved = approve(root, Path(args.proposal).read_bytes(), args.approver, settings)
             write_new(args.output, dump(approved.model_dump()))
             print(json.dumps({'source_set': args.output, 'approver': approved.approval.approver}, ensure_ascii=False));return 0
+        if args.command == 'cells':
+            lines = cells(root, Path(args.source_set).read_bytes(), args.document, args.sheet, args.grep)
+            shown = lines[max(args.offset, 0):max(args.offset, 0) + max(args.limit, 0)]
+            left = len(lines) - max(args.offset, 0) - len(shown)
+            if left > 0:shown.append(f'# あと {left} 行。--offset {max(args.offset, 0) + len(shown)} で続きを出す（--sheet や --grep で絞れる）')
+            sys.stdout.buffer.write(('\n'.join(shown) + '\n').encode('utf-8'));return 0
         if args.command == 'diff':
             documents, _ = read_arp(root)
             pairs, old_only = version_diff(documents, {e.document_id: e for e in load_approved(Path(args.source_set).read_bytes()).documents})

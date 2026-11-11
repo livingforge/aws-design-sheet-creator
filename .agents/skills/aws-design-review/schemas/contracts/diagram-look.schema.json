@@ -1,0 +1,64 @@
+{
+  "$id": "aws-design-sheet/diagram-look",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One look as its own file, diagrams/looks/<sha256>.json.",
+  "properties": {
+    "actor": {
+      "minLength": 1,
+      "title": "Actor",
+      "type": "string"
+    },
+    "contract": {
+      "const": "diagram-look/1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "ARCHITECTURE",
+        "NETWORK",
+        "SCREENSHOT",
+        "TABLE",
+        "PHOTO",
+        "LOGO",
+        "OTHER",
+        "UNVIEWABLE"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Note",
+      "type": "string"
+    },
+    "recorded_at": {
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "services": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 60,
+      "title": "Services",
+      "type": "array"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "sha256",
+    "kind",
+    "actor",
+    "recorded_at",
+    "contract"
+  ],
+  "title": "LookRecord",
+  "type": "object"
+}

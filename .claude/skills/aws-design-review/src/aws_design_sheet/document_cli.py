@@ -1,6 +1,7 @@
 """Generate a document and inspect required inputs locally; not AWS design approval."""
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -183,7 +184,21 @@ def main(argv=None):
     p.add_argument('--arp-root',type=Path,help='ARP4 project root checked against --source-set')
     p.add_argument('--review-decisions',type=Path,help='aws-design review-pack record output; unchanged OK rows leave the review pack')
     p.add_argument('--system-overview',type=Path,help='aws-design system overview checked against this input; its gaps join the review pack')
+    p.add_argument('--example',action='store_true',help='print a small 1.1 input showing every shape: cited, derived and open settings, references, composite values with $design leaves, actors, connections, notes')
+    p.add_argument('--types',nargs='?',const='',metavar='TEXT',help='list the resource types the catalog holds (those containing TEXT, case-insensitive); a type it lacks becomes an AWS_SERVICE actor')
     a=p.parse_args(argv)
+    if a.example:
+        from .input_example import EXAMPLE, NOTES
+        sys.stdout.buffer.write((json.dumps(EXAMPLE,ensure_ascii=False,indent=2)+chr(10)).encode('utf-8'));sys.stdout.flush()
+        sys.stderr.write(NOTES);return 0
+    if a.types is not None:
+        from .document_catalog import catalog
+        try:known=sorted(catalog().schemas)
+        except SchemaSetupError as exc:
+            print(json.dumps({'generation_status':'SCHEMA_SETUP_REQUIRED','message':str(exc)}));return 2
+        found=[t for t in known if a.types.casefold() in t.casefold()]
+        print(json.dumps({'catalog_types':len(known),'matching':len(found),'types':found,
+                          **({'note':'no type of the catalog contains this text: model the service as an actor of kind AWS_SERVICE and say so in issues'} if not found else {})},ensure_ascii=False));return 0
     if a.schema:
         if a.schema_version=='1.1':
             from .document_v11 import SchemaInput,SchemaDocument
@@ -212,9 +227,13 @@ def main(argv=None):
         policy_error=any(e['loc'] and e['loc'][0] in ('project_policies','policy_exceptions') for e in exc.errors(include_input=False,include_context=False))
         errors=exc.errors(include_input=False,include_context=False)
         # The input's own rules (value_error) name the IDs at fault and never a value; other errors give a location only.
-        messages=[{'loc':[str(x) for x in e['loc']],'message':e['msg'].removeprefix('Value error, ')[:300]} for e in errors if e['type']=='value_error'][:20]
+        from .contracts import MESSAGE_LENGTH,shape_errors
+        messages=[{'loc':[str(x) for x in e['loc']],'message':e['msg'].removeprefix('Value error, ')[:MESSAGE_LENGTH]} for e in errors if e['type']=='value_error'][:20]
+        # Faults of the file's shape, one row per kind: where, what the contract expects there, and how many places.
+        shapes=shape_errors(exc)
         print(json.dumps({'generation_status':'POLICY_CONFIGURATION_ERROR' if policy_error else 'STRUCTURE_ERROR','error_count':exc.error_count(),
-                          'error_types':sorted({e['type'] for e in errors}),**({'messages':messages} if messages else {})},ensure_ascii=False));return 2
+                          'error_types':sorted({e['type'] for e in errors}),**({'messages':messages} if messages else {}),
+                          **({'shape_errors':shapes} if shapes else {})},ensure_ascii=False));return 2
     except (InputError,OSError,ValueError,RecursionError):
         # No exception repr, raw source, parser excerpt or secret payload is logged.
         print(json.dumps({'generation_status':'STRUCTURE_ERROR','message':'Input or output validation failed; no source values logged.'}));return 2
