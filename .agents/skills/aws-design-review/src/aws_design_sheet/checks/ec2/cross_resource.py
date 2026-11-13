@@ -574,7 +574,12 @@ def evaluate_client_vpn_endpoint_mode(design: Design, resource: Resource) -> dic
     transit = mode_field is not None and mode_field.state == ValueState.KNOWN
     target_field = resource.field(path)
     ctx.evidence.extend(_evidence(target_field))
-    target_present = target_field is not None and target_field.state == ValueState.KNOWN
+    # A subnet given by Ref/GetAtt is held as a relation, not as a field.
+    target_links = [r for r in relations_from(design, resource.id) if r.source_path == path]
+    ctx.evidence.extend(e for r in target_links for e in r.evidence_ids)
+    if any(r.condition for r in target_links):
+        return ctx.finding(rule, path, "NEEDS_REVIEW", "target subnet is linked conditionally")
+    target_present = bool(target_links) or (target_field is not None and target_field.state == ValueState.KNOWN)
     if target_field is not None and target_field.state not in (ValueState.KNOWN, ValueState.MISSING,
                                                                ValueState.NOT_APPLICABLE):
         return ctx.finding(rule, path, "NEEDS_REVIEW", "target field is unresolved")

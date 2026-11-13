@@ -2,6 +2,7 @@
 import re
 from .context_values import linked, value
 from .field_reads import ABSENT
+from .index import relations_from
 
 CF = 'https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/'
 SOURCES = {
@@ -9,22 +10,48 @@ SOURCES = {
 }
 
 
-def vpc_membership(ctx, resource, vpc_base, rule, *, include_security_groups=True):
-    if value(ctx, resource, vpc_base) is ABSENT:
+def _paths_below(ctx, resource, base):
+    """Source paths of the resource's relations below base, relative to it."""
+    prefix = base + '/'
+    return [r.source_path[len(prefix):] for r in relations_from(ctx.design, resource.id)
+            if r.source_path.startswith(prefix)]
+
+
+def _linked_indices(ctx, resource, base):
+    """Sorted list indices under base that hold a relation (base/<n> or deeper)."""
+    return sorted({int(head) for head in (p.split('/', 1)[0] for p in _paths_below(ctx, resource, base))
+                   if head.isdigit()})
+
+
+def vpc_membership(ctx, resource, vpc_base, rule, *, include_security_groups=True,
+                   subnet_key='Subnets', security_group_key='SecurityGroups', finding_path=None,
+                   subnet_child=''):
+    """Subnets and security groups listed under vpc_base must resolve to one VPC.
+
+    vpc_base may be '/properties' for types that list them at the top level; the
+    key names default to the Subnets/SecurityGroups of a VpcConfiguration object.
+    subnet_child names the subnet inside each list item, such as '/SubnetId' of SubnetMappings.
+    """
+    if value(ctx, resource, vpc_base) is ABSENT and not _paths_below(ctx, resource, vpc_base):
         return []
     identities, pending = set(), False
-    kinds = [('Subnets', 'AWS::EC2::Subnet')]
+    kinds = [(subnet_key, 'AWS::EC2::Subnet', subnet_child)]
     if include_security_groups:
-        kinds.append(('SecurityGroups', 'AWS::EC2::SecurityGroup'))
-    for key, kind in kinds:
+        kinds.append((security_group_key, 'AWS::EC2::SecurityGroup', ''))
+    for key, kind, child in kinds:
         members = value(ctx, resource, vpc_base + '/' + key)
-        if members is ABSENT and key == 'SecurityGroups':
-            continue
+        if members is ABSENT:
+            # A list made only of references is held as relations, one per item, without a field.
+            indices = _linked_indices(ctx, resource, vpc_base + '/' + key)
+            if indices:
+                members = indices if indices == list(range(len(indices))) else None
+            elif key == security_group_key:
+                continue
         if not isinstance(members, list):
             pending = True
             continue
         for i in range(len(members)):
-            member = linked(ctx, resource, vpc_base + f'/{key}/{i}', kind)
+            member = linked(ctx, resource, vpc_base + f'/{key}/{i}' + child, kind)
             vpc = linked(ctx, member, '/properties/VpcId', 'AWS::EC2::VPC') if member else None
             if vpc:
                 identities.add(('resource', vpc.id))
@@ -39,7 +66,7 @@ def vpc_membership(ctx, resource, vpc_base, rule, *, include_security_groups=Tru
     # Different literal and logical identities might be aliases, so compare only like forms.
     conflicting = any(len({v for kind, v in identities if kind == category}) > 1 for category in ('resource', 'literal'))
     pending |= len({kind for kind, _ in identities}) > 1 or not identities
-    return [ctx.finding(rule, vpc_base,
+    return [ctx.finding(rule, finding_path or vpc_base,
         'FAIL' if conflicting else 'NEEDS_REVIEW' if pending else 'PASS',
         ('resolved subnets and security groups' if include_security_groups else 'resolved subnets')
         + ' must share a VPC; mixed logical/literal aliases require review')]

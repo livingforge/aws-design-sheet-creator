@@ -1,6 +1,6 @@
 # AWS Design Review — Agent / Skill distribution
 
-AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.11.0。生成成功と設計の承認は別の結果です。
+AWS設計書の生成、必要入力の確認、人が登録した案件方針の照合、Checkerとcfn-lintによるローカル静的評価を行う配布候補です。バージョン0.12.0。生成成功と設計の承認は別の結果です。
 
 ## 導入
 
@@ -176,6 +176,16 @@ ARP4で解析済みの外部Excelデザインシート（`extraction.json`・`do
 - 下書きで、文字のない画像を見て「構成を描かない」（ロゴ、写真など）と記録すると、その画像の `PICTURE_NOT_READ` の警告は出なくなります。`flow init` は `asks/` フォルダも作ります。
 - 設計入力の形の誤り（ID のパターン、許されない語、足りないキー・知らないキー）は、誤りの種類ごとに1行で、場所・許される形・件数を出します（`shape_errors`）。`flow run all` の結果にも出ます。
 - 設計入力の構造エラーは、設定の誤りをまとめて出します（設定ごとに1件、20件まで）。スキーマにない設定名には、近い名前の候補を出します。
+
+## AWSが受け付けない設定の検査（0.12.0）
+
+AWS Emulator の評価用テスト（実際のAWSで拒否を確かめた呼び出し）を設計の検査に照らし、本ツールの検査にも cfn-lint にも見つからず、AWSが受け付けない設定を37の規則で検査するようにしました。どれも `--evaluate` と CFN の検査で動き、結果は ERROR の FAIL です。値が決まっていないとき・参照先が設計にないときは NEEDS_REVIEW か対象外で、既定値を推測して埋めません。
+
+- リソース間の関係：ロードバランサー・DBプロキシ・HTTP API の VPC リンクのサブネットとセキュリティグループが同じ VPC にあるか、dualstack のロードバランサーのサブネットに IPv6 CIDR があるか、DBインスタンスの AvailabilityZone が DB サブネットグループのゾーンにあるか、リードレプリカの元の BackupRetentionPeriod が0でないか、同じサブネットでプライベートIPが重ならないか、同じロードバランサーのポート・同じ関数と修飾子の関数URL・同じ Client VPN ルートが重ならないか、ルートサーバーのエンドポイントが関連付けた VPC にあるか。
+- 組み合わせ：TCP・UDP の FromPort と ToPort の大小、DynamoDB の課金モードと GSI の ProvisionedThroughput、HTTPS リスナーから HTTP へのリダイレクト、ALB リスナーと TCP などのターゲットグループ、ヘルスチェックのタイムアウトと間隔、ProtocolVersion とプロトコル、ターゲットグループの属性とプロトコル、slow start・weighted_random と相いれない設定、ターゲットの ID と種類、ip ターゲットのアドレス範囲、Backup の保持日数・CloudFront の TTL の大小。
+- 値：セキュリティグループのプロトコル名と CIDR の形、IPv4 の範囲を指定した ICMPv6 のポート、CPU クレジット、ヘルスチェックのパス、NLB のアイドルタイムアウト、path-pattern の長さ、ElastiCache の UserId `default`、PostgreSQL の MasterUsername `rdsadmin`、SNS の DisplayName の長さ、Scheduler の式の形、ゲートウェイレスポンスのステータスコード、HTTP API のモデルの Schema。
+- Ref だけで書いたサブネット・セキュリティグループのリストと Client VPN の対象サブネットを、CFN から取り込んだ設計でも参照として扱うようにしました。これまでは未確定として NEEDS_REVIEW になり、Client VPN では正しい設計が FAIL になっていました。設計入力1.1から作る設計には影響しません。
+- エンジンとインスタンスクラスの組み合わせなど、AWSの最新の一覧が要る制約は検査しません。
 
 ## サンプル資料
 
